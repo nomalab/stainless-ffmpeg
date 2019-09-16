@@ -1,0 +1,91 @@
+{
+  "inputs": [
+    {
+      "id": 1,
+      "path": "tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf",
+      "streams": [
+        {
+          "kind": "audio",
+          "label": "my_audio1",
+          "index": 6
+        },
+        {
+          "kind": "audio",
+          "label": "my_audio2",
+          "index": 7
+        }
+      ]
+    }
+  ],
+  "graph": [
+    {
+      "name": "amerge",
+      "label": "amerge_filter",
+      "parameters": {
+        "inputs": 2
+      },
+      "inputs": [
+        {
+          "kind": "stream",
+          "stream_label": "my_audio1",
+          "input": 0,
+          "stream": 0
+        },
+        {
+          "kind": "stream",
+          "stream_label": "my_audio2",
+          "input": 1,
+          "stream": 0
+        }
+      ]
+    },
+    {
+      "name": "astats",
+      "label": "astats_filter",
+      "parameters": {
+        "metadata": true
+      }
+    },
+    {
+      "name": "aphasemeter",
+      "label": "aphasemeter_filter",
+      "parameters": {
+        "video": false
+      }
+    },
+    {
+      "name": "silencedetect",
+      "label": "silencedetect_filter",
+      "parameters": {}
+    },
+    {
+      "name": "aformat",
+      "label": "aformat_filter",
+      "parameters": {
+        "channel_layouts": "stereo",
+        "sample_fmts": "s32",
+        "sample_rates": "48000"
+      },
+      "outputs": [
+        {
+          "stream_label": "output1"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "kind": "audio_metadata",
+      "stream": "output1",
+      "keys": [
+        "lavfi.astats.Overall.RMS_peak",
+        "lavfi.astats.Overall.RMS_level",
+        "lavfi.astats.Overall.Peak_count",
+        "lavfi.aphasemeter.phase",
+        "lavfi.silence_start",
+        "lavfi.silence_end",
+        "lavfi.silence_duration"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "inputs": [
+    {
+      "id": 1,
+      "path": "tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf",
+      "streams": [
+        {
+          "label": "input1",
+          "index": 0
+        }
+      ]
+    }
+  ],
+  "graph": [
+    {
+      "name": "idet",
+      "label": "idet_filter",
+      "parameters": {
+      },
+      "inputs": [
+        {
+          "kind": "stream",
+          "stream_label": "input1"
+        }
+      ]
+    },
+    {
+      "name": "format",
+      "label": "format_filter",
+      "parameters": {
+        "pix_fmts": "yuv420p"
+      },
+      "outputs": [
+        {
+          "stream_label": "output1"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "kind": "video_metadata",
+      "stream": "output1",
+      "keys": [
+      ]
+    }
+  ]
+}

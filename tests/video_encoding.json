@@ -1,0 +1,143 @@
+{
+  "inputs": [
+    {
+      "id": 1,
+      "path": "tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf",
+      "streams": [
+        {
+          "label": "input1",
+          "index": 0
+        },
+        {
+          "label": "audio1",
+          "index": 1
+        },
+        {
+          "label": "audio2",
+          "index": 2
+        }
+      ]
+    }
+  ],
+  "graph": [
+    {
+      "name": "idet",
+      "label": "idet_filter",
+      "parameters": {
+      },
+      "inputs": [
+        {
+          "kind": "stream",
+          "stream_label": "input1"
+        }
+      ]
+    },
+    {
+      "name": "format",
+      "label": "format_filter",
+      "parameters": {
+        "pix_fmts": "yuv420p"
+      },
+      "outputs": [
+        {
+          "stream_label": "output1"
+        }
+      ]
+    },
+    {
+      "name": "aformat",
+      "label": "aformat_filter",
+      "parameters": {
+        "channel_layouts": "mono",
+        "sample_fmts": "s32",
+        "sample_rates": "48000"
+      },
+      "inputs": [
+        {
+          "kind": "stream",
+          "stream_label": "audio1"
+        }
+      ],
+      "outputs": [
+        {
+          "stream_label": "audio_output1"
+        }
+      ]
+    },
+    {
+      "name": "aformat",
+      "label": "aformat_filter",
+      "parameters": {
+        "channel_layouts": "mono",
+        "sample_fmts": "s32",
+        "sample_rates": "48000"
+      },
+      "inputs": [
+        {
+          "kind": "stream",
+          "stream_label": "audio2"
+        }
+      ],
+      "outputs": [
+        {
+          "stream_label": "audio_output2"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "kind": "file",
+      "path": "video_encoding.mxf",
+      "parameters": {
+      },
+      "streams": [
+        {
+          "label": "output1",
+          "codec": "mpeg2video",
+          "parameters": {
+            "sample_aspect_ratio": {
+              "num": 1,
+              "den": 1
+            },
+            "frame_rate": {
+              "num": 25,
+              "den": 1
+            },
+            "pixel_format": "yuv420p",
+            "width": 1920,
+            "height": 1080,
+            "bitrate": 50000000,
+            "gop_size": 12,
+            "max_b_frames": 2,
+            "color_range": "head"
+          }
+        },
+        {
+          "label": "audio_output1",
+          "codec": "pcm_s24le",
+          "parameters": {
+            "sample_rate": {
+              "num": 48000,
+              "den": 1
+            },
+            "sample_fmt": "s32",
+            "channel_layout": "mono"
+          }
+        },
+        {
+          "label": "audio_output2",
+          "codec": "pcm_s24le",
+          "parameters": {
+            "sample_rate": {
+              "num": 48000,
+              "den": 1
+            },
+            "sample_fmt": "s32",
+            "channel_layout": "mono"
+          }
+        }
+      ]
+    }
+  ]
+}

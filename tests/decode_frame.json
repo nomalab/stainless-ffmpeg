@@ -1,0 +1,119 @@
+{
+  "inputs": [
+    {
+      "id": 1,
+      "path": "tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf",
+      "codec": "mpeg2video",
+      "width": 1920,
+      "height": 1080,
+      "label": "input1",
+      "frames": [
+        {
+          "index": 1,
+          "offset": 132608,
+          "size": 107776
+        },
+        {
+          "index": 2,
+          "offset": 312320,
+          "size": 9216
+        },
+        {
+          "index": 3,
+          "offset": 393728,
+          "size": 13056
+        },
+        {
+          "index": 4,
+          "offset": 478720,
+          "size": 33024
+        },
+        {
+          "index": 5,
+          "offset": 583680,
+          "size": 18176
+        },
+        {
+          "index": 6,
+          "offset": 673792,
+          "size": 19456
+        },
+        {
+          "index": 7,
+          "offset": 765440,
+          "size": 15872
+        },
+        {
+          "index": 8,
+          "offset": 853504,
+          "size": 12032
+        },
+        {
+          "index": 9,
+          "offset": 937472,
+          "size": 11520
+        },
+        {
+          "index": 10,
+          "offset": 1020928,
+          "size": 14080
+        },
+        {
+          "index": 11,
+          "offset": 1106944,
+          "size": 11008
+        },
+        {
+          "index": 12,
+          "offset": 1189888,
+          "size": 9728
+        }
+      ]
+    }
+  ],
+  "graph": [
+    {
+      "name": "format",
+      "label": "format_filter",
+      "parameters": {
+        "pix_fmts": "rgb24"
+      },
+      "inputs": [
+        {
+          "kind": "stream",
+          "stream_label": "input1"
+        }
+      ],
+      "outputs": [
+        {
+          "stream_label": "output1"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "kind": "file",
+      "path": "video_encoding_%04d.png",
+      "streams": [
+        {
+          "label": "output1",
+          "codec": "png",
+          "parameters": {
+            "sample_aspect_ratio": {
+              "num": 1,
+              "den": 1
+            },
+            "frame_rate": {
+              "num": 25,
+              "den": 1
+            },
+            "pixel_format": "rgb24",
+            "width": 1920,
+            "height": 1080
+          }
+        }
+      ]
+    }
+  ]
+}
