@@ -1,0 +1,105 @@
+{
+  "inputs": [
+    {
+      "id": 1,
+      "path": "tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf",
+      "streams": [
+        {
+          "label": "my_audio1",
+          "index": 1
+        },
+        {
+          "label": "my_audio2",
+          "index": 2
+        },
+        {
+          "label": "my_audio3",
+          "index": 3
+        },
+        {
+          "label": "my_audio4",
+          "index": 4
+        },
+        {
+          "label": "my_audio5",
+          "index": 5
+        },
+        {
+          "label": "my_audio6",
+          "index": 6
+        }
+      ]
+    }
+  ],
+  "graph": [
+    {
+      "name": "amerge",
+      "label": "amerge_filter",
+      "parameters": {
+        "inputs": 6
+      },
+      "inputs": [
+        {
+          "kind": "stream",
+          "stream_label": "my_audio1"
+        },
+        {
+          "kind": "stream",
+          "stream_label": "my_audio2"
+        },
+        {
+          "kind": "stream",
+          "stream_label": "my_audio3"
+        },
+        {
+          "kind": "stream",
+          "stream_label": "my_audio4"
+        },
+        {
+          "kind": "stream",
+          "stream_label": "my_audio5"
+        },
+        {
+          "kind": "stream",
+          "stream_label": "my_audio6"
+        }
+      ]
+    },
+    {
+      "name": "aformat",
+      "label": "aformat_filter",
+      "parameters": {
+        "channel_layouts": "5.1",
+        "sample_fmts": "s32",
+        "sample_rates": "48000"
+      },
+      "outputs": [
+        {
+          "stream_label": "output1"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "kind": "file",
+      "path": "out_5.1.wav",
+      "parameters": {
+      },
+      "streams": [
+        {
+          "label": "output1",
+          "codec": "pcm_s24le",
+          "parameters": {
+            "sample_rate": {
+              "num": 48000,
+              "den": 1
+            },
+            "sample_fmt": "s32",
+            "channel_layout": "5.1"
+          }
+        }
+      ]
+    }
+  ]
+}

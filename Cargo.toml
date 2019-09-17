@@ -1,0 +1,16 @@
+[package]
+name = "stainless_ffmpeg"
+version = "0.1.0"
+authors = ["Marc-Antoine Arnaud <arnaud.marcantoine@gmail.com>", "Romane Lafon <romane@nomalab.com>"]
+
+[dependencies]
+ffmpeg-sys = { git = "https://github.com/nomalab/rust-ffmpeg-sys.git", tag = "4.0.2" }
+libc = "0.2.42"
+log = "^0.4"
+serde = "1.0.84"
+serde_derive = "1.0.84"
+serde_json = "1.0.34"
+rand = "0.6.1"
+
+[dev-dependencies]
+env_logger = "^0.6"

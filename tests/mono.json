@@ -1,0 +1,55 @@
+{
+  "inputs": [
+    {
+      "id": 1,
+      "path": "tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf",
+      "streams": [
+        {
+          "kind": "audio",
+          "label": "my_audio",
+          "index": 1
+        }
+      ]
+    }
+  ],
+  "graph": [
+    {
+      "name": "astats",
+      "label": "astats_filter",
+      "parameters": {
+        "metadata": true
+      },
+      "inputs": [
+        {
+          "kind": "stream",
+          "stream_label": "my_audio"
+        }
+      ]
+    },
+    {
+      "name": "aformat",
+      "label": "aformat_filter",
+      "parameters": {
+        "channel_layouts": "mono",
+        "sample_fmts": "s32",
+        "sample_rates": "48000"
+      },
+      "outputs": [
+        {
+          "stream_label": "output1"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "kind": "audio_metadata",
+      "stream": "output1",
+      "keys": [
+        "lavfi.astats.Overall.RMS_peak",
+        "lavfi.astats.Overall.RMS_level",
+        "lavfi.astats.Overall.Peak_count"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "inputs": [
+    {
+      "id": 1,
+      "path": "tests/sample.srt",
+      "streams": [
+        {
+          "kind": "subtitle",
+          "label": "subtitle_track",
+          "index": 0
+        }
+      ]
+    }
+  ],
+  "graph": [
+  ],
+  "outputs": [
+    {
+      "kind": "file",
+      "path": "subtitle.vtt",
+      "parameters": {
+      },
+      "streams": [
+        {
+          "label": "subtitle_track",
+          "codec": "webvtt",
+          "parameters": {
+            "frame_rate": {
+              "num": 25,
+              "den": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

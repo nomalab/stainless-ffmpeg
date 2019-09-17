@@ -1,0 +1,342 @@
+{
+  "filename": "tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf",
+  "format": {
+    "format_name": "mxf",
+    "format_long_name": "MXF (Material eXchange Format)",
+    "program_count": 0,
+    "start_time": 0.0,
+    "duration": 10.0,
+    "bit_rate": 18387411,
+    "packet_size": 0,
+    "nb_streams": 18,
+    "metadata": {
+      "timecode": "00:00:00:00",
+      "product_name": "Grass Valley Media Platform",
+      "material_package_umid": "0x060A2B340101010501010F43130000002EE62F5C5614141E7C5400B00901B339",
+      "product_uid": "caf3d2ff-9425-4086-addf-66f77967f101",
+      "company_name": "Grass Valley",
+      "modification_date": "2010-12-28T13:51:23.280000Z",
+      "product_version": "7.3.8.1432",
+      "uid": "2ee62d86-5614-141e-23e6-00b00901b339",
+      "generation_uid": "2ee62c50-5614-141e-0884-00b00901b339",
+      "operational_pattern_ul": "060e2b34.04010101.0d010201.01010900"
+    },
+    "streams": [
+      {
+        "index": 0,
+        "stream_type": "video",
+        "codec_name": "mpeg2video",
+        "codec_long_name": "MPEG-2 video",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 0,
+        "width": 1440,
+        "height": 1080,
+        "display_aspect_ratio": {
+          "num": 16,
+          "den": 9
+        },
+        "frame_rate": {
+          "num": 25,
+          "den": 1
+        },
+        "level": 4,
+        "profile": "Main",
+        "scanning_type": "interlaced",
+        "chroma_subsampling": "4:2:0",
+        "timecode": null,
+        "pix_fmt":"yuv420p",
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Video Track #1"
+        }
+      },
+      {
+        "index": 1,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #1"
+        }
+      },
+      {
+        "index": 2,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #2"
+        }
+      },
+      {
+        "index": 3,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #3"
+        }
+      },
+      {
+        "index": 4,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #4"
+        }
+      },
+      {
+        "index": 5,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #5"
+        }
+      },
+      {
+        "index": 6,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #6"
+        }
+      },
+      {
+        "index": 7,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #7"
+        }
+      },
+      {
+        "index": 8,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #8"
+        }
+      },
+      {
+        "index": 9,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #9"
+        }
+      },
+      {
+        "index": 10,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #10"
+        }
+      },
+      {
+        "index": 11,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #11"
+        }
+      },
+      {
+        "index": 12,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #12"
+        }
+      },
+      {
+        "index": 13,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #13"
+        }
+      },
+      {
+        "index": 14,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #14"
+        }
+      },
+      {
+        "index": 15,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #15"
+        }
+      },
+      {
+        "index": 16,
+        "stream_type": "audio",
+        "codec_name": "pcm_s16le",
+        "codec_long_name": "PCM signed 16-bit little-endian",
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 768000,
+        "channels": 1,
+        "sample_rate": 48000,
+        "sample_fmt": "s16",
+        "bits_per_sample": 16,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Audio Track #16"
+        }
+      },
+      {
+        "index": 17,
+        "stream_type": "data",
+        "codec_name": null,
+        "codec_long_name": null,
+        "start_time": 0.0,
+        "duration": 10.0,
+        "bit_rate": 0,
+        "stream_metadata": {
+          "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
+          "track_name": "Material Package: Data Track #1",
+          "data_type": "vbi_vanc_smpte_436M"
+        }
+      }
+    ]
+  }
+}
