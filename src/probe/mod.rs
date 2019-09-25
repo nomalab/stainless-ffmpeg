@@ -1,5 +1,5 @@
 
-use ffmpeg_sys::*;
+use stainless_ffmpeg_sys::*;
 use format_context::FormatContext;
 use log::LevelFilter;
 use std::collections::HashMap;

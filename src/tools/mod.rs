@@ -1,4 +1,8 @@
-use ffmpeg_sys;
+use stainless_ffmpeg_sys::{
+  avcodec_find_encoder_by_name,
+  AVCodec,
+  AVMediaType
+};
 use rand::thread_rng;
 use rand::prelude::SliceRandom;
 use std::ffi::CStr;
@@ -35,17 +39,17 @@ pub fn random_string(length: usize) -> String {
   String::from_utf8(result).unwrap()
 }
 
-pub fn get_codec(codec_name: &str) -> *mut ffmpeg_sys::AVCodec {
+pub fn get_codec(codec_name: &str) -> *mut AVCodec {
   unsafe {
     let cs_codec_name = CString::new(codec_name).unwrap();
-    ffmpeg_sys::avcodec_find_encoder_by_name(cs_codec_name.as_ptr())
+    avcodec_find_encoder_by_name(cs_codec_name.as_ptr())
   }
 }
 
-pub fn get_codec_type(codec_name: &str) -> Option<ffmpeg_sys::AVMediaType> {
+pub fn get_codec_type(codec_name: &str) -> Option<AVMediaType> {
   unsafe {
     let cs_codec_name = CString::new(codec_name).unwrap();
-    let codec = ffmpeg_sys::avcodec_find_encoder_by_name(cs_codec_name.as_ptr());
+    let codec = avcodec_find_encoder_by_name(cs_codec_name.as_ptr());
     if codec.is_null() {
       return None;
     }

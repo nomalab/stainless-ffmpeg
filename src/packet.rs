@@ -1,5 +1,7 @@
-use ffmpeg_sys::AVPacket;
-use ffmpeg_sys::av_packet_free;
+use stainless_ffmpeg_sys::{
+  AVPacket,
+  av_packet_free
+};
 
 pub struct Packet {
   pub name: Option<String>,

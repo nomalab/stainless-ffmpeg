@@ -1,4 +1,4 @@
-use ffmpeg_sys::*;
+use stainless_ffmpeg_sys::*;
 use order::output_kind::OutputKind;
 use order::parameters::ParameterValue;
 use std::collections::HashMap;

@@ -1,5 +1,5 @@
 use audio_decoder::AudioDecoder;
-use ffmpeg_sys::AVMediaType;
+use stainless_ffmpeg_sys::AVMediaType;
 use filter_graph::FilterGraph;
 use format_context::FormatContext;
 use order::input::Input;
