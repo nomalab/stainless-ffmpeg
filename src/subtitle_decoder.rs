@@ -1,4 +1,4 @@
-use ffmpeg_sys::*;
+use stainless_ffmpeg_sys::*;
 use format_context::FormatContext;
 use tools;
 

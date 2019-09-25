@@ -1,5 +1,5 @@
 
-use ffmpeg_sys::*;
+use stainless_ffmpeg_sys::*;
 use std::mem::swap;
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]

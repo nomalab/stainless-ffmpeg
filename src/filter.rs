@@ -1,5 +1,5 @@
-use ffmpeg_sys::AVOptionType::*;
-use ffmpeg_sys::*;
+use stainless_ffmpeg_sys::AVOptionType::*;
+use stainless_ffmpeg_sys::*;
 use std::ffi::CString;
 use std::fmt;
 use std::ptr::null_mut;

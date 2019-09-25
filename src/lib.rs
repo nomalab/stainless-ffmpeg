@@ -1,4 +1,4 @@
-extern crate ffmpeg_sys;
+extern crate stainless_ffmpeg_sys;
 extern crate libc;
 #[macro_use]
 extern crate log;

@@ -1,12 +1,15 @@
 extern crate env_logger;
-extern crate ffmpeg_sys;
+extern crate stainless_ffmpeg_sys;
 #[macro_use]
 extern crate log;
 extern crate serde_json;
 extern crate stainless_ffmpeg;
 
 use env_logger::{Builder, Env};
-use ffmpeg_sys::*;
+use stainless_ffmpeg_sys::{
+  av_log_set_level,
+  AV_LOG_ERROR
+};
 use std::env;
 use std::fs::File;
 use std::io::Read;

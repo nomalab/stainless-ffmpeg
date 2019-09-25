@@ -1,4 +1,4 @@
-use ffmpeg_sys::*;
+use stainless_ffmpeg_sys::*;
 use frame::Frame;
 use order::output::{ColorRange, Colorspace, OutputStream, PixelFormat};
 use order::parameters::ParameterValue;

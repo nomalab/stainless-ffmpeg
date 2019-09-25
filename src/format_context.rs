@@ -1,5 +1,5 @@
 use audio_encoder::AudioEncoder;
-use ffmpeg_sys::*;
+use stainless_ffmpeg_sys::*;
 use packet::Packet;
 use std::collections::HashMap;
 use std::ffi::CString;

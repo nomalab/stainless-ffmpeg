@@ -1,4 +1,4 @@
-use ffmpeg_sys::*;
+use stainless_ffmpeg_sys::*;
 use frame::Frame;
 use order::output::{ChannelLayout, OutputStream, SampleFormat};
 use order::parameters::ParameterValue;

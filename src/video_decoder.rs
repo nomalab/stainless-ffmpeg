@@ -1,4 +1,4 @@
-use ffmpeg_sys::*;
+use stainless_ffmpeg_sys::*;
 use std::ptr::null_mut;
 use std::ffi::CString;
 

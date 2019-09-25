@@ -1,5 +1,5 @@
 
-use ffmpeg_sys::*;
+use stainless_ffmpeg_sys::*;
 use libc::c_void;
 use std::collections::HashMap;
 use std::ffi::CString;
