@@ -48,7 +48,7 @@ cache:
   cargo: true
 
 before_script:
-  - sudo snap install ffmpeg
+  - sudo snap install ffmpeg ffmpeg-dev
 
 before_cache:
   # Travis can't cache files that are not readable by "others"
