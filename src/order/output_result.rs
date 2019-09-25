@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use packet::Packet;
+use std::collections::HashMap;
 
 pub enum OutputResult {
   Entry(HashMap<String, String>),

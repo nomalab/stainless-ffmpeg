@@ -1,6 +1,6 @@
-use stainless_ffmpeg_sys::*;
 use order::output_kind::OutputKind;
 use order::parameters::ParameterValue;
+use stainless_ffmpeg_sys::*;
 use std::collections::HashMap;
 use std::str::FromStr;
 

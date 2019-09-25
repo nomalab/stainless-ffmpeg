@@ -295,7 +295,7 @@ impl fmt::Display for Filter {
       writeln!(f, "{} ({})", filter_name, filter_label)?;
 
       dump_options(filter, (*filter).av_class, f);
-      if ! (*(*filter).filter).priv_class.is_null() {
+      if !(*(*filter).filter).priv_class.is_null() {
         dump_options(filter, (*(*filter).filter).priv_class, f);
       }
 

@@ -54,7 +54,7 @@ impl Order {
       total_streams: 0,
       input_formats: vec![],
       output_formats: vec![],
-      filter_graph: FilterGraph::new()?
+      filter_graph: FilterGraph::new()?,
     })
   }
 
@@ -117,10 +117,7 @@ impl Order {
                 for decoder in &format.video_decoders {
                   let packet = null_mut();
 
-                  let p = Packet {
-                    name: None,
-                    packet
-                  };
+                  let p = Packet { name: None, packet };
 
                   if let Ok(frame) = decoder.decode(&p) {
                     video_frames.push(frame);
@@ -180,7 +177,6 @@ impl Order {
         }
 
         for output_frame in output_video_frames {
-          
           for output in &self.outputs {
             if let Some(OutputKind::VideoMetadata) = output.kind {
               let mut entry = HashMap::new();
@@ -220,11 +216,10 @@ impl Order {
   fn build_output_format(&mut self) -> Result<(), String> {
     for output in &self.outputs {
       match output.kind {
-        Some(OutputKind::File) |
-        Some(OutputKind::Packet) => {
+        Some(OutputKind::File) | Some(OutputKind::Packet) => {
           let encoder = EncoderFormat::new(&mut self.filter_graph, &output)?;
           self.output_formats.push(encoder);
-        },
+        }
         Some(OutputKind::AudioMetadata) => {
           if let Some(ref identifier) = output.stream {
             self.filter_graph.add_audio_output(identifier)?;
@@ -305,15 +300,15 @@ impl Order {
 
 #[test]
 fn parse_sample_audio_encoding_graph() {
-  use serde_json;
-  use std::io::Read;
-  use std::fs::File;
-  use order::ParameterValue;
   use order::filter_output::FilterOutput;
-  use order::stream::Stream;
   use order::input_kind::InputKind;
   use order::output::OutputStream;
   use order::output_kind::OutputKind;
+  use order::stream::Stream;
+  use order::ParameterValue;
+  use serde_json;
+  use std::fs::File;
+  use std::io::Read;
   use tools::rational::Rational;
 
   let mut file = File::open("tests/audio_encoding.json").unwrap();
@@ -321,87 +316,102 @@ fn parse_sample_audio_encoding_graph() {
   let mut contents = "".to_string();
   file.read_to_string(&mut contents).unwrap();
 
-  let order : Order = serde_json::from_str(&contents).unwrap();
+  let order: Order = serde_json::from_str(&contents).unwrap();
 
   let input_channels = ParameterValue::Int64(2);
-  let mut amerge_params : HashMap<String, ParameterValue> = HashMap::new();
+  let mut amerge_params: HashMap<String, ParameterValue> = HashMap::new();
   amerge_params.insert("inputs".to_string(), input_channels);
 
   let sample_fmts = ParameterValue::String("s32".to_string());
   let sample_rates = ParameterValue::String("48000".to_string());
   let channel_layouts = ParameterValue::String("stereo".to_string());
-  let mut aformat_params : HashMap<String, ParameterValue> = HashMap::new();
+  let mut aformat_params: HashMap<String, ParameterValue> = HashMap::new();
   aformat_params.insert("sample_fmts".to_string(), sample_fmts.clone());
   aformat_params.insert("sample_rates".to_string(), sample_rates);
   aformat_params.insert("channel_layouts".to_string(), channel_layouts);
 
   let sample_rate = ParameterValue::Rational(Rational { num: 48000, den: 1 });
-  let mut output_params : HashMap<String, ParameterValue> = HashMap::new();
+  let mut output_params: HashMap<String, ParameterValue> = HashMap::new();
   output_params.insert("sample_fmt".to_string(), sample_fmts);
   output_params.insert("sample_rate".to_string(), sample_rate);
 
-  assert_eq!(vec![
-    Input::Streams {
+  assert_eq!(
+    vec![Input::Streams {
       id: 1,
       path: "tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf".to_string(),
       streams: vec![
-        Stream { index: 1, label: Some("my_audio1".to_string()) },
-        Stream { index: 7, label: Some("my_audio2".to_string()) }
+        Stream {
+          index: 1,
+          label: Some("my_audio1".to_string())
+        },
+        Stream {
+          index: 7,
+          label: Some("my_audio2".to_string())
+        }
       ]
-    }
-  ], order.inputs);
+    }],
+    order.inputs
+  );
 
-  assert_eq!(vec![
-    Output {
+  assert_eq!(
+    vec![Output {
       kind: Some(OutputKind::File),
       keys: vec![],
       path: Some("out.wav".to_string()),
       stream: None,
       parameters: HashMap::new(),
-      streams: vec![
-        OutputStream {
-          label: Some("output1".to_string()),
-          codec: "pcm_s24le".to_string(),
-          parameters: output_params
-        }
-      ]
-    }
-  ], order.outputs);
+      streams: vec![OutputStream {
+        label: Some("output1".to_string()),
+        codec: "pcm_s24le".to_string(),
+        parameters: output_params
+      }]
+    }],
+    order.outputs
+  );
 
-  assert_eq!(vec![
-    Filter {
-      name: "amerge".to_string(),
-      label: Some("amerge_filter".to_string()),
-      parameters: amerge_params,
-      inputs: Some(vec![
-        FilterInput { kind: InputKind::Stream, stream_label: "my_audio1".to_string() },
-        FilterInput { kind: InputKind::Stream, stream_label: "my_audio2".to_string() }
-      ]),
-      outputs: None
-    },
-    Filter {
-      name: "aformat".to_string(),
-      label: Some("aformat_filter".to_string()),
-      parameters: aformat_params,
-      inputs: None,
-      outputs: Some(vec![
-        FilterOutput { stream_label: "output1".to_string() }
-      ])
-    }
-  ], order.graph);
+  assert_eq!(
+    vec![
+      Filter {
+        name: "amerge".to_string(),
+        label: Some("amerge_filter".to_string()),
+        parameters: amerge_params,
+        inputs: Some(vec![
+          FilterInput {
+            kind: InputKind::Stream,
+            stream_label: "my_audio1".to_string()
+          },
+          FilterInput {
+            kind: InputKind::Stream,
+            stream_label: "my_audio2".to_string()
+          }
+        ]),
+        outputs: None
+      },
+      Filter {
+        name: "aformat".to_string(),
+        label: Some("aformat_filter".to_string()),
+        parameters: aformat_params,
+        inputs: None,
+        outputs: Some(vec![FilterOutput {
+          stream_label: "output1".to_string()
+        }])
+      }
+    ],
+    order.graph
+  );
 }
 
 #[test]
 fn parse_sample_video_encoding_graph() {
-  use serde_json;
-  use std::io::Read;
-  use std::fs::File;
-  use order::ParameterValue;
   use order::filter_output::FilterOutput;
-  use order::stream::Stream;
   use order::input_kind::InputKind;
   use order::output::OutputStream;
   use order::output_kind::OutputKind;
+  use order::stream::Stream;
+  use order::ParameterValue;
+  use serde_json;
+  use std::fs::File;
+  use std::io::Read;
   use tools::rational::Rational;
 
   let mut file = File::open("tests/video_encoding.json").unwrap();
@@ -409,23 +419,23 @@ fn parse_sample_video_encoding_graph() {
   let mut contents = "".to_string();
   file.read_to_string(&mut contents).unwrap();
 
-  let order : Order = serde_json::from_str(&contents).unwrap();
+  let order: Order = serde_json::from_str(&contents).unwrap();
 
-  let idet_params : HashMap<String, ParameterValue> = HashMap::new();
+  let idet_params: HashMap<String, ParameterValue> = HashMap::new();
 
   let pix_fmts = ParameterValue::String("yuv420p".to_string());
-  let mut format_params : HashMap<String, ParameterValue> = HashMap::new();
+  let mut format_params: HashMap<String, ParameterValue> = HashMap::new();
   format_params.insert("pix_fmts".to_string(), pix_fmts.clone());
 
   let sample_fmts = ParameterValue::String("s32".to_string());
   let sample_rates = ParameterValue::String("48000".to_string());
   let channel_layouts = ParameterValue::String("mono".to_string());
-  let mut aformat_1_params : HashMap<String, ParameterValue> = HashMap::new();
+  let mut aformat_1_params: HashMap<String, ParameterValue> = HashMap::new();
   aformat_1_params.insert("sample_fmts".to_string(), sample_fmts.clone());
   aformat_1_params.insert("sample_rates".to_string(), sample_rates.clone());
   aformat_1_params.insert("channel_layouts".to_string(), channel_layouts.clone());
 
-  let mut aformat_2_params : HashMap<String, ParameterValue> = HashMap::new();
+  let mut aformat_2_params: HashMap<String, ParameterValue> = HashMap::new();
   aformat_2_params.insert("sample_fmts".to_string(), sample_fmts.clone());
   aformat_2_params.insert("sample_rates".to_string(), sample_rates);
   aformat_2_params.insert("channel_layouts".to_string(), channel_layouts.clone());
@@ -438,7 +448,7 @@ fn parse_sample_video_encoding_graph() {
   let max_b_frames = ParameterValue::Int64(2);
   let color_range = ParameterValue::String("head".to_string());
   let sample_aspect_ratio = ParameterValue::Rational(Rational { num: 1, den: 1 });
-  let mut output_video_params : HashMap<String, ParameterValue> = HashMap::new();
+  let mut output_video_params: HashMap<String, ParameterValue> = HashMap::new();
   output_video_params.insert("frame_rate".to_string(), frame_rate);
   output_video_params.insert("pixel_format".to_string(), pix_fmts);
   output_video_params.insert("width".to_string(), width);
@@ -450,30 +460,40 @@ fn parse_sample_video_encoding_graph() {
   output_video_params.insert("sample_aspect_ratio".to_string(), sample_aspect_ratio);
 
   let sample_rate = ParameterValue::Rational(Rational { num: 48000, den: 1 });
-  let mut output_audio1_params : HashMap<String, ParameterValue> = HashMap::new();
+  let mut output_audio1_params: HashMap<String, ParameterValue> = HashMap::new();
   output_audio1_params.insert("sample_rate".to_string(), sample_rate.clone());
   output_audio1_params.insert("sample_fmt".to_string(), sample_fmts.clone());
   output_audio1_params.insert("channel_layout".to_string(), channel_layouts.clone());
 
-  let mut output_audio2_params : HashMap<String, ParameterValue> = HashMap::new();
+  let mut output_audio2_params: HashMap<String, ParameterValue> = HashMap::new();
   output_audio2_params.insert("sample_rate".to_string(), sample_rate);
   output_audio2_params.insert("sample_fmt".to_string(), sample_fmts);
   output_audio2_params.insert("channel_layout".to_string(), channel_layouts);
 
-  assert_eq!(vec![
-    Input::Streams {
+  assert_eq!(
+    vec![Input::Streams {
       id: 1,
       path: "tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf".to_string(),
       streams: vec![
-        Stream { index: 0, label: Some("input1".to_string()) },
-        Stream { index: 1, label: Some("audio1".to_string()) },
-        Stream { index: 2, label: Some("audio2".to_string()) }
+        Stream {
+          index: 0,
+          label: Some("input1".to_string())
+        },
+        Stream {
+          index: 1,
+          label: Some("audio1".to_string())
+        },
+        Stream {
+          index: 2,
+          label: Some("audio2".to_string())
+        }
       ]
-    }
-  ], order.inputs);
+    }],
+    order.inputs
+  );
 
-  assert_eq!(vec![
-    Output {
+  assert_eq!(
+    vec![Output {
       kind: Some(OutputKind::File),
       keys: vec![],
       path: Some("video_encoding.mxf".to_string()),
@@ -496,49 +516,56 @@ fn parse_sample_video_encoding_graph() {
           parameters: output_audio2_params
         }
       ]
-    }
-  ], order.outputs);
+    }],
+    order.outputs
+  );
 
-  assert_eq!(vec![
-    Filter {
-      name: "idet".to_string(),
-      label: Some("idet_filter".to_string()),
-      parameters: idet_params,
-      inputs: Some(vec![
-        FilterInput {kind: InputKind::Stream, stream_label: "input1".to_string() }
-      ]),
-      outputs: None
-    },
-    Filter {
-      name: "format".to_string(),
-      label: Some("format_filter".to_string()),
-      parameters: format_params,
-      inputs: None,
-      outputs: Some(vec![
-        FilterOutput { stream_label: "output1".to_string() }
-      ])
-    },
-    Filter {
-      name: "aformat".to_string(),
-      label: Some("aformat_filter".to_string()),
-      parameters: aformat_1_params,
-      inputs: Some(vec![
-        FilterInput { kind: InputKind::Stream, stream_label: "audio1".to_string() }
-      ]),
-      outputs: Some(vec![
-        FilterOutput { stream_label: "audio_output1".to_string() }
-      ])
-    },
-    Filter {
-      name: "aformat".to_string(),
-      label: Some("aformat_filter".to_string()),
-      parameters: aformat_2_params,
-      inputs: Some(vec![
-        FilterInput { kind: InputKind::Stream, stream_label: "audio2".to_string() }
-      ]),
-      outputs: Some(vec![
-        FilterOutput { stream_label: "audio_output2".to_string() }
-      ])
-    }
-  ], order.graph);
+  assert_eq!(
+    vec![
+      Filter {
+        name: "idet".to_string(),
+        label: Some("idet_filter".to_string()),
+        parameters: idet_params,
+        inputs: Some(vec![FilterInput {
+          kind: InputKind::Stream,
+          stream_label: "input1".to_string()
+        }]),
+        outputs: None
+      },
+      Filter {
+        name: "format".to_string(),
+        label: Some("format_filter".to_string()),
+        parameters: format_params,
+        inputs: None,
+        outputs: Some(vec![FilterOutput {
+          stream_label: "output1".to_string()
+        }])
+      },
+      Filter {
+        name: "aformat".to_string(),
+        label: Some("aformat_filter".to_string()),
+        parameters: aformat_1_params,
+        inputs: Some(vec![FilterInput {
+          kind: InputKind::Stream,
+          stream_label: "audio1".to_string()
+        }]),
+        outputs: Some(vec![FilterOutput {
+          stream_label: "audio_output1".to_string()
+        }])
+      },
+      Filter {
+        name: "aformat".to_string(),
+        label: Some("aformat_filter".to_string()),
+        parameters: aformat_2_params,
+        inputs: Some(vec![FilterInput {
+          kind: InputKind::Stream,
+          stream_label: "audio2".to_string()
+        }]),
+        outputs: Some(vec![FilterOutput {
+          stream_label: "audio_output2".to_string()
+        }])
+      }
+    ],
+    order.graph
+  );
 }

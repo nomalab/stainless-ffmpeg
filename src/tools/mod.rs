@@ -1,10 +1,6 @@
-use stainless_ffmpeg_sys::{
-  avcodec_find_encoder_by_name,
-  AVCodec,
-  AVMediaType
-};
-use rand::thread_rng;
 use rand::prelude::SliceRandom;
+use rand::thread_rng;
+use stainless_ffmpeg_sys::{avcodec_find_encoder_by_name, AVCodec, AVMediaType};
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
@@ -56,5 +52,3 @@ pub fn get_codec_type(codec_name: &str) -> Option<AVMediaType> {
     Some((*codec).type_)
   }
 }
-
-

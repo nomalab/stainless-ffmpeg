@@ -1,5 +1,5 @@
-use order::stream::Stream;
 use order::frame::FrameAddress;
+use order::stream::Stream;
 
 #[derive(Debug, PartialEq, Deserialize)]
 #[serde(untagged)]

@@ -1,10 +1,10 @@
 use stainless_ffmpeg_sys::*;
-use tools;
-use tools::rational::Rational;
 use std::char;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::ptr::null_mut;
+use tools;
+use tools::rational::Rational;
 
 #[derive(Clone)]
 pub struct Stream {
@@ -68,7 +68,7 @@ impl Stream {
         "apcn" => Some("422".to_string()),
         "apcs" => Some("422 LT".to_string()),
         "apco" => Some("422 Proxy".to_string()),
-        _ => None
+        _ => None,
       }
     }
   }
@@ -112,8 +112,10 @@ impl Stream {
           .reduce()
         } else {
           Rational {
-            num: (*(*self.stream).codecpar).width * (*(*self.stream).codecpar).sample_aspect_ratio.num,
-            den: (*(*self.stream).codecpar).height * (*(*self.stream).codecpar).sample_aspect_ratio.den,
+            num: (*(*self.stream).codecpar).width
+              * (*(*self.stream).codecpar).sample_aspect_ratio.num,
+            den: (*(*self.stream).codecpar).height
+              * (*(*self.stream).codecpar).sample_aspect_ratio.den,
           }
           .reduce()
         }

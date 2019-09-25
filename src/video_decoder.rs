@@ -1,6 +1,6 @@
 use stainless_ffmpeg_sys::*;
-use std::ptr::null_mut;
 use std::ffi::CString;
+use std::ptr::null_mut;
 
 use format_context::FormatContext;
 use frame::Frame;

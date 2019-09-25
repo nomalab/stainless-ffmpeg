@@ -1,7 +1,6 @@
-
-use stainless_ffmpeg_sys::*;
 use format_context::FormatContext;
 use log::LevelFilter;
+use stainless_ffmpeg_sys::*;
 use std::collections::HashMap;
 use std::fmt;
 use stream::Stream;
@@ -69,8 +68,7 @@ pub struct AudioProperties {
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
-pub struct SubtitleProperties {
-}
+pub struct SubtitleProperties {}
 
 impl fmt::Display for Format {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -144,15 +142,14 @@ impl Probe {
   }
 
   pub fn process(&mut self, log_level: LevelFilter) -> Result<(), String> {
-    let av_log_level =
-      match log_level {
-        LevelFilter::Error => AV_LOG_ERROR,
-        LevelFilter::Warn => AV_LOG_WARNING,
-        LevelFilter::Info => AV_LOG_INFO,
-        LevelFilter::Debug => AV_LOG_DEBUG,
-        LevelFilter::Trace => AV_LOG_TRACE,
-        LevelFilter::Off => AV_LOG_QUIET,
-      };
+    let av_log_level = match log_level {
+      LevelFilter::Error => AV_LOG_ERROR,
+      LevelFilter::Warn => AV_LOG_WARNING,
+      LevelFilter::Info => AV_LOG_INFO,
+      LevelFilter::Debug => AV_LOG_DEBUG,
+      LevelFilter::Trace => AV_LOG_TRACE,
+      LevelFilter::Off => AV_LOG_QUIET,
+    };
 
     unsafe {
       av_log_set_level(av_log_level);
@@ -281,6 +278,6 @@ fn probe_mxf_sample() {
   let mut contents = String::new();
   file.read_to_string(&mut contents).unwrap();
 
-  let reference : Probe = serde_json::from_str(&contents).unwrap();
+  let reference: Probe = serde_json::from_str(&contents).unwrap();
   assert_eq!(probe, reference);
 }

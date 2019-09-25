@@ -1,11 +1,11 @@
 use audio_encoder::AudioEncoder;
-use stainless_ffmpeg_sys::*;
 use filter_graph::FilterGraph;
 use format_context::FormatContext;
 use frame::Frame;
 use order::output::Output;
 use order::output_kind::OutputKind;
 use packet::Packet;
+use stainless_ffmpeg_sys::*;
 use std::ffi::CString;
 use std::ptr::null_mut;
 use subtitle_encoder::SubtitleEncoder;
@@ -18,7 +18,7 @@ pub struct EncoderFormat {
   pub audio_encoders: Vec<AudioEncoder>,
   pub subtitle_encoders: Vec<SubtitleEncoder>,
   pub video_encoders: Vec<VideoEncoder>,
-  wrap: bool
+  wrap: bool,
 }
 
 impl Drop for EncoderFormat {
@@ -88,7 +88,7 @@ impl EncoderFormat {
       audio_encoders,
       subtitle_encoders,
       video_encoders,
-      wrap: output.kind == Some(OutputKind::File)
+      wrap: output.kind == Some(OutputKind::File),
     })
   }
 
@@ -98,7 +98,10 @@ impl EncoderFormat {
         if subtitle_encoder.identifier == *name {
           unsafe {
             (*packet.packet).stream_index = subtitle_encoder.stream_index as i32;
-            check_result!(av_interleaved_write_frame(self.context.format_context, packet.packet));
+            check_result!(av_interleaved_write_frame(
+              self.context.format_context,
+              packet.packet
+            ));
           }
         }
       }
@@ -124,7 +127,10 @@ impl EncoderFormat {
             if status {
               if self.wrap {
                 (*packet).stream_index = audio_encoder.stream_index as i32;
-                check_result!(av_interleaved_write_frame(self.context.format_context, packet));
+                check_result!(av_interleaved_write_frame(
+                  self.context.format_context,
+                  packet
+                ));
               } else {
                 r_packet = Some(p);
               }
@@ -147,9 +153,11 @@ impl EncoderFormat {
             if status {
               if self.wrap {
                 (*packet).stream_index = video_encoder.stream_index as i32;
-                check_result!(av_interleaved_write_frame(self.context.format_context, packet));
-              }
-              else {
+                check_result!(av_interleaved_write_frame(
+                  self.context.format_context,
+                  packet
+                ));
+              } else {
                 r_packet = Some(p);
               }
             }

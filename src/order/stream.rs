@@ -1,4 +1,3 @@
-
 #[derive(Debug, PartialEq, Deserialize)]
 pub struct Stream {
   pub index: u32,

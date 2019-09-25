@@ -1,14 +1,14 @@
 use audio_encoder::AudioEncoder;
-use stainless_ffmpeg_sys::*;
+use order::frame::FrameAddress;
+use order::*;
 use packet::Packet;
+use stainless_ffmpeg_sys::*;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::ptr::null_mut;
 use subtitle_encoder::SubtitleEncoder;
 use tools;
 use video_encoder::VideoEncoder;
-use order::frame::FrameAddress;
-use order::*;
 
 use std::ffi::c_void;
 
@@ -18,7 +18,7 @@ pub struct FormatContext {
   pub format_context: *mut AVFormatContext,
   streams: Vec<*mut AVStream>,
   frames: Vec<FrameAddress>,
-  frame_index: usize
+  frame_index: usize,
 }
 
 impl FormatContext {
@@ -60,7 +60,10 @@ impl FormatContext {
     }
   }
 
-  pub fn open_output(&mut self, parameters: &HashMap<String, ParameterValue>) -> Result<(), String> {
+  pub fn open_output(
+    &mut self,
+    parameters: &HashMap<String, ParameterValue>,
+  ) -> Result<(), String> {
     unsafe {
       let filename = CString::new(self.filename.to_owned());
 
@@ -226,8 +229,12 @@ impl FormatContext {
       let frame = &self.frames[self.frame_index];
       unsafe {
         let filename = CString::new(self.filename.to_owned());
-        let mut avio_context : *mut AVIOContext = null_mut();
-        check_result!(avio_open(&mut avio_context, filename.unwrap().as_ptr(), AVIO_FLAG_READ));
+        let mut avio_context: *mut AVIOContext = null_mut();
+        check_result!(avio_open(
+          &mut avio_context,
+          filename.unwrap().as_ptr(),
+          AVIO_FLAG_READ
+        ));
         if avio_seek(avio_context, frame.offset as i64, 0) < 0 {
           println!("ERROR !");
         };
@@ -239,10 +246,7 @@ impl FormatContext {
 
         self.frame_index += 1;
 
-        return Ok(Packet {
-          name: None,
-          packet
-        });
+        return Ok(Packet { name: None, packet });
       }
     }
 
@@ -254,10 +258,7 @@ impl FormatContext {
         return Err("Unable to read next packet".to_string());
       }
 
-      Ok(Packet {
-        name: None,
-        packet
-      })
+      Ok(Packet { name: None, packet })
     }
   }
 }

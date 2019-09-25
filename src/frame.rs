@@ -1,8 +1,4 @@
-use stainless_ffmpeg_sys::{
-  av_dict_get,
-  av_frame_free,
-  AVFrame
-};
+use stainless_ffmpeg_sys::{av_dict_get, av_frame_free, AVFrame};
 use std::ffi::CString;
 use std::ptr::null_mut;
 use tools;

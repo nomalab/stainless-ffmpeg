@@ -1,4 +1,3 @@
-
 use stainless_ffmpeg_sys::*;
 use std::mem::swap;
 

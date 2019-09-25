@@ -1,5 +1,5 @@
-use stainless_ffmpeg_sys::*;
 use format_context::FormatContext;
+use stainless_ffmpeg_sys::*;
 use tools;
 
 #[derive(Debug)]
@@ -32,7 +32,7 @@ impl SubtitleDecoder {
       Ok(SubtitleDecoder {
         identifier,
         stream_index,
-        codec_context
+        codec_context,
       })
     }
   }
