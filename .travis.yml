@@ -48,7 +48,9 @@ cache:
   cargo: true
 
 before_script:
-  - sudo snap install ffmpeg ffmpeg-devel
+  - sudo add-apt-repository ppa:jonathonf/ffmpeg-4
+  - sudo apt-get update
+  - sudo apt-get install ffmpeg
 
 before_cache:
   # Travis can't cache files that are not readable by "others"
