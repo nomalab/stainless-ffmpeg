@@ -10,8 +10,9 @@ rust:
 
 matrix:
   allow_failures:
-    - rust: nightly
-    - env: ALLOW_FAILURE=TRUE
+    - rust:
+        - nightly
+        - beta
 
   include:
     # Rustfmt
