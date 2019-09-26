@@ -13,6 +13,7 @@ matrix:
     - rust:
         - nightly
         - beta
+    - env: ALLOW_FAILURE=TRUE
 
   include:
     # Rustfmt
