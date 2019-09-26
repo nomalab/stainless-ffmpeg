@@ -41,25 +41,22 @@ impl ParameterValue {
         let mut ch_layout = [0i8; 64];
         unsafe {
           av_get_channel_layout_string(ch_layout.as_mut_ptr(), 64, 0, *data);
-          self.set_parameter(context, &key, ch_layout.as_ptr())
         }
+        self.set_parameter(context, &key, ch_layout.as_ptr())
       }
     }
   }
 
-  unsafe fn set_parameter(
-    &self,
-    context: *mut c_void,
-    key: &str,
-    value: *const i8,
-  ) -> Result<(), String> {
+  fn set_parameter(&self, context: *mut c_void, key: &str, value: *const i8) -> Result<(), String> {
     let key_str = CString::new(key).unwrap();
-    check_result!(av_opt_set(
-      context,
-      key_str.as_ptr(),
-      value,
-      AV_OPT_SEARCH_CHILDREN
-    ));
+    unsafe {
+      check_result!(av_opt_set(
+        context,
+        key_str.as_ptr(),
+        value,
+        AV_OPT_SEARCH_CHILDREN
+      ));
+    }
     Ok(())
   }
 

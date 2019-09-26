@@ -3,7 +3,7 @@ use order::frame::FrameAddress;
 use order::*;
 use packet::Packet;
 use stainless_ffmpeg_sys::*;
-use std::collections::{HashMap, BTreeMap};
+use std::collections::{BTreeMap, HashMap};
 use std::ffi::CString;
 use std::ptr::null_mut;
 use subtitle_encoder::SubtitleEncoder;

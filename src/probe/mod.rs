@@ -1,7 +1,7 @@
 use format_context::FormatContext;
 use log::LevelFilter;
 use stainless_ffmpeg_sys::*;
-use std::collections::{HashMap, BTreeMap};
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use stream::Stream;
 use tools::rational::Rational;

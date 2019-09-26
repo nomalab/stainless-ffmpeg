@@ -211,7 +211,6 @@ impl Order {
     (audio_frames, video_frames, subtitle_packets, end)
   }
 
-
   fn build_input_format(&mut self) -> Result<(), String> {
     for input in &self.inputs {
       let decoder = DecoderFormat::new(&mut self.filter_graph, &input)?;
