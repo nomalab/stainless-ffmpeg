@@ -9,10 +9,7 @@ pub struct Rational {
 
 impl Rational {
   pub fn new(num: i32, den: i32) -> Self {
-    Rational {
-      num,
-      den
-    }
+    Rational { num, den }
   }
 
   pub fn invert(mut self) -> Self {
@@ -60,8 +57,7 @@ fn rational() {
   assert!(r.num == 2);
   assert!(r.den == 1);
 
-  let av_r : AVRational = r.into();  
+  let av_r: AVRational = r.into();
   assert!(av_r.num == 2);
   assert!(av_r.den == 1);
-
 }
