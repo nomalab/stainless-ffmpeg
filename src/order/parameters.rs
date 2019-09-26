@@ -2,6 +2,7 @@ use libc::c_void;
 use stainless_ffmpeg_sys::*;
 use std::collections::HashMap;
 use std::ffi::CString;
+use std::hash::BuildHasher;
 use tools;
 use tools::rational::Rational;
 
@@ -16,9 +17,9 @@ pub enum ParameterValue {
   ChannelLayout(u64),
 }
 
-pub fn set_parameters(
+pub fn set_parameters<S: BuildHasher>(
   context: *mut c_void,
-  parameters: &HashMap<String, ParameterValue>,
+  parameters: &HashMap<String, ParameterValue, S>,
 ) -> Result<(), String> {
   for (key, value) in parameters {
     value.set(key, context)?;
@@ -54,7 +55,7 @@ impl ParameterValue {
   ) -> Result<(), String> {
     let key_str = CString::new(key).unwrap();
     check_result!(av_opt_set(
-      context as *mut c_void,
+      context,
       key_str.as_ptr(),
       value,
       AV_OPT_SEARCH_CHILDREN
@@ -67,7 +68,7 @@ impl ParameterValue {
     let value_str = CString::new(value).unwrap();
     unsafe {
       check_result!(av_opt_set(
-        context as *mut c_void,
+        context,
         key_str.as_ptr(),
         value_str.as_ptr(),
         AV_OPT_SEARCH_CHILDREN
@@ -80,7 +81,7 @@ impl ParameterValue {
     let key_str = CString::new(key).unwrap();
     unsafe {
       check_result!(av_opt_set_int(
-        context as *mut c_void,
+        context,
         key_str.as_ptr(),
         value,
         AV_OPT_SEARCH_CHILDREN
@@ -93,7 +94,7 @@ impl ParameterValue {
     let key_str = CString::new(key).unwrap();
     unsafe {
       check_result!(av_opt_set_double(
-        context as *mut c_void,
+        context,
         key_str.as_ptr(),
         value,
         AV_OPT_SEARCH_CHILDREN
@@ -114,7 +115,7 @@ impl ParameterValue {
 
     unsafe {
       check_result!(av_opt_set_q(
-        context as *mut c_void,
+        context,
         key_str.as_ptr(),
         rational,
         AV_OPT_SEARCH_CHILDREN

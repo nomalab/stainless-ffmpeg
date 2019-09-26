@@ -238,7 +238,7 @@ impl Stream {
         return None;
       }
       av_timecode_make_mpeg_tc_string(tc, timecode as u32);
-      return Some(tc.to_string());
+      Some(tc.to_string())
     }
   }
 

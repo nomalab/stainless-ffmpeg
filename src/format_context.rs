@@ -3,7 +3,7 @@ use order::frame::FrameAddress;
 use order::*;
 use packet::Packet;
 use stainless_ffmpeg_sys::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 use std::ffi::CString;
 use std::ptr::null_mut;
 use subtitle_encoder::SubtitleEncoder;
@@ -32,7 +32,7 @@ impl FormatContext {
     })
   }
 
-  pub fn set_frames_addresses(&mut self, frames: &Vec<FrameAddress>) {
+  pub fn set_frames_addresses(&mut self, frames: &[FrameAddress]) {
     self.frames = frames.to_vec();
   }
 
@@ -54,7 +54,7 @@ impl FormatContext {
     Ok(())
   }
 
-  pub fn close_input(&mut self) -> () {
+  pub fn close_input(&mut self) {
     unsafe {
       avformat_close_input(&mut self.format_context);
     }
@@ -132,7 +132,7 @@ impl FormatContext {
   }
 
   pub fn get_nb_streams(&self) -> u32 {
-    if self.frames.len() > 0 {
+    if !self.frames.is_empty() {
       return 1;
     }
     unsafe { (*self.format_context).nb_streams }
@@ -196,11 +196,11 @@ impl FormatContext {
     unsafe { (*(**(*self.format_context).streams.offset(stream_index)).codecpar).codec_id }
   }
 
-  pub fn get_metadata(&self) -> HashMap<String, String> {
+  pub fn get_metadata(&self) -> BTreeMap<String, String> {
     unsafe {
       let mut tag = null_mut();
       let key = CString::new("").unwrap();
-      let mut metadata = HashMap::new();
+      let mut metadata = BTreeMap::new();
 
       loop {
         tag = av_dict_get(
@@ -222,7 +222,7 @@ impl FormatContext {
   }
 
   pub fn next_packet(&mut self) -> Result<Packet, String> {
-    if self.frames.len() > 0 {
+    if self.frames.is_empty() {
       if self.frame_index >= self.frames.len() as usize {
         return Err("End of data stream".to_string());
       }

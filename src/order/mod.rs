@@ -16,6 +16,7 @@ mod output_result;
 pub mod parameters;
 mod stream;
 
+use frame::Frame;
 use order::decoder_format::DecoderFormat;
 use order::encoder_format::EncoderFormat;
 pub use order::filter::Filter;
@@ -81,57 +82,7 @@ impl Order {
     let mut results = vec![];
 
     loop {
-      let mut audio_frames = vec![];
-      let mut subtitle_packets = vec![];
-      let mut video_frames = vec![];
-      let mut end = 0;
-
-      for format in &mut self.input_formats {
-        for _ in 0..format.context.get_nb_streams() {
-          match format.context.next_packet() {
-            Ok(mut packet) => {
-              for decoder in &format.audio_decoders {
-                if decoder.stream_index == packet.get_stream_index() {
-                  if let Ok(frame) = decoder.decode(&packet) {
-                    audio_frames.push(frame);
-                  }
-                }
-              }
-              for decoder in &format.video_decoders {
-                if decoder.stream_index == packet.get_stream_index() {
-                  if let Ok(frame) = decoder.decode(&packet) {
-                    video_frames.push(frame);
-                  }
-                }
-              }
-              for decoder in &format.subtitle_decoders {
-                if decoder.stream_index == packet.get_stream_index() {
-                  packet.name = Some(decoder.identifier.clone());
-                  subtitle_packets.push(packet);
-                  break;
-                }
-              }
-            }
-            Err(msg) => {
-              if msg == "End of data stream" {
-                for decoder in &format.video_decoders {
-                  let packet = null_mut();
-
-                  let p = Packet { name: None, packet };
-
-                  if let Ok(frame) = decoder.decode(&p) {
-                    video_frames.push(frame);
-                  } else {
-                    end += 1;
-                  }
-                }
-              } else {
-                end += 1;
-              }
-            }
-          }
-        }
-      }
+      let (audio_frames, video_frames, subtitle_packets, end) = self.process_input();
 
       if end == self.total_streams {
         break;
@@ -141,7 +92,7 @@ impl Order {
         && video_frames.len() == self.filter_graph.video_inputs.len()
       {
         let (output_audio_frames, output_video_frames) =
-          if audio_frames.len() == 0 && video_frames.len() == 0 {
+          if audio_frames.is_empty() && video_frames.is_empty() {
             (audio_frames, video_frames)
           } else {
             self.filter_graph.process(&audio_frames, &video_frames)?
@@ -203,6 +154,63 @@ impl Order {
 
     Ok(results)
   }
+
+  fn process_input(&mut self) -> (Vec<Frame>, Vec<Frame>, Vec<Packet>, u32) {
+    let mut audio_frames = vec![];
+    let mut subtitle_packets = vec![];
+    let mut video_frames = vec![];
+    let mut end = 0;
+
+    for format in &mut self.input_formats {
+      for _ in 0..format.context.get_nb_streams() {
+        match format.context.next_packet() {
+          Ok(mut packet) => {
+            for decoder in &format.audio_decoders {
+              if decoder.stream_index == packet.get_stream_index() {
+                if let Ok(frame) = decoder.decode(&packet) {
+                  audio_frames.push(frame);
+                }
+              }
+            }
+            for decoder in &format.video_decoders {
+              if decoder.stream_index == packet.get_stream_index() {
+                if let Ok(frame) = decoder.decode(&packet) {
+                  video_frames.push(frame);
+                }
+              }
+            }
+            for decoder in &format.subtitle_decoders {
+              if decoder.stream_index == packet.get_stream_index() {
+                packet.name = Some(decoder.identifier.clone());
+                subtitle_packets.push(packet);
+                break;
+              }
+            }
+          }
+          Err(msg) => {
+            if msg == "End of data stream" {
+              for decoder in &format.video_decoders {
+                let packet = null_mut();
+
+                let p = Packet { name: None, packet };
+
+                if let Ok(frame) = decoder.decode(&p) {
+                  video_frames.push(frame);
+                } else {
+                  end += 1;
+                }
+              }
+            } else {
+              end += 1;
+            }
+          }
+        }
+      }
+    }
+
+    (audio_frames, video_frames, subtitle_packets, end)
+  }
+
 
   fn build_input_format(&mut self) -> Result<(), String> {
     for input in &self.inputs {

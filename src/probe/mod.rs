@@ -1,7 +1,7 @@
 use format_context::FormatContext;
 use log::LevelFilter;
 use stainless_ffmpeg_sys::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 use std::fmt;
 use stream::Stream;
 use tools::rational::Rational;
@@ -23,7 +23,7 @@ pub struct Format {
   bit_rate: Option<i64>,
   packet_size: u32,
   nb_streams: u32,
-  metadata: HashMap<String, String>,
+  metadata: BTreeMap<String, String>,
   streams: Vec<StreamDescriptor>,
 }
 

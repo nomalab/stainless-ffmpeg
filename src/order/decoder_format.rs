@@ -40,7 +40,7 @@ impl DecoderFormat {
         };
 
         let video_decoder =
-          VideoDecoder::new_with_codec(identifier.clone(), codec, width, height, 0)?;
+          VideoDecoder::new_with_codec(identifier.clone(), codec, *width, *height, 0)?;
         graph.add_input_from_video_decoder(&identifier, &video_decoder)?;
         video_decoders.push(video_decoder);
 
