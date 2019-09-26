@@ -1,6 +1,8 @@
 # stainless-ffmpeg
 Efficient Rust wrapper for FFmpeg.
 
+[![Build Status](https://travis-ci.org/nomalab/stainless-ffmpeg.svg?branch=master)](https://travis-ci.org/nomalab/stainless-ffmpeg)
+[![Coverage Status](https://coveralls.io/repos/github/nomalab/stainless-ffmpeg/badge.svg?branch=master)](https://coveralls.io/github/nomalab/stainless-ffmpeg?branch=master)
 
 ## Prerequisites
 * [Rust](https://rustup.rs/)
