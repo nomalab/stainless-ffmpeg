@@ -5,7 +5,7 @@ authors = ["Marc-Antoine Arnaud <arnaud.marcantoine@gmail.com>", "Romane Lafon <
 description = """
 Efficient Rust wrapper for FFmpeg.
 """
-license = "MIT"
+license = "Apache-2.0"
 repository = "https://github.com/nomalab/stainless-ffmpeg"
 
 [dependencies]
