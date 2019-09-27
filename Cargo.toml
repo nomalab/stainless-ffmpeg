@@ -1,11 +1,11 @@
 [package]
 name = "stainless_ffmpeg"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Marc-Antoine Arnaud <arnaud.marcantoine@gmail.com>", "Romane Lafon <romane@nomalab.com>"]
 description = """
 Efficient Rust wrapper for FFmpeg.
 """
-license = "MIT"
+license = "Apache-2.0"
 repository = "https://github.com/nomalab/stainless-ffmpeg"
 
 [dependencies]
