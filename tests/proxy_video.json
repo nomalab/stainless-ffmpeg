@@ -1,0 +1,137 @@
+{
+  "inputs": [
+    {
+      "id": 1,
+      "path": "tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf",
+      "streams": [
+        {
+          "label": "input1",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "path": "tests/watermark.png",
+      "streams": [
+        {
+          "label": "watermark",
+          "index": 0
+        }
+      ]
+    }
+  ],
+  "graph": [
+    {
+      "name": "pad",
+      "label": "pad_filter",
+      "parameters": {
+        "w": "0",
+        "h": "in_h+70",
+        "x": "0",
+        "y": "70",
+        "color": "black"
+      },
+      "inputs": [
+        {
+          "kind": "stream",
+          "stream_label": "input1"
+        }
+      ]
+    },
+    {
+      "name": "drawtext",
+      "label": "drawtext_filter",
+      "parameters": {
+        "fontfile": "tests/BRAILLE1.ttf",
+        "text": "%{expr_int_format:n:d:7}N",
+        "x": "0",
+        "y": "0",
+        "fontsize": "70",
+        "fontcolor": "white",
+        "box": 1,
+        "boxcolor": "black",
+        "boxborderw": 4,
+        "fix_bounds": true
+      },
+      "filter_outputs": [
+        {
+          "stream_label": "braille"
+        }
+      ]
+    },
+    {
+      "name": "overlay",
+      "label": "overlay_filter",
+      "parameters": {
+        "x": "5",
+        "y": "H-h-5"
+      },
+      "inputs": [
+        {
+          "kind": "filter",
+          "stream_label": "braille"
+        },
+        {
+          "kind": "stream",
+          "stream_label": "watermark"
+        }
+      ]
+    },
+    {
+      "name": "format",
+      "label": "format_filter",
+      "parameters": {
+        "pix_fmts": "yuv420p"
+      },
+      "outputs": [
+        {
+          "stream_label": "output1"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "kind": "file",
+      "path": "proxy_video.mp4",
+      "parameters": {
+      },
+      "streams": [
+        {
+          "label": "output1",
+          "codec": "libx264",
+          "parameters": {
+            "frame_rate": {
+              "num": 25,
+              "den": 1
+            },
+            "width": 1440,
+            "height": 1150,
+            "sample_aspect_ratio": {
+              "num": 4,
+              "den": 3
+            },
+            "pixel_format": "yuv420p",
+            "bitrate": 5000000,
+            "maxrate": 5000000,
+            "bufsize": 5000000,
+            "rc_init_occupancy": 5000000,
+            "gop_size": 1,
+            "max_b_frames": 0,
+            "ticks_per_frame": 2,
+            "color_range": "head",
+            "colorspace": "bt709",
+            "color_trc": "bt709",
+            "color_primaries": "bt709",
+            "profile_v": "baseline",
+            "write_tmcd": false,
+            "preset": "slow",
+            "deblock": "2:2",
+            "x264_params": "keyint=50:min-keyint=50:no-scenecut"
+          }
+        }
+      ]
+    }
+  ]
+}

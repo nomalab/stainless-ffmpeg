@@ -10,4 +10,5 @@ pub struct Filter {
   pub parameters: HashMap<String, ParameterValue>,
   pub inputs: Option<Vec<FilterInput>>,
   pub outputs: Option<Vec<FilterOutput>>,
+  pub filter_outputs: Option<Vec<FilterOutput>>,
 }
