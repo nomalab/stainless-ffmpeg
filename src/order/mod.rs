@@ -79,7 +79,12 @@ impl Order {
 
   pub fn process(&mut self) -> Result<Vec<OutputResult>, String> {
     let mut results = vec![];
+    let mut decoded_audio_frames = 0;
+    let mut decoded_video_frames = 0;
+    let mut encoded_audio_frames = 0;
+    let mut encoded_video_frames = 0;
 
+    let mut end_position = false;
     loop {
       let mut audio_frames = vec![];
       let mut subtitle_packets = vec![];
@@ -93,6 +98,8 @@ impl Order {
               for decoder in &format.audio_decoders {
                 if decoder.stream_index == packet.get_stream_index() {
                   if let Ok(frame) = decoder.decode(&packet) {
+                    decoded_audio_frames += 1;
+                    info!("decode {} frame", decoded_audio_frames);
                     audio_frames.push(frame);
                   }
                 }
@@ -100,6 +107,8 @@ impl Order {
               for decoder in &format.video_decoders {
                 if decoder.stream_index == packet.get_stream_index() {
                   if let Ok(frame) = decoder.decode(&packet) {
+                    decoded_video_frames += 1;
+                    info!("decode {} frame", decoded_video_frames);
                     video_frames.push(frame);
                   }
                 }
@@ -113,7 +122,7 @@ impl Order {
               }
             }
             Err(msg) => {
-              if msg == "End of data stream" {
+              if msg == "End of data stream" || msg == "Unable to read next packet" {
                 for decoder in &format.video_decoders {
                   let packet = null_mut();
 
@@ -123,7 +132,25 @@ impl Order {
                   };
 
                   if let Ok(frame) = decoder.decode(&p) {
+                    decoded_video_frames += 1;
+                    info!("decode {} frame", decoded_video_frames);
                     video_frames.push(frame);
+                  } else {
+                    end += 1;
+                  }
+                }
+                for decoder in &format.audio_decoders {
+                  let packet = null_mut();
+
+                  let p = Packet {
+                    name: None,
+                    packet
+                  };
+
+                  if let Ok(frame) = decoder.decode(&p) {
+                    decoded_audio_frames += 1;
+                    info!("decode {} frame", decoded_audio_frames);
+                    audio_frames.push(frame);
                   } else {
                     end += 1;
                   }
@@ -167,9 +194,15 @@ impl Order {
           }
 
           for output in &mut self.output_formats {
-            if let Some(packet) = output.encode(&output_frame)? {
-              results.push(OutputResult::Packet(packet));
-            };
+            let (packet_option, position) = output.encode(&output_frame, output_frame.get_pts() as usize)?;
+            end_position = position;
+            if !end_position {
+              encoded_audio_frames += output_frame.get_channels() as usize;
+              info!("encode {} frame", encoded_audio_frames);
+              if let Some(packet) = packet_option {
+                results.push(OutputResult::Packet(packet));
+              };
+            }
           }
         }
 
@@ -180,7 +213,6 @@ impl Order {
         }
 
         for output_frame in output_video_frames {
-          
           for output in &self.outputs {
             if let Some(OutputKind::VideoMetadata) = output.kind {
               let mut entry = HashMap::new();
@@ -196,14 +228,44 @@ impl Order {
             }
           }
 
-          for output in &mut self.output_formats {
-            if let Some(packet) = output.encode(&output_frame)? {
-              results.push(OutputResult::Packet(packet));
-            };
+          for output_format in &mut self.output_formats {
+            let (packet_option, position) = output_format.encode(&output_frame, encoded_video_frames)?;
+            end_position = position;
+            if !end_position {
+              encoded_video_frames += 1;
+              info!("encode {} frame", encoded_video_frames);
+              if let Some(packet) = packet_option {
+                results.push(OutputResult::Packet(packet));
+              };
+            }
           }
         }
       }
+      if end_position {
+        break;
+      }
     }
+
+    loop {
+      let mut end = true;
+      for output in &mut self.output_formats {
+        let packets = output.finish()?;
+        if packets.len() != 0 {
+          end = false;
+          continue;
+        }
+      }
+      if end {
+        break;
+      }
+    }
+
+    results.push(OutputResult::ProcessStatistics{
+      decoded_audio_frames,
+      decoded_video_frames,
+      encoded_audio_frames,
+      encoded_video_frames,
+    });
 
     Ok(results)
   }
@@ -268,8 +330,21 @@ impl Order {
             }
             FilterInput {
               kind: InputKind::Filter,
-              stream_label: ref _label,
-            } => {}
+              stream_label: ref label,
+            } => {
+              let filter_stream_index = 0;
+              for description in &self.graph {
+                if let Some(ref filter_outputs) = description.filter_outputs {
+                  for filter_output in filter_outputs {
+                    if filter_output.stream_label == *label {
+                      if let Some(ref description_label) = description.label {
+                        self.filter_graph.connect_filter(&filters, &description_label, filter_stream_index, &filter, index as u32)?;
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       } else if let Some(last_filter) = filters.last() {
@@ -346,7 +421,7 @@ fn parse_sample_audio_encoding_graph() {
       path: "tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf".to_string(),
       streams: vec![
         Stream { index: 1, label: Some("my_audio1".to_string()) },
-        Stream { index: 7, label: Some("my_audio2".to_string()) }
+        Stream { index: 2, label: Some("my_audio2".to_string()) }
       ]
     }
   ], order.inputs);
@@ -377,7 +452,8 @@ fn parse_sample_audio_encoding_graph() {
         FilterInput { kind: InputKind::Stream, stream_label: "my_audio1".to_string() },
         FilterInput { kind: InputKind::Stream, stream_label: "my_audio2".to_string() }
       ]),
-      outputs: None
+      outputs: None,
+      filter_outputs: None
     },
     Filter {
       name: "aformat".to_string(),
@@ -386,7 +462,8 @@ fn parse_sample_audio_encoding_graph() {
       inputs: None,
       outputs: Some(vec![
         FilterOutput { stream_label: "output1".to_string() }
-      ])
+      ]),
+      filter_outputs: None
     }
   ], order.graph);
 }
@@ -507,7 +584,8 @@ fn parse_sample_video_encoding_graph() {
       inputs: Some(vec![
         FilterInput {kind: InputKind::Stream, stream_label: "input1".to_string() }
       ]),
-      outputs: None
+      outputs: None,
+      filter_outputs: None
     },
     Filter {
       name: "format".to_string(),
@@ -516,7 +594,8 @@ fn parse_sample_video_encoding_graph() {
       inputs: None,
       outputs: Some(vec![
         FilterOutput { stream_label: "output1".to_string() }
-      ])
+      ]),
+      filter_outputs: None
     },
     Filter {
       name: "aformat".to_string(),
@@ -527,7 +606,8 @@ fn parse_sample_video_encoding_graph() {
       ]),
       outputs: Some(vec![
         FilterOutput { stream_label: "audio_output1".to_string() }
-      ])
+      ]),
+      filter_outputs: None
     },
     Filter {
       name: "aformat".to_string(),
@@ -538,7 +618,8 @@ fn parse_sample_video_encoding_graph() {
       ]),
       outputs: Some(vec![
         FilterOutput { stream_label: "audio_output2".to_string() }
-      ])
+      ]),
+      filter_outputs: None
     }
   ], order.graph);
 }

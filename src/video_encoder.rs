@@ -13,6 +13,7 @@ pub struct VideoEncoder {
   pub codec_context: *mut AVCodecContext,
   pub codec: *mut AVCodec,
   pub pts: i64,
+  pub duration: Option<f64>,
 }
 
 impl VideoEncoder {
@@ -27,10 +28,11 @@ impl VideoEncoder {
         return Err(format!("Unable to found codec {}", output_stream.codec));
       }
       let mut codec_context = avcodec_alloc_context3(codec);
-
+      let mut duration = None;
       let parameters = &output_stream.parameters;
       if let Some(ParameterValue::Rational(data)) = parameters.get("frame_rate") {
         (*codec_context).time_base = data.clone().invert().into();
+        (*codec_context).framerate = data.clone().into();
       }
 
       if let Some(ParameterValue::Rational(data)) = parameters.get("sample_aspect_ratio") {
@@ -62,6 +64,10 @@ impl VideoEncoder {
         (*codec_context).max_b_frames = *data as i32;
       }
 
+      if let Some(ParameterValue::Int64(data)) = parameters.get("ticks_per_frame") {
+        (*codec_context).ticks_per_frame = *data as i32;
+      }
+
       if let Some(ParameterValue::Int64(data)) = parameters.get("refs") {
         (*codec_context).refs = *data as i32;
       }
@@ -80,6 +86,10 @@ impl VideoEncoder {
         (*codec_context).color_range = color_range.into();
       }
 
+      if let Some(ParameterValue::Float(data)) = parameters.get("duration") {
+        duration = Some(*data);
+      }
+
       check_result!(avcodec_open2(codec_context, codec, null_mut()), {
         avcodec_free_context(&mut codec_context);
       });
@@ -90,6 +100,7 @@ impl VideoEncoder {
         codec_context,
         codec,
         pts: 0,
+        duration,
       })
     }
   }
@@ -122,10 +133,13 @@ impl VideoEncoder {
 
   pub fn encode(&mut self, frame: &Frame, packet: &Packet) -> Result<bool, String> {
     unsafe {
-      (*frame.frame).pts = self.pts;
-      self.pts += 1;
-
       check_result!(avcodec_send_frame(self.codec_context, frame.frame));
+      self.flush(packet)
+    }
+  }
+
+  pub fn flush(&mut self, packet: &Packet) -> Result<bool, String> {
+    unsafe {
       let ret = avcodec_receive_packet(self.codec_context, packet.packet as *mut _);
 
       if ret == AVERROR(EAGAIN) || ret == AVERROR_EOF {
@@ -137,7 +151,7 @@ impl VideoEncoder {
 
       check_result!(ret);
 
-      trace!(
+      info!(
         "received encoded packet with {} bytes",
         (*packet.packet).size
       );

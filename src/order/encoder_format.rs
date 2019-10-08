@@ -21,14 +21,6 @@ pub struct EncoderFormat {
   wrap: bool
 }
 
-impl Drop for EncoderFormat {
-  fn drop(&mut self) {
-    unsafe {
-      av_write_trailer(self.context.format_context);
-    }
-  }
-}
-
 impl EncoderFormat {
   pub fn new(graph: &mut FilterGraph, output: &Output) -> Result<Self, String> {
     let mut audio_encoders = vec![];
@@ -72,15 +64,18 @@ impl EncoderFormat {
     }
 
     unsafe {
-      let p = CString::new(path).unwrap();
-      av_dump_format(format.format_context, 0, p.as_ptr(), 1);
+      let file_path = CString::new(path).unwrap();
+      av_dump_format(format.format_context, 0, file_path.as_ptr(), 1);
 
       check_result!(avio_open(
         &mut (*format.format_context).pb as *mut _,
-        p.as_ptr(),
+        file_path.as_ptr(),
         AVIO_FLAG_WRITE
       ));
+      av_dump_format(format.format_context, 0, file_path.as_ptr(), 1);
       check_result!(avformat_write_header(format.format_context, null_mut()));
+      av_dump_format(format.format_context, 0, file_path.as_ptr(), 1);
+
     }
 
     Ok(EncoderFormat {
@@ -107,26 +102,41 @@ impl EncoderFormat {
     Ok(())
   }
 
-  pub fn encode(&mut self, frame: &Frame) -> Result<Option<Packet>, String> {
+  pub fn check_recording_time(codec_context: *mut AVCodecContext, duration: f64, encoded_frames: usize) -> bool {
+    unsafe {
+      let time_base = AVRational { num: 1, den: 1000 };
+      if av_compare_ts(encoded_frames as i64, (*codec_context).time_base,
+                      (duration * 1000 as f64) as i64, time_base) >= 0 {
+        return false;
+      }
+      return true;
+    }
+  }
+
+  pub fn encode(&mut self, frame: &Frame, encoded_frames: usize) -> Result<(Option<Packet>, bool), String> {
     let mut r_packet = None;
-    for audio_encoder in &self.audio_encoders {
+    for audio_encoder in &mut self.audio_encoders {
       if let Some(ref name) = frame.name {
         if audio_encoder.identifier == *name {
+          if audio_encoder.duration.is_some() && !Self::check_recording_time(audio_encoder.codec_context, audio_encoder.duration.unwrap(), encoded_frames) {
+            return Ok((r_packet, true));
+          }
+
           unsafe {
-            let packet = av_packet_alloc();
-            av_init_packet(packet);
-            (*packet).data = null_mut();
-            (*packet).size = 0;
-            let p = Packet { name: None, packet };
+            let packet = Packet::new();
 
-            let status = audio_encoder.encode(frame, &p)?;
-
-            if status {
+            if audio_encoder.encode(frame, &packet)? {
               if self.wrap {
-                (*packet).stream_index = audio_encoder.stream_index as i32;
-                check_result!(av_interleaved_write_frame(self.context.format_context, packet));
+                (*packet.packet).stream_index = audio_encoder.stream_index as i32;
+                let stream_timebase = (*self.context.get_stream(audio_encoder.stream_index)).time_base;
+                let framerate = (*self.context.get_stream(audio_encoder.stream_index)).r_frame_rate;
+
+                av_packet_rescale_ts(&mut (*packet.packet) as *mut _, av_inv_q(framerate), stream_timebase);
+
+                (*packet.packet).duration = av_rescale_q(1, av_inv_q(framerate), stream_timebase);
+                check_result!(av_interleaved_write_frame(self.context.format_context, packet.packet));
               } else {
-                r_packet = Some(p);
+                r_packet = Some(packet);
               }
             }
           }
@@ -136,21 +146,23 @@ impl EncoderFormat {
     for video_encoder in &mut self.video_encoders {
       if let Some(ref name) = frame.name {
         if video_encoder.identifier == *name {
+          if video_encoder.duration.is_some() && !Self::check_recording_time(video_encoder.codec_context, video_encoder.duration.unwrap(), encoded_frames) {
+            return Ok((r_packet, true));
+          }
           unsafe {
-            let packet = av_packet_alloc();
-            av_init_packet(packet);
-            (*packet).data = null_mut();
-            (*packet).size = 0;
-            let p = Packet { name: None, packet };
-
-            let status = video_encoder.encode(frame, &p)?;
-            if status {
+            let packet = Packet::new();
+            if video_encoder.encode(frame, &packet)? {
               if self.wrap {
-                (*packet).stream_index = video_encoder.stream_index as i32;
-                check_result!(av_interleaved_write_frame(self.context.format_context, packet));
-              }
-              else {
-                r_packet = Some(p);
+                (*packet.packet).stream_index = video_encoder.stream_index as i32;
+                let stream_timebase = (*self.context.get_stream(video_encoder.stream_index)).time_base;
+                let framerate = (*self.context.get_stream(video_encoder.stream_index)).r_frame_rate;
+
+                av_packet_rescale_ts(&mut (*packet.packet) as *mut _, av_inv_q(framerate), stream_timebase);
+
+                (*packet.packet).duration = av_rescale_q(1, av_inv_q(framerate), stream_timebase);
+                check_result!(av_interleaved_write_frame(self.context.format_context, packet.packet));
+              } else {
+                r_packet = Some(packet);
               }
             }
           }
@@ -158,6 +170,70 @@ impl EncoderFormat {
       }
     }
 
-    Ok(r_packet)
+    Ok((r_packet, false))
+  }
+
+  pub fn finish(&mut self) -> Result<Vec<Packet>, String> {
+    for video_encoder in &mut self.video_encoders {
+      let mut first = true;
+
+      loop {
+        unsafe {
+          let packet = Packet::new();
+          let frame = Frame::new();
+
+          let result =
+            if first {
+              video_encoder.encode(&frame, &packet)
+            } else {
+              video_encoder.flush(&packet)
+            };
+
+          if let Ok(true) = result {
+            if self.wrap {
+              (*packet.packet).stream_index = video_encoder.stream_index as i32;
+              let stream_timebase = (*self.context.get_stream(video_encoder.stream_index)).time_base;
+              let framerate = (*self.context.get_stream(video_encoder.stream_index)).r_frame_rate;
+
+              av_packet_rescale_ts(&mut (*packet.packet) as *mut _, av_inv_q(framerate), stream_timebase);
+
+              (*packet.packet).duration = av_rescale_q(1, av_inv_q(framerate), stream_timebase);
+              av_interleaved_write_frame(self.context.format_context, packet.packet);
+              first = false;
+            }
+          } else {
+            break;
+          }
+        }
+      }
+    }
+
+    for audio_encoder in &mut self.audio_encoders {
+      loop {
+        unsafe {
+          let packet = Packet::new();
+          let frame = Frame::new();
+          if let Ok(true) = audio_encoder.encode(&frame, &packet) {
+            if self.wrap {
+              (*packet.packet).stream_index = audio_encoder.stream_index as i32;
+              let stream_timebase = (*self.context.get_stream(audio_encoder.stream_index)).time_base;
+              let framerate = (*self.context.get_stream(audio_encoder.stream_index)).r_frame_rate;
+
+              av_packet_rescale_ts(&mut (*packet.packet) as *mut _, av_inv_q(framerate), stream_timebase);
+
+              (*packet.packet).duration = av_rescale_q(1, av_inv_q(framerate), stream_timebase);
+              av_interleaved_write_frame(self.context.format_context, packet.packet);
+            }
+          } else {
+            break;
+          }
+        }
+      }
+    }
+
+    unsafe {
+      av_write_trailer(self.context.format_context);
+    }
+    Ok(vec![])
   }
 }

@@ -68,9 +68,10 @@ impl FilterGraph {
     let height = ParameterValue::Int64(i64::from(video_decoder.get_height()));
     height.set("height", buffer.context as *mut c_void)?;
 
-    let (mut num, den) = video_decoder.get_time_base();
+    let (mut num, mut den) = video_decoder.get_time_base();
     if num == 0 {
-      num = 25;
+      num = 1;
+      den = 25;
     }
     let time_base = ParameterValue::Rational(Rational{num, den});
     time_base.set("time_base", buffer.context as *mut c_void)?;
@@ -244,6 +245,30 @@ impl FilterGraph {
     Err("Unable to connect".to_string())
   }
 
+  pub fn connect_filter(
+    &mut self,
+    filters: &Vec<Filter>,
+    label: &str,
+    src_index: u32,
+    dst: &Filter,
+    dst_index: u32,
+  ) -> Result<(), String> {
+    for added_filter in filters {
+      if added_filter.get_label() == label {
+        unsafe {
+          check_result!(avfilter_link(
+            added_filter.context,
+            src_index,
+            dst.context,
+            dst_index
+          ));
+        }
+        return Ok(());
+      }
+    }
+    Err("Unable to connect".to_string())
+  }
+
   pub fn validate(&mut self) -> Result<(), String> {
     unsafe {
       check_result!(avfilter_graph_config(self.graph, null_mut()));
@@ -285,6 +310,48 @@ impl FilterGraph {
         check_result!(av_buffersrc_add_frame(
           self.video_inputs[index].context,
           frame.frame
+        ));
+      }
+
+      for output_filter in self.audio_outputs.iter() {
+        let output_frame = av_frame_alloc();
+        check_result!(av_buffersink_get_frame(output_filter.context, output_frame));
+        output_audio_frames.push(Frame {
+          name: Some(output_filter.get_label()),
+          frame: output_frame,
+        });
+      }
+
+      for output_filter in self.video_outputs.iter() {
+        let output_frame = av_frame_alloc();
+        let result = av_buffersink_get_frame(output_filter.context, output_frame);
+        if result >= 0 {
+          output_video_frames.push(Frame {
+            name: Some(output_filter.get_label()),
+            frame: output_frame,
+          });
+        }
+      }
+    }
+
+    Ok((output_audio_frames, output_video_frames))
+  }
+
+  pub fn flush(&self) -> Result<(Vec<Frame>, Vec<Frame>), String> {
+    let mut output_audio_frames = vec![];
+    let mut output_video_frames = vec![];
+
+    unsafe {
+      for (index, _) in self.audio_inputs.iter().enumerate() {
+        check_result!(av_buffersrc_add_frame(
+          self.audio_inputs[index].context,
+          null_mut()
+        ));
+      }
+      for (index, _) in self.video_inputs.iter().enumerate() {
+        check_result!(av_buffersrc_add_frame(
+          self.video_inputs[index].context,
+          null_mut()
         ));
       }
 

@@ -11,6 +11,7 @@ use order::frame::FrameAddress;
 use order::*;
 
 use std::ffi::c_void;
+use libc::INT_MAX;
 
 #[derive(Debug)]
 pub struct FormatContext {
@@ -39,10 +40,10 @@ impl FormatContext {
   pub fn open_input(&mut self) -> Result<(), String> {
     unsafe {
       self.format_context = avformat_alloc_context();
-      let filename = CString::new(self.filename.to_owned());
+      let filename = CString::new(self.filename.to_owned()).unwrap();
       if avformat_open_input(
         &mut self.format_context,
-        filename.unwrap().as_ptr(),
+        filename.as_ptr(),
         null_mut(),
         null_mut(),
       ) < 0
@@ -68,12 +69,11 @@ impl FormatContext {
         &mut self.format_context,
         null_mut(),
         null_mut(),
-        filename.unwrap().as_ptr(),
+        filename.clone().unwrap().as_ptr(),
       ) < 0
       {
         return Err(format!("Unable to open output file {:?}", self.filename));
       }
-
       set_parameters(self.format_context as *mut c_void, parameters)?;
     }
     Ok(())
@@ -87,8 +87,18 @@ impl FormatContext {
       }
 
       (*av_stream).id = ((*self.format_context).nb_streams - 1) as i32;
-      (*av_stream).time_base = (*encoder.codec_context).time_base;
+
       avcodec_parameters_from_context((*av_stream).codecpar, encoder.codec_context);
+      avcodec_copy_context((*av_stream).codec, encoder.codec_context);
+
+      av_reduce(&mut (*(*av_stream).codec).time_base.num as *mut _, &mut (*(*av_stream).codec).time_base.den as *mut _,
+        (*encoder.codec_context).time_base.num as i64 * (*encoder.codec_context).ticks_per_frame as i64,
+        (*encoder.codec_context).time_base.den as i64, INT_MAX as i64);
+
+      (*av_stream).time_base = (*(*av_stream).codec).time_base;
+      (*av_stream).avg_frame_rate = (*encoder.codec_context).framerate;
+      (*av_stream).r_frame_rate = (*encoder.codec_context).framerate;
+
       self.streams.push(av_stream);
     }
     Ok(())
@@ -103,6 +113,9 @@ impl FormatContext {
 
       (*av_stream).id = ((*self.format_context).nb_streams - 1) as i32;
       (*av_stream).time_base = (*encoder.codec_context).time_base;
+      (*av_stream).r_frame_rate = tools::rational::Rational{
+                                    num: (*encoder.codec_context).time_base.den,
+                                    den: (*encoder.codec_context).time_base.num}.into();
       avcodec_parameters_from_context((*av_stream).codecpar, encoder.codec_context);
       self.streams.push(av_stream);
     }

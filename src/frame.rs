@@ -13,6 +13,13 @@ pub struct Frame {
 }
 
 impl Frame {
+  pub fn new() -> Self {
+    Frame {
+      name: None,
+      frame: null_mut()
+    }
+  }
+
   pub fn get_metadata(&self, key: &str) -> Option<String> {
     unsafe {
       let metadata = (*self.frame).metadata;
@@ -27,6 +34,10 @@ impl Frame {
 
   pub fn get_pts(&self) -> i64 {
     unsafe { (*self.frame).pts }
+  }
+
+  pub fn get_channels(&self) -> i32 {
+    unsafe { (*self.frame).channels }
   }
 }
 
