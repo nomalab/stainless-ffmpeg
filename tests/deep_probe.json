@@ -1,0 +1,25 @@
+{
+  "filename": "tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf",
+  "result": {
+    "streams": [
+      { "count_packets": 250, "min_packet_size": 4352, "max_packet_size": 127488 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 3840, "max_packet_size": 3840 },
+      { "count_packets": 250, "min_packet_size": 2, "max_packet_size": 58 }
+    ]
+  }
+}
