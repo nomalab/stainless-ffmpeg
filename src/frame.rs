@@ -6,6 +6,7 @@ use std::ptr::null_mut;
 pub struct Frame {
   pub name: Option<String>,
   pub frame: *mut AVFrame,
+  pub index: usize,
 }
 
 impl Frame {

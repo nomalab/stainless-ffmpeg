@@ -8,7 +8,10 @@ fn main() {
 
   if let Some(path) = env::args().last() {
     let mut probe = DeepProbe::new(&path);
-    probe.process(LevelFilter::Off).unwrap();
+    let check = DeepProbeCheck {
+      silence_detect: true
+    };
+    probe.process(LevelFilter::Off, check).unwrap();
     let result = serde_json::to_string(&probe).unwrap();
     println!("{}", result);
 

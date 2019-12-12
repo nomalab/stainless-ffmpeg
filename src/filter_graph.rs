@@ -280,22 +280,24 @@ impl FilterGraph {
         ));
       }
 
-      for output_filter in self.audio_outputs.iter() {
+      for (index, output_filter) in self.audio_outputs.iter().enumerate() {
         let output_frame = av_frame_alloc();
         check_result!(av_buffersink_get_frame(output_filter.context, output_frame));
         output_audio_frames.push(Frame {
           name: Some(output_filter.get_label()),
           frame: output_frame,
+          index
         });
       }
 
-      for output_filter in self.video_outputs.iter() {
+      for (index, output_filter) in self.video_outputs.iter().enumerate() {
         let output_frame = av_frame_alloc();
         let result = av_buffersink_get_frame(output_filter.context, output_frame);
         if result >= 0 {
           output_video_frames.push(Frame {
             name: Some(output_filter.get_label()),
             frame: output_frame,
+            index
           });
         }
       }

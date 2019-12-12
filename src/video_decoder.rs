@@ -118,6 +118,7 @@ impl VideoDecoder {
       Ok(Frame {
         frame,
         name: Some(self.identifier.clone()),
+        index: self.stream_index as usize,
       })
     }
   }
