@@ -1,0 +1,42 @@
+{
+  "inputs": [
+    {
+      "id": 0,
+      "path": "/Users/paulkaelblen/kittyluminace.mxf",
+      "streams": [
+        {
+          "label": "input1",
+          "index": 0
+        }
+      ]
+    }
+  ],
+  "graph": [
+    {
+      "name": "blackframe",
+      "label": "blackframe_filter",
+      "parameters": {
+           },
+      "inputs": [
+        {
+          "kind": "stream",
+          "stream_label": "input1"
+        }
+      ],
+      "outputs": [
+        {
+          "kind": "stream",
+          "stream_label": "output1"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "kind": "video_metadata",
+      "stream": "output1",
+      "keys": [
+        "lavfi.type" ]
+    }
+  ]
+}

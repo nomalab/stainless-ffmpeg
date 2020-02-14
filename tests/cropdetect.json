@@ -1,0 +1,50 @@
+{
+  "inputs": [
+    {
+      "id": 0,
+      "path": "festiflart.mxf",
+      "streams": [
+        {
+          "label": "input1",
+          "index": 0
+        }
+      ]
+    }
+  ],
+  "graph": [
+    {
+      "name": "cropdetect",
+      "label": "cropdetect_filter",
+      "parameters": {
+      },
+      "inputs": [
+        {
+          "kind": "stream",
+          "stream_label": "input1"
+        }
+      ],
+      "outputs": [
+        {
+          "kind": "stream",
+          "stream_label": "output1"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "kind": "video_metadata",
+      "stream": "output1",
+      "keys": [
+        "lavfi.cropdetect.w",
+        "lavfi.cropdetect.h",
+        "lavfi.cropdetect.y",
+        "lavfi.cropdetect.x",
+        "lavfi.cropdetect.x1",
+        "lavfi.cropdetect.x2",
+        "lavfi.cropdetect.y1",
+        "lavfi.cropdetect.y2"
+              ]
+    }
+  ]
+}

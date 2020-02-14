@@ -1,0 +1,47 @@
+{
+  "inputs": [
+    {
+      "id": 0,
+      "path": "/Users/paulkaelblen/kittyluminace.mxf",
+      "streams": [
+        {
+          "label": "input1",
+          "index": 0,
+          "framerate": 50
+        }
+      ]
+    }
+  ],
+  "graph": [
+    {
+      "name": "blackdetect",
+      "label": "blackdetect_filter",
+      "parameters": {
+        "black_min_duration": "0",
+        "pixel_black_th": "0.10",
+        "pic_th": "0.98"      },
+      "inputs": [
+        {
+          "kind": "stream",
+          "stream_label": "input1"
+        }
+      ],
+      "outputs": [
+        {
+          "kind": "stream",
+          "stream_label": "output1"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "kind": "video_metadata",
+      "stream": "output1",
+      "keys": [
+        "lavfi.black_start",
+        "lavfi.black_end"
+      ]
+    }
+  ]
+}

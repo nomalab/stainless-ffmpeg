@@ -1,0 +1,55 @@
+{
+  "inputs": [
+    {
+      "id": 1,
+      "path": "/Users/paulkaelblen/kittyluminacetestson.mxf",
+      "streams": [
+        {
+          "kind": "audio",
+          "label": "my_audio",
+          "index": 1
+        }
+      ]
+    }
+  ],
+  "graph": [
+    {
+      "name": "silencedetect",
+      "label": "silencedetect_filter",
+      "parameters": {
+        "d": 0.03
+      },
+      "inputs": [
+        {
+          "kind": "stream",
+          "stream_label": "my_audio"
+        }
+      ]
+    },
+    {
+      "name": "aformat",
+      "label": "aformat_filter",
+      "parameters": {
+        "channel_layouts": "mono",
+        "sample_fmts": "s32",
+        "sample_rates": "48000"
+      },
+      "outputs": [
+        {
+          "stream_label": "output1"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "kind": "audio_metadata",
+      "stream": "output1",
+      "keys": [
+        "lavfi.silence_start",
+        "lavfi.silence_end",
+        "lavfi.silence_duration"
+      ]
+    }
+  ]
+}

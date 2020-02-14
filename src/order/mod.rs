@@ -413,6 +413,16 @@ fn parse_sample_video_encoding_graph() {
 
   let idet_params : HashMap<String, ParameterValue> = HashMap::new();
 
+
+
+  let black_min_duration = ParameterValue::String("34".to_string());
+  let picture_black_ratio_th = ParameterValue::String("0.4".to_string());
+  let blackdetect_params : HashMap<String, ParameterValue> = HashMap::new();
+  blackdetect_params.insert("black_min_duration", black_min_duration.clone());
+  blackdetect_params.insert("picture_black_ratio_th".to_string(), picture_black_ratio_th.clone());
+
+
+
   let pix_fmts = ParameterValue::String("yuv420p".to_string());
   let mut format_params : HashMap<String, ParameterValue> = HashMap::new();
   format_params.insert("pix_fmts".to_string(), pix_fmts.clone());
