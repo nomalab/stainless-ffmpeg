@@ -1,4 +1,3 @@
-
 use stainless_ffmpeg_sys::*;
 use std::mem::swap;
 
@@ -9,6 +8,10 @@ pub struct Rational {
 }
 
 impl Rational {
+  pub fn new(num: i32, den: i32) -> Self {
+    Rational { num, den }
+  }
+
   pub fn invert(mut self) -> Self {
     swap(&mut self.den, &mut self.num);
     self
@@ -41,4 +44,20 @@ fn gcd(x: i32, y: i32) -> i32 {
     x = t;
   }
   x
+}
+
+#[test]
+fn rational() {
+  let r = Rational::new(2, 4);
+  let r = r.invert();
+  assert!(r.num == 4);
+  assert!(r.den == 2);
+
+  let r = r.reduce();
+  assert!(r.num == 2);
+  assert!(r.den == 1);
+
+  let av_r: AVRational = r.into();
+  assert!(av_r.num == 2);
+  assert!(av_r.den == 1);
 }

@@ -1,12 +1,12 @@
 extern crate env_logger;
 extern crate log;
-extern crate stainless_ffmpeg;
 extern crate serde_json;
+extern crate stainless_ffmpeg;
 
 use env_logger::{Builder, Env};
-use std::env;
-use stainless_ffmpeg::probe::*;
 use log::LevelFilter;
+use stainless_ffmpeg::probe::*;
+use std::env;
 
 fn main() {
   Builder::from_env(Env::default().default_filter_or("debug")).init();

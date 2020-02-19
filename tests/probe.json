@@ -11,14 +11,14 @@
     "nb_streams": 18,
     "metadata": {
       "company_name": "Grass Valley",
-      "product_version": "7.3.8.1432",
-      "product_uid": "caf3d2ff-9425-4086-addf-66f77967f101",
-      "product_name": "Grass Valley Media Platform",
-      "modification_date": "2010-12-28T13:51:23.000000Z",
-      "uid": "2ee62d86-5614-141e-23e6-00b00901b339",
-      "material_package_umid": "0x060A2B340101010501010F43130000002EE62F5C5614141E7C5400B00901B339",
       "generation_uid": "2ee62c50-5614-141e-0884-00b00901b339",
-      "timecode": "00:00:00:00"
+      "material_package_umid": "0x060A2B340101010501010F43130000002EE62F5C5614141E7C5400B00901B339",
+      "modification_date": "2010-12-28T13:51:23.000000Z",
+      "product_name": "Grass Valley Media Platform",
+      "product_uid": "caf3d2ff-9425-4086-addf-66f77967f101",
+      "product_version": "7.3.8.1432",
+      "timecode": "00:00:00:00",
+      "uid": "2ee62d86-5614-141e-23e6-00b00901b339"
     },
     "streams": [
       {

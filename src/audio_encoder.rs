@@ -1,8 +1,8 @@
-use stainless_ffmpeg_sys::*;
 use frame::Frame;
 use order::output::{ChannelLayout, OutputStream, SampleFormat};
 use order::parameters::ParameterValue;
 use packet::Packet;
+use stainless_ffmpeg_sys::*;
 use std::collections::HashMap;
 use std::ptr::null_mut;
 use tools;
@@ -78,7 +78,10 @@ impl AudioEncoder {
     }
   }
 
-  fn select_channel_layout(codec: *mut AVCodec, parameters: &HashMap<String, ParameterValue>) -> u64 {
+  fn select_channel_layout(
+    codec: *mut AVCodec,
+    parameters: &HashMap<String, ParameterValue>,
+  ) -> u64 {
     unsafe {
       if codec.is_null() || (*codec).channel_layouts.is_null() {
         if let Some(ParameterValue::String(data)) = parameters.get("channel_layout") {

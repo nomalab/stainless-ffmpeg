@@ -1,14 +1,14 @@
 use audio_encoder::AudioEncoder;
-use stainless_ffmpeg_sys::*;
+use order::frame::FrameAddress;
+use order::*;
 use packet::Packet;
-use std::collections::HashMap;
+use stainless_ffmpeg_sys::*;
+use std::collections::{BTreeMap, HashMap};
 use std::ffi::CString;
 use std::ptr::null_mut;
 use subtitle_encoder::SubtitleEncoder;
 use tools;
 use video_encoder::VideoEncoder;
-use order::frame::FrameAddress;
-use order::*;
 
 use std::ffi::c_void;
 
@@ -18,7 +18,7 @@ pub struct FormatContext {
   pub format_context: *mut AVFormatContext,
   streams: Vec<*mut AVStream>,
   frames: Vec<FrameAddress>,
-  frame_index: usize
+  frame_index: usize,
 }
 
 impl FormatContext {
@@ -32,7 +32,7 @@ impl FormatContext {
     })
   }
 
-  pub fn set_frames_addresses(&mut self, frames: &Vec<FrameAddress>) {
+  pub fn set_frames_addresses(&mut self, frames: &[FrameAddress]) {
     self.frames = frames.to_vec();
   }
 
@@ -54,13 +54,16 @@ impl FormatContext {
     Ok(())
   }
 
-  pub fn close_input(&mut self) -> () {
+  pub fn close_input(&mut self) {
     unsafe {
       avformat_close_input(&mut self.format_context);
     }
   }
 
-  pub fn open_output(&mut self, parameters: &HashMap<String, ParameterValue>) -> Result<(), String> {
+  pub fn open_output(
+    &mut self,
+    parameters: &HashMap<String, ParameterValue>,
+  ) -> Result<(), String> {
     unsafe {
       let filename = CString::new(self.filename.to_owned());
 
@@ -129,7 +132,7 @@ impl FormatContext {
   }
 
   pub fn get_nb_streams(&self) -> u32 {
-    if self.frames.len() > 0 {
+    if !self.frames.is_empty() {
       return 1;
     }
     unsafe { (*self.format_context).nb_streams }
@@ -193,11 +196,11 @@ impl FormatContext {
     unsafe { (*(**(*self.format_context).streams.offset(stream_index)).codecpar).codec_id }
   }
 
-  pub fn get_metadata(&self) -> HashMap<String, String> {
+  pub fn get_metadata(&self) -> BTreeMap<String, String> {
     unsafe {
       let mut tag = null_mut();
       let key = CString::new("").unwrap();
-      let mut metadata = HashMap::new();
+      let mut metadata = BTreeMap::new();
 
       loop {
         tag = av_dict_get(
@@ -219,15 +222,19 @@ impl FormatContext {
   }
 
   pub fn next_packet(&mut self) -> Result<Packet, String> {
-    if self.frames.len() > 0 {
+    if self.frames.is_empty() {
       if self.frame_index >= self.frames.len() as usize {
         return Err("End of data stream".to_string());
       }
       let frame = &self.frames[self.frame_index];
       unsafe {
         let filename = CString::new(self.filename.to_owned());
-        let mut avio_context : *mut AVIOContext = null_mut();
-        check_result!(avio_open(&mut avio_context, filename.unwrap().as_ptr(), AVIO_FLAG_READ));
+        let mut avio_context: *mut AVIOContext = null_mut();
+        check_result!(avio_open(
+          &mut avio_context,
+          filename.unwrap().as_ptr(),
+          AVIO_FLAG_READ
+        ));
         if avio_seek(avio_context, frame.offset as i64, 0) < 0 {
           println!("ERROR !");
         };
@@ -239,10 +246,7 @@ impl FormatContext {
 
         self.frame_index += 1;
 
-        return Ok(Packet {
-          name: None,
-          packet
-        });
+        return Ok(Packet { name: None, packet });
       }
     }
 
@@ -254,10 +258,7 @@ impl FormatContext {
         return Err("Unable to read next packet".to_string());
       }
 
-      Ok(Packet {
-        name: None,
-        packet
-      })
+      Ok(Packet { name: None, packet })
     }
   }
 }

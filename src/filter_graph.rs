@@ -1,5 +1,5 @@
-use stainless_ffmpeg_sys::*;
 use libc::c_void;
+use stainless_ffmpeg_sys::*;
 use std::fmt;
 use std::ptr::null_mut;
 
@@ -58,9 +58,7 @@ impl FilterGraph {
     label: &str,
     video_decoder: &VideoDecoder,
   ) -> Result<(), String> {
-    let buffer = unsafe{
-      Filter::new_with_label(self.graph, "buffer", label)?
-    };
+    let buffer = unsafe { Filter::new_with_label(self.graph, "buffer", label)? };
 
     let width = ParameterValue::Int64(i64::from(video_decoder.get_width()));
     width.set("width", buffer.context as *mut c_void)?;
@@ -72,11 +70,11 @@ impl FilterGraph {
     if num == 0 {
       num = 25;
     }
-    let time_base = ParameterValue::Rational(Rational{num, den});
+    let time_base = ParameterValue::Rational(Rational { num, den });
     time_base.set("time_base", buffer.context as *mut c_void)?;
 
     let (num, den) = video_decoder.get_aspect_ratio();
-    let pixel_aspect = ParameterValue::Rational(Rational{num, den});
+    let pixel_aspect = ParameterValue::Rational(Rational { num, den });
     pixel_aspect.set("pixel_aspect", buffer.context as *mut c_void)?;
 
     let pix_fmt = ParameterValue::String(video_decoder.get_pix_fmt_name());
@@ -92,9 +90,7 @@ impl FilterGraph {
     label: &str,
     audio_decoder: &AudioDecoder,
   ) -> Result<(), String> {
-    let abuffer = unsafe {
-      Filter::new_with_label(self.graph, "abuffer", label)?
-    };
+    let abuffer = unsafe { Filter::new_with_label(self.graph, "abuffer", label)? };
 
     let layout = audio_decoder.get_channel_layout();
     if layout > 0 {
@@ -118,9 +114,7 @@ impl FilterGraph {
   }
 
   pub fn add_video_output(&mut self, label: &str) -> Result<(), String> {
-    let buffersink = unsafe {
-      Filter::new_with_label(self.graph, "buffersink", label)?
-    };
+    let buffersink = unsafe { Filter::new_with_label(self.graph, "buffersink", label)? };
     buffersink.init()?;
 
     self.video_outputs.push(buffersink);
@@ -128,9 +122,7 @@ impl FilterGraph {
   }
 
   pub fn add_audio_output(&mut self, label: &str) -> Result<(), String> {
-    let abuffersink = unsafe {
-      Filter::new_with_label(self.graph, "abuffersink", label)?
-    };
+    let abuffersink = unsafe { Filter::new_with_label(self.graph, "abuffersink", label)? };
     abuffersink.init()?;
 
     self.audio_outputs.push(abuffersink);
@@ -139,9 +131,9 @@ impl FilterGraph {
 
   pub fn add_filter(&self, args: &order::filter::Filter) -> Result<Filter, String> {
     let filter = if let Some(ref label) = args.label {
-      unsafe{ Filter::new_with_label(self.graph, &args.name, label)? }
+      unsafe { Filter::new_with_label(self.graph, &args.name, label)? }
     } else {
-      unsafe{ Filter::new(self.graph, &args.name)? }
+      unsafe { Filter::new(self.graph, &args.name)? }
     };
 
     set_parameters(filter.context as *mut c_void, &args.parameters)?;

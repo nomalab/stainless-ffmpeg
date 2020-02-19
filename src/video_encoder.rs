@@ -1,8 +1,8 @@
-use stainless_ffmpeg_sys::*;
 use frame::Frame;
 use order::output::{ColorRange, Colorspace, OutputStream, PixelFormat};
 use order::parameters::ParameterValue;
 use packet::Packet;
+use stainless_ffmpeg_sys::*;
 use std::ptr::null_mut;
 use tools;
 

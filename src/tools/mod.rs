@@ -1,10 +1,6 @@
-use stainless_ffmpeg_sys::{
-  avcodec_find_encoder_by_name,
-  AVCodec,
-  AVMediaType
-};
-use rand::thread_rng;
 use rand::prelude::SliceRandom;
+use rand::thread_rng;
+use stainless_ffmpeg_sys::{avcodec_find_encoder_by_name, AVCodec, AVMediaType};
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
@@ -19,7 +15,7 @@ pub unsafe fn from_buf_raw<T>(ptr: *const T, elts: usize) -> Vec<T> {
   dst
 }
 
-static ALPHABET: &'static [u8] = b"abcdefghijklmnopqrstuvwxyz";
+static ALPHABET: &[u8] = b"abcdefghijklmnopqrstuvwxyz";
 
 pub unsafe fn to_string(data: *const i8) -> String {
   if data.is_null() {
@@ -56,5 +52,3 @@ pub fn get_codec_type(codec_name: &str) -> Option<AVMediaType> {
     Some((*codec).type_)
   }
 }
-
-

@@ -1,4 +1,3 @@
-
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct FrameAddress {
   pub index: u32,

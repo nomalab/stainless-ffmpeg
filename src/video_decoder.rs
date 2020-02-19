@@ -1,6 +1,6 @@
 use stainless_ffmpeg_sys::*;
-use std::ptr::null_mut;
 use std::ffi::CString;
+use std::ptr::null_mut;
 
 use format_context::FormatContext;
 use frame::Frame;
@@ -48,8 +48,8 @@ impl VideoDecoder {
   pub fn new_with_codec(
     identifier: String,
     codec_name: &str,
-    width: &i32,
-    height: &i32,
+    width: i32,
+    height: i32,
     stream_index: isize,
   ) -> Result<Self, String> {
     unsafe {
@@ -57,8 +57,8 @@ impl VideoDecoder {
       let codec = avcodec_find_decoder_by_name(cn.unwrap().as_ptr());
       let mut codec_context = avcodec_alloc_context3(codec);
 
-      (*codec_context).width = *width;
-      (*codec_context).height = *height;
+      (*codec_context).width = width;
+      (*codec_context).height = height;
       check_result!(avcodec_open2(codec_context, codec, null_mut()), {
         avcodec_free_context(&mut codec_context);
       });

@@ -1,5 +1,5 @@
-extern crate stainless_ffmpeg_sys;
 extern crate libc;
+extern crate stainless_ffmpeg_sys;
 #[macro_use]
 extern crate log;
 extern crate rand;

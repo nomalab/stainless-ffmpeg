@@ -6,15 +6,12 @@ extern crate serde_json;
 extern crate stainless_ffmpeg;
 
 use env_logger::{Builder, Env};
-use stainless_ffmpeg_sys::{
-  av_log_set_level,
-  AV_LOG_ERROR
-};
+use stainless_ffmpeg::order::OutputResult::Entry;
+use stainless_ffmpeg::order::*;
+use stainless_ffmpeg_sys::{av_log_set_level, AV_LOG_ERROR};
 use std::env;
 use std::fs::File;
 use std::io::Read;
-use stainless_ffmpeg::order::*;
-use stainless_ffmpeg::order::OutputResult::Entry;
 
 fn main() {
   Builder::from_env(Env::default().default_filter_or("debug")).init();
@@ -49,8 +46,8 @@ fn main() {
               if let Some(value) = entry_map.get("lavfi.r128.I") {
                 info!("Program Loudness: {}", value);
               }
-            },
-            _ => {},
+            }
+            _ => {}
           }
         }
       }

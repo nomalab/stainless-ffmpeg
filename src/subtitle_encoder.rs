@@ -1,6 +1,6 @@
-use stainless_ffmpeg_sys::*;
 use order::output::OutputStream;
 use order::parameters::ParameterValue;
+use stainless_ffmpeg_sys::*;
 use tools;
 
 #[derive(Debug)]
