@@ -1,6 +1,6 @@
-use format_context::FormatContext;
+use crate::tools;
+use crate::format_context::FormatContext;
 use stainless_ffmpeg_sys::*;
-use tools;
 
 #[derive(Debug)]
 pub struct SubtitleDecoder {

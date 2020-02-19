@@ -1,6 +1,8 @@
-use order::filter_input::FilterInput;
-use order::filter_output::FilterOutput;
-use order::parameters::ParameterValue;
+use crate::order::{
+	filter_input::FilterInput,
+	filter_output::FilterOutput,
+	parameters::ParameterValue,
+};
 use std::collections::HashMap;
 
 #[derive(Debug, Deserialize, PartialEq)]

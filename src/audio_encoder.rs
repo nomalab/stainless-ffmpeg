@@ -1,11 +1,11 @@
-use frame::Frame;
-use order::output::{ChannelLayout, OutputStream, SampleFormat};
-use order::parameters::ParameterValue;
-use packet::Packet;
+use crate::frame::Frame;
+use crate::order::output::{ChannelLayout, OutputStream, SampleFormat};
+use crate::order::parameters::ParameterValue;
+use crate::packet::Packet;
+use crate::tools;
 use stainless_ffmpeg_sys::*;
 use std::collections::HashMap;
 use std::ptr::null_mut;
-use tools;
 
 #[derive(Debug)]
 pub struct AudioEncoder {
@@ -62,8 +62,8 @@ impl AudioEncoder {
       let ret = avcodec_receive_packet(self.codec_context, packet.packet as *mut _);
 
       if ret == AVERROR(EAGAIN) || ret == AVERROR_EOF {
-        let mut data = [0i8; AV_ERROR_MAX_STRING_SIZE as usize];
-        av_strerror(ret, data.as_mut_ptr(), AV_ERROR_MAX_STRING_SIZE);
+        let mut data = [0i8; AV_ERROR_MAX_STRING_SIZE];
+        av_strerror(ret, data.as_mut_ptr(), AV_ERROR_MAX_STRING_SIZE as u64);
         trace!("{}", tools::to_string(data.as_ptr()));
         return Ok(false);
       }

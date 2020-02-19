@@ -1,4 +1,4 @@
-use packet::Packet;
+use crate::packet::Packet;
 use std::collections::HashMap;
 
 pub enum OutputResult {

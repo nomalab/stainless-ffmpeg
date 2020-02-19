@@ -7,6 +7,7 @@ Efficient Rust wrapper for FFmpeg.
 """
 license = "Apache-2.0"
 repository = "https://github.com/nomalab/stainless-ffmpeg"
+edition = "2018"
 
 [dependencies]
 stainless-ffmpeg-sys = "^4.2"

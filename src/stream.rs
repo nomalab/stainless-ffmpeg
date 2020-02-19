@@ -1,10 +1,10 @@
+use crate::tools;
+use crate::tools::rational::Rational;
 use stainless_ffmpeg_sys::*;
 use std::char;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::ptr::null_mut;
-use tools;
-use tools::rational::Rational;
 
 #[derive(Clone)]
 pub struct Stream {
