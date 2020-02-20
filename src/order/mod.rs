@@ -103,9 +103,9 @@ impl Order {
             if output.stream == output_frame.name {
               if let Some(OutputKind::AudioMetadata) = output.kind {
                 let mut entry = HashMap::new();
-                entry.insert("pts".to_owned(), format!("{}", output_frame.get_pts()));
+                entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
                 if let Input::Streams{streams, ..} = &self.inputs[output_frame.index] {
-                  entry.insert("stream_id".to_owned(), format!("{}", streams[0].index));
+                  entry.insert("stream_id".to_owned(), streams[0].index.to_string());
                 }
 
                 for key in &output.keys {
@@ -136,7 +136,7 @@ impl Order {
           for output in &self.outputs {
             if let Some(OutputKind::VideoMetadata) = output.kind {
               let mut entry = HashMap::new();
-              entry.insert("pts".to_owned(), format!("{}", output_frame.get_pts()));
+              entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
 
               for key in &output.keys {
                 if let Some(value) = output_frame.get_metadata(&key) {

@@ -97,8 +97,8 @@ pub fn detect_silence(filename: &String, streams: &mut Vec<StreamProbeResult>, a
 
   match order.process() {
     Ok(results) => {
-      println!("END OF PROCESS");
-      println!("-> {:?} frames processed", results.len());
+      info!("END OF PROCESS");
+      info!("-> {:?} frames processed", results.len());
       for result in results {
         match result {
           Entry(entry_map) => {
