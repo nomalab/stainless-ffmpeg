@@ -104,7 +104,7 @@ impl Order {
               if let Some(OutputKind::AudioMetadata) = output.kind {
                 let mut entry = HashMap::new();
                 entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
-                if let Input::Streams{streams, ..} = &self.inputs[output_frame.index] {
+                if let Input::Streams { streams, .. } = &self.inputs[output_frame.index] {
                   entry.insert("stream_id".to_owned(), streams[0].index.to_string());
                 }
 

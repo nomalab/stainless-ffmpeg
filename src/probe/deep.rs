@@ -1,9 +1,9 @@
 use crate::format_context::FormatContext;
+use crate::probe::silence_detect::detect_silence;
 use log::LevelFilter;
 use stainless_ffmpeg_sys::*;
 use std::cmp;
 use std::fmt;
-use probe::silence_detect::detect_silence;
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct DeepProbe {
@@ -15,7 +15,7 @@ pub struct DeepProbe {
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct DeepProbeResult {
   #[serde(default)]
-  streams: Vec<StreamProbeResult>
+  streams: Vec<StreamProbeResult>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -25,12 +25,12 @@ pub struct StreamProbeResult {
   min_packet_size: i32,
   max_packet_size: i32,
   pub silence_start: Vec<String>,
-  pub silence_end: Vec<String>
+  pub silence_end: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct DeepProbeCheck {
-  pub silence_detect: bool
+  pub silence_detect: bool,
 }
 
 impl fmt::Display for DeepProbeResult {
@@ -38,8 +38,16 @@ impl fmt::Display for DeepProbeResult {
     for (index, stream) in self.streams.iter().enumerate() {
       writeln!(f, "\n{:30} : {:?}", "Stream Index", index)?;
       writeln!(f, "{:30} : {:?}", "Number of packets", stream.count_packets)?;
-      writeln!(f, "{:30} : {:?}", "Minimum packet size", stream.min_packet_size)?;
-      writeln!(f, "{:30} : {:?}", "Maximum packet size", stream.max_packet_size)?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
+        "Minimum packet size", stream.min_packet_size
+      )?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
+        "Maximum packet size", stream.max_packet_size
+      )?;
       writeln!(f, "{:30} : {:?}", "Silence start", stream.silence_start)?;
       writeln!(f, "{:30} : {:?}", "Silence end", stream.silence_end)?;
     }
@@ -69,15 +77,14 @@ impl DeepProbe {
   }
 
   pub fn process(&mut self, log_level: LevelFilter, check: DeepProbeCheck) -> Result<(), String> {
-    let av_log_level =
-      match log_level {
-        LevelFilter::Error => AV_LOG_ERROR,
-        LevelFilter::Warn => AV_LOG_WARNING,
-        LevelFilter::Info => AV_LOG_INFO,
-        LevelFilter::Debug => AV_LOG_DEBUG,
-        LevelFilter::Trace => AV_LOG_TRACE,
-        LevelFilter::Off => AV_LOG_QUIET,
-      };
+    let av_log_level = match log_level {
+      LevelFilter::Error => AV_LOG_ERROR,
+      LevelFilter::Warn => AV_LOG_WARNING,
+      LevelFilter::Info => AV_LOG_INFO,
+      LevelFilter::Debug => AV_LOG_DEBUG,
+      LevelFilter::Trace => AV_LOG_TRACE,
+      LevelFilter::Off => AV_LOG_QUIET,
+    };
 
     unsafe {
       av_log_set_level(av_log_level);
@@ -94,16 +101,16 @@ impl DeepProbe {
     streams.resize(context.get_nb_streams() as usize, StreamProbeResult::new());
     loop {
       match context.next_packet() {
-        Ok(packet) => {
-          unsafe {
-            let stream_index = (*packet.packet).stream_index as usize;
-            let packet_size = (*packet.packet).size;
+        Ok(packet) => unsafe {
+          let stream_index = (*packet.packet).stream_index as usize;
+          let packet_size = (*packet.packet).size;
 
-            streams[stream_index].stream_index = stream_index;
-            streams[stream_index].count_packets += 1;
-            streams[stream_index].min_packet_size = cmp::min(packet_size, streams[stream_index].min_packet_size);
-            streams[stream_index].max_packet_size = cmp::max(packet_size, streams[stream_index].max_packet_size);
-          }
+          streams[stream_index].stream_index = stream_index;
+          streams[stream_index].count_packets += 1;
+          streams[stream_index].min_packet_size =
+            cmp::min(packet_size, streams[stream_index].min_packet_size);
+          streams[stream_index].max_packet_size =
+            cmp::max(packet_size, streams[stream_index].max_packet_size);
         },
         Err(_) => {
           break;
@@ -121,9 +128,7 @@ impl DeepProbe {
       detect_silence(&self.filename, &mut streams, audio_indexes);
     }
 
-    self.result = Some(DeepProbeResult {
-      streams
-    });
+    self.result = Some(DeepProbeResult { streams });
 
     context.close_input();
     Ok(())
@@ -137,8 +142,8 @@ fn deep_probe_mxf_sample() {
   use std::io::prelude::*;
 
   let mut probe = DeepProbe::new("tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf");
-  let check_list = DeepProbeCheck{
-    silence_detect: true
+  let check_list = DeepProbeCheck {
+    silence_detect: true,
   };
   probe.process(LevelFilter::Error, check_list).unwrap();
 
@@ -146,6 +151,6 @@ fn deep_probe_mxf_sample() {
   let mut contents = String::new();
   file.read_to_string(&mut contents).unwrap();
 
-  let reference : DeepProbe = serde_json::from_str(&contents).unwrap();
+  let reference: DeepProbe = serde_json::from_str(&contents).unwrap();
   assert_eq!(probe, reference);
 }

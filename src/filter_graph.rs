@@ -286,7 +286,7 @@ impl FilterGraph {
         output_audio_frames.push(Frame {
           name: Some(output_filter.get_label()),
           frame: output_frame,
-          index
+          index,
         });
       }
 
@@ -297,7 +297,7 @@ impl FilterGraph {
           output_video_frames.push(Frame {
             name: Some(output_filter.get_label()),
             frame: output_frame,
-            index
+            index,
           });
         }
       }

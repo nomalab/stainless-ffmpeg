@@ -1,7 +1,7 @@
 use env_logger::{Builder, Env};
-use std::env;
-use stainless_ffmpeg::probe::*;
 use log::LevelFilter;
+use stainless_ffmpeg::probe::*;
+use std::env;
 
 fn main() {
   Builder::from_env(Env::default().default_filter_or("debug")).init();
@@ -9,7 +9,7 @@ fn main() {
   if let Some(path) = env::args().last() {
     let mut probe = DeepProbe::new(&path);
     let check = DeepProbeCheck {
-      silence_detect: true
+      silence_detect: true,
     };
     probe.process(LevelFilter::Off, check).unwrap();
     let result = serde_json::to_string(&probe).unwrap();
