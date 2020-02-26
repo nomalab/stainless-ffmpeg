@@ -29,7 +29,7 @@ pub fn create_graph(
     let mut silencedetect_params: HashMap<String, ParameterValue> = HashMap::new();
     if let Some(duration) = params.get("duration") {
       if let Some(min_duration) = duration.min {
-        let min = (min_duration - 0.001) * 1000000.0;
+        let min = (min_duration as f64 - 1.0) / 1000.0;
         silencedetect_params.insert("duration".to_string(), ParameterValue::Float(min));
       }
     }
@@ -140,7 +140,7 @@ pub fn detect_silence(
               }
               if let Some(value) = entry_map.get("lavfi.silence_duration") {
                 if let Some(max) = max_duration {
-                  if value.parse::<f64>().unwrap() > max {
+                  if value.parse::<f64>().unwrap() > max as f64 / 1000.0 {
                     streams[(index) as usize].detected_silence.pop();
                   }
                 }

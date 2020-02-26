@@ -11,8 +11,8 @@ fn main() {
   if let Some(path) = env::args().last() {
     let mut probe = DeepProbe::new(&path);
     let duration_params = CheckParameterValue {
-      min: Some(2.0),
-      max: Some(10.0),
+      min: Some(2000),
+      max: Some(10000),
       num: None,
       den: None,
     };

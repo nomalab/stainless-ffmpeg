@@ -42,9 +42,9 @@ pub struct StreamProbeResult {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct CheckParameterValue {
   #[serde(default, skip_serializing_if = "Option::is_none")]
-  pub min: Option<f64>,
+  pub min: Option<u64>,
   #[serde(default, skip_serializing_if = "Option::is_none")]
-  pub max: Option<f64>,
+  pub max: Option<u64>,
   #[serde(default, skip_serializing_if = "Option::is_none")]
   pub num: Option<u64>,
   #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -176,7 +176,7 @@ fn deep_probe_mxf_sample() {
   let mut probe = DeepProbe::new("tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf");
   let mut params = HashMap::new();
   let duration = CheckParameterValue {
-    min: Some(2.0),
+    min: Some(2000),
     max: None,
     num: None,
     den: None,
