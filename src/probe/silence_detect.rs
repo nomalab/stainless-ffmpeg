@@ -1,12 +1,19 @@
+use crate::format_context::FormatContext;
 use crate::order::{
   filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
   output::Output, output_kind::OutputKind, stream::Stream,
 };
 use crate::order::{Filter, Order, OutputResult::Entry, ParameterValue};
-use crate::probe::deep::StreamProbeResult;
+use crate::probe::deep::{CheckParameterValue, SilenceResult, StreamProbeResult};
+use crate::stream::Stream as ContextStream;
+use stainless_ffmpeg_sys::AVMediaType;
 use std::collections::HashMap;
 
-pub fn create_graph(filename: &String, audio_indexes: Vec<u32>) -> Result<Order, String> {
+pub fn create_graph(
+  filename: &String,
+  audio_indexes: Vec<u32>,
+  params: HashMap<String, CheckParameterValue>,
+) -> Result<Order, String> {
   let mut filters = vec![];
   let mut inputs = vec![];
   let mut outputs = vec![];
@@ -19,9 +26,13 @@ pub fn create_graph(filename: &String, audio_indexes: Vec<u32>) -> Result<Order,
       label: Some(input_identifier.clone()),
     }];
 
-    let duration = ParameterValue::Int64(2);
     let mut silencedetect_params: HashMap<String, ParameterValue> = HashMap::new();
-    silencedetect_params.insert("duration".to_string(), duration);
+    if let Some(duration) = params.get("duration") {
+      if let Some(min_duration) = duration.min {
+        let min = (min_duration - 0.001) * 1000000.0;
+        silencedetect_params.insert("duration".to_string(), ParameterValue::Float(min));
+      }
+    }
 
     let channel_layouts = ParameterValue::String("mono".to_string());
     let mut aformat_params: HashMap<String, ParameterValue> = HashMap::new();
@@ -73,8 +84,9 @@ pub fn detect_silence(
   filename: &String,
   streams: &mut Vec<StreamProbeResult>,
   audio_indexes: Vec<u32>,
+  params: HashMap<String, CheckParameterValue>,
 ) -> () {
-  let mut order = create_graph(filename, audio_indexes).unwrap();
+  let mut order = create_graph(filename, audio_indexes.clone(), params.clone()).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
     return;
@@ -84,24 +96,67 @@ pub fn detect_silence(
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
+      let mut duration = 0.0;
+      let mut context = FormatContext::new(&filename).unwrap();
+      if let Err(msg) = context.open_input() {
+        context.close_input();
+        error!("{:?}", msg);
+        return;
+      }
+      for index in 0..context.get_nb_streams() {
+        if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
+          match context.get_stream_type(index as isize) {
+            AVMediaType::AVMEDIA_TYPE_VIDEO => {
+              let rational_frame_rate = stream.get_frame_rate();
+              let frame_rate = rational_frame_rate.num as f64 / rational_frame_rate.den as f64;
+              duration = results.len() as f64 / audio_indexes.len() as f64 / frame_rate;
+            }
+            _ => {}
+          }
+        }
+      }
       for result in results {
         match result {
           Entry(entry_map) => {
             if let Some(stream_id) = entry_map.get("stream_id") {
               let index: i32 = stream_id.parse().unwrap();
+              let mut silence = SilenceResult {
+                start: 0.0,
+                end: duration,
+              };
+              let mut max_duration = None;
+              if let Some(duration) = params.get("duration") {
+                max_duration = duration.max;
+              }
+
               if let Some(value) = entry_map.get("lavfi.silence_start") {
-                streams[(index) as usize]
-                  .silence_start
-                  .push(value.to_string());
+                silence.start = value.parse::<f64>().unwrap();
+                streams[(index) as usize].detected_silence.push(silence);
               }
               if let Some(value) = entry_map.get("lavfi.silence_end") {
-                streams[(index) as usize]
-                  .silence_end
-                  .push(value.to_string());
+                if let Some(last_detect) = streams[(index) as usize].detected_silence.last_mut() {
+                  last_detect.end = value.parse::<f64>().unwrap();
+                }
+              }
+              if let Some(value) = entry_map.get("lavfi.silence_duration") {
+                if let Some(max) = max_duration {
+                  if value.parse::<f64>().unwrap() > max {
+                    streams[(index) as usize].detected_silence.pop();
+                  }
+                }
               }
             }
           }
           _ => {}
+        }
+      }
+      for index in 0..context.get_nb_streams() {
+        if streams[(index) as usize].detected_silence.len() == 1 {
+          if streams[(index) as usize].detected_silence[0].start == 0.0
+            && streams[(index) as usize].detected_silence[0].end == duration
+          {
+            streams[(index) as usize].silent_stream = true;
+          }
         }
       }
     }

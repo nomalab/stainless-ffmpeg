@@ -2,8 +2,7 @@ use crate::format_context::FormatContext;
 use crate::probe::silence_detect::detect_silence;
 use log::LevelFilter;
 use stainless_ffmpeg_sys::*;
-use std::cmp;
-use std::fmt;
+use std::{cmp, collections::HashMap, fmt};
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct DeepProbe {
@@ -19,18 +18,42 @@ pub struct DeepProbeResult {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct SilenceResult {
+  pub start: f64,
+  pub end: f64,
+}
+
+fn is_false(x: &bool) -> bool {
+  !x
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct StreamProbeResult {
   stream_index: usize,
   count_packets: usize,
   min_packet_size: i32,
   max_packet_size: i32,
-  pub silence_start: Vec<String>,
-  pub silence_end: Vec<String>,
+  #[serde(skip_serializing_if = "Vec::is_empty")]
+  pub detected_silence: Vec<SilenceResult>,
+  #[serde(skip_serializing_if = "is_false")]
+  pub silent_stream: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct CheckParameterValue {
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub min: Option<f64>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub max: Option<f64>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub num: Option<u64>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub den: Option<u64>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct DeepProbeCheck {
-  pub silence_detect: bool,
+  pub silence_detect: HashMap<String, CheckParameterValue>,
 }
 
 impl fmt::Display for DeepProbeResult {
@@ -48,8 +71,11 @@ impl fmt::Display for DeepProbeResult {
         "{:30} : {:?}",
         "Maximum packet size", stream.max_packet_size
       )?;
-      writeln!(f, "{:30} : {:?}", "Silence start", stream.silence_start)?;
-      writeln!(f, "{:30} : {:?}", "Silence end", stream.silence_end)?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
+        "Silence detection", stream.detected_silence
+      )?;
     }
     Ok(())
   }
@@ -62,8 +88,8 @@ impl StreamProbeResult {
       count_packets: 0,
       min_packet_size: std::i32::MAX,
       max_packet_size: std::i32::MIN,
-      silence_start: vec![],
-      silence_end: vec![],
+      detected_silence: vec![],
+      silent_stream: false,
     }
   }
 }
@@ -118,14 +144,19 @@ impl DeepProbe {
       }
     }
 
-    if check.silence_detect {
+    if !check.silence_detect.is_empty() {
       let mut audio_indexes = vec![];
       for stream_index in 0..context.get_nb_streams() {
         if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
           audio_indexes.push(stream_index);
         }
       }
-      detect_silence(&self.filename, &mut streams, audio_indexes);
+      detect_silence(
+        &self.filename,
+        &mut streams,
+        audio_indexes,
+        check.silence_detect,
+      );
     }
 
     self.result = Some(DeepProbeResult { streams });
@@ -138,12 +169,21 @@ impl DeepProbe {
 #[test]
 fn deep_probe_mxf_sample() {
   use serde_json;
+  use std::collections::HashMap;
   use std::fs::File;
   use std::io::prelude::*;
 
   let mut probe = DeepProbe::new("tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf");
+  let mut params = HashMap::new();
+  let duration = CheckParameterValue {
+    min: Some(2.0),
+    max: None,
+    num: None,
+    den: None,
+  };
+  params.insert("duration".to_string(), duration);
   let check_list = DeepProbeCheck {
-    silence_detect: true,
+    silence_detect: params,
   };
   probe.process(LevelFilter::Error, check_list).unwrap();
 

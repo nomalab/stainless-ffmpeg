@@ -1,4 +1,4 @@
-mod deep;
+pub mod deep;
 mod silence_detect;
 mod simple;
 
