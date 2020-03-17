@@ -19,8 +19,8 @@ pub struct DeepProbeResult {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SilenceResult {
-  pub start: f64,
-  pub end: f64,
+  pub start: i64,
+  pub end: i64,
 }
 
 fn is_false(x: &bool) -> bool {

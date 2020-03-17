@@ -96,7 +96,7 @@ pub fn detect_silence(
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
-      let mut duration = 0.0;
+      let mut duration = 0;
       let mut context = FormatContext::new(&filename).unwrap();
       if let Err(msg) = context.open_input() {
         context.close_input();
@@ -109,7 +109,7 @@ pub fn detect_silence(
             AVMediaType::AVMEDIA_TYPE_VIDEO => {
               let rational_frame_rate = stream.get_frame_rate();
               let frame_rate = rational_frame_rate.num as f64 / rational_frame_rate.den as f64;
-              duration = results.len() as f64 / audio_indexes.len() as f64 / frame_rate;
+              duration = (results.len() as f64 / audio_indexes.len() as f64 / frame_rate * 1000.0) as i64;
             }
             _ => {}
           }
@@ -121,7 +121,7 @@ pub fn detect_silence(
             if let Some(stream_id) = entry_map.get("stream_id") {
               let index: i32 = stream_id.parse().unwrap();
               let mut silence = SilenceResult {
-                start: 0.0,
+                start: 0,
                 end: duration,
               };
               let mut max_duration = None;
@@ -130,17 +130,17 @@ pub fn detect_silence(
               }
 
               if let Some(value) = entry_map.get("lavfi.silence_start") {
-                silence.start = value.parse::<f64>().unwrap();
+                silence.start = (value.parse::<f64>().unwrap() * 1000.0) as i64;
                 streams[(index) as usize].detected_silence.push(silence);
               }
               if let Some(value) = entry_map.get("lavfi.silence_end") {
                 if let Some(last_detect) = streams[(index) as usize].detected_silence.last_mut() {
-                  last_detect.end = value.parse::<f64>().unwrap();
+                  last_detect.end = (value.parse::<f64>().unwrap() * 1000.0) as i64;
                 }
               }
               if let Some(value) = entry_map.get("lavfi.silence_duration") {
                 if let Some(max) = max_duration {
-                  if value.parse::<f64>().unwrap() > max as f64 / 1000.0 {
+                  if value.parse::<f64>().unwrap() * 1000.0 > max as f64 {
                     streams[(index) as usize].detected_silence.pop();
                   }
                 }
@@ -152,7 +152,7 @@ pub fn detect_silence(
       }
       for index in 0..context.get_nb_streams() {
         if streams[(index) as usize].detected_silence.len() == 1 {
-          if streams[(index) as usize].detected_silence[0].start == 0.0
+          if streams[(index) as usize].detected_silence[0].start == 0
             && streams[(index) as usize].detected_silence[0].end == duration
           {
             streams[(index) as usize].silent_stream = true;
