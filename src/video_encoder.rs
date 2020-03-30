@@ -1,10 +1,10 @@
-use frame::Frame;
-use order::output::{ColorRange, Colorspace, OutputStream, PixelFormat};
-use order::parameters::ParameterValue;
-use packet::Packet;
+use crate::frame::Frame;
+use crate::order::output::{ColorRange, Colorspace, OutputStream, PixelFormat};
+use crate::order::parameters::ParameterValue;
+use crate::packet::Packet;
+use crate::tools;
 use stainless_ffmpeg_sys::*;
 use std::ptr::null_mut;
-use tools;
 
 #[derive(Debug)]
 pub struct VideoEncoder {

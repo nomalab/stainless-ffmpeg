@@ -1,9 +1,5 @@
-extern crate env_logger;
-extern crate stainless_ffmpeg_sys;
 #[macro_use]
 extern crate log;
-extern crate serde_json;
-extern crate stainless_ffmpeg;
 
 use env_logger::{Builder, Env};
 use stainless_ffmpeg::order::OutputResult::Entry;

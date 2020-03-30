@@ -1,11 +1,11 @@
-use frame::Frame;
-use order::output::{ChannelLayout, OutputStream, SampleFormat};
-use order::parameters::ParameterValue;
-use packet::Packet;
+use crate::frame::Frame;
+use crate::order::output::{ChannelLayout, OutputStream, SampleFormat};
+use crate::order::parameters::ParameterValue;
+use crate::packet::Packet;
+use crate::tools;
 use stainless_ffmpeg_sys::*;
 use std::collections::HashMap;
 use std::ptr::null_mut;
-use tools;
 
 #[derive(Debug)]
 pub struct AudioEncoder {

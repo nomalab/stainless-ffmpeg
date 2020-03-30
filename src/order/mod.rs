@@ -1,4 +1,4 @@
-use filter_graph::FilterGraph;
+use crate::filter_graph::FilterGraph;
 use serde_json;
 use std::collections::HashMap;
 
@@ -16,19 +16,19 @@ mod output_result;
 pub mod parameters;
 mod stream;
 
-use frame::Frame;
-use order::decoder_format::DecoderFormat;
-use order::encoder_format::EncoderFormat;
-pub use order::filter::Filter;
-use order::filter_input::FilterInput;
-use order::input::Input;
-use order::input_kind::InputKind;
-use order::output::Output;
-use order::output_kind::OutputKind;
-pub use order::output_result::OutputResult;
-pub use order::parameters::*;
+use crate::frame::Frame;
+use crate::order::decoder_format::DecoderFormat;
+use crate::order::encoder_format::EncoderFormat;
+pub use crate::order::filter::Filter;
+use crate::order::filter_input::FilterInput;
+use crate::order::input::Input;
+use crate::order::input_kind::InputKind;
+use crate::order::output::Output;
+use crate::order::output_kind::OutputKind;
+pub use crate::order::output_result::OutputResult;
+pub use crate::order::parameters::*;
 
-use packet::Packet;
+use crate::packet::Packet;
 use std::ptr::null_mut;
 
 #[derive(Debug, Deserialize)]
@@ -243,7 +243,7 @@ impl Order {
     Ok(())
   }
 
-  fn build_graph(&mut self) -> Result<Vec<::filter::Filter>, String> {
+  fn build_graph(&mut self) -> Result<Vec<crate::filter::Filter>, String> {
     let mut filters = vec![];
 
     for filter_description in &self.graph {
@@ -307,16 +307,16 @@ impl Order {
 
 #[test]
 fn parse_sample_audio_encoding_graph() {
-  use order::filter_output::FilterOutput;
-  use order::input_kind::InputKind;
-  use order::output::OutputStream;
-  use order::output_kind::OutputKind;
-  use order::stream::Stream;
-  use order::ParameterValue;
+  use crate::order::filter_output::FilterOutput;
+  use crate::order::input_kind::InputKind;
+  use crate::order::output::OutputStream;
+  use crate::order::output_kind::OutputKind;
+  use crate::order::stream::Stream;
+  use crate::order::ParameterValue;
+  use crate::tools::rational::Rational;
   use serde_json;
   use std::fs::File;
   use std::io::Read;
-  use tools::rational::Rational;
 
   let mut file = File::open("tests/audio_encoding.json").unwrap();
 
@@ -410,16 +410,16 @@ fn parse_sample_audio_encoding_graph() {
 
 #[test]
 fn parse_sample_video_encoding_graph() {
-  use order::filter_output::FilterOutput;
-  use order::input_kind::InputKind;
-  use order::output::OutputStream;
-  use order::output_kind::OutputKind;
-  use order::stream::Stream;
-  use order::ParameterValue;
+  use crate::order::filter_output::FilterOutput;
+  use crate::order::input_kind::InputKind;
+  use crate::order::output::OutputStream;
+  use crate::order::output_kind::OutputKind;
+  use crate::order::stream::Stream;
+  use crate::order::ParameterValue;
+  use crate::tools::rational::Rational;
   use serde_json;
   use std::fs::File;
   use std::io::Read;
-  use tools::rational::Rational;
 
   let mut file = File::open("tests/video_encoding.json").unwrap();
 

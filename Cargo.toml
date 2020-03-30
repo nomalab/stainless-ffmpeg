@@ -1,6 +1,7 @@
 [package]
 name = "stainless_ffmpeg"
 version = "0.1.1"
+edition = "2018"
 authors = ["Marc-Antoine Arnaud <arnaud.marcantoine@gmail.com>", "Romane Lafon <romane@nomalab.com>"]
 description = """
 Efficient Rust wrapper for FFmpeg.
