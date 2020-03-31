@@ -13,7 +13,8 @@
       "company_name": "Grass Valley",
       "generation_uid": "2ee62c50-5614-141e-0884-00b00901b339",
       "material_package_umid": "0x060A2B340101010501010F43130000002EE62F5C5614141E7C5400B00901B339",
-      "modification_date": "2010-12-28T13:51:23.000000Z",
+      "modification_date": "2010-12-28T13:51:23.280000Z",
+      "operational_pattern_ul": "060e2b34.04010101.0d010201.01010900",
       "product_name": "Grass Valley Media Platform",
       "product_uid": "caf3d2ff-9425-4086-addf-66f77967f101",
       "product_version": "7.3.8.1432",
@@ -43,7 +44,6 @@
         "profile": "Main",
         "scanning_type": "interlaced",
         "chroma_subsampling": "4:2:0",
-        "timecode": null,
         "pix_fmt":"yuv420p",
         "stream_metadata": {
           "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
@@ -325,8 +325,6 @@
       {
         "index": 17,
         "stream_type": "data",
-        "codec_name": null,
-        "codec_long_name": null,
         "start_time": 0.0,
         "duration": 10.0,
         "bit_rate": 0,
