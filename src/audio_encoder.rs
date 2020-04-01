@@ -86,7 +86,7 @@ impl AudioEncoder {
       if codec.is_null() || (*codec).channel_layouts.is_null() {
         if let Some(ParameterValue::String(data)) = parameters.get("channel_layout") {
           let layout: ChannelLayout = data.parse().unwrap();
-          layout.clone().into()
+          layout.into()
         } else {
           AV_CH_LAYOUT_STEREO
         }

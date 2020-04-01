@@ -53,8 +53,8 @@ impl VideoDecoder {
     stream_index: isize,
   ) -> Result<Self, String> {
     unsafe {
-      let cn = CString::new(codec_name);
-      let codec = avcodec_find_decoder_by_name(cn.unwrap().as_ptr());
+      let cn = CString::new(codec_name).unwrap();
+      let codec = avcodec_find_decoder_by_name(cn.as_ptr());
       let mut codec_context = avcodec_alloc_context3(codec);
 
       (*codec_context).width = width;

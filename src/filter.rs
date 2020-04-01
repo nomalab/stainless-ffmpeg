@@ -11,10 +11,12 @@ pub struct Filter {
 }
 
 impl Filter {
+  /// # Safety
   pub unsafe fn new(filter_graph: *mut AVFilterGraph, plugin_name: &str) -> Result<Self, String> {
     Filter::new_with_label(filter_graph, plugin_name, "")
   }
 
+  /// # Safety
   pub unsafe fn new_with_label(
     filter_graph: *mut AVFilterGraph,
     plugin_name: &str,
@@ -171,8 +173,7 @@ fn dump_option(
           value_ptr as *mut *mut _,
         );
 
-        let msg = tools::to_string(data as *const i8);
-        msg.to_string()
+        tools::to_string(data as *const i8)
       }
       AV_OPT_TYPE_SAMPLE_FMT => {
         let format = AVSampleFormat::AV_SAMPLE_FMT_NONE;
@@ -185,7 +186,7 @@ fn dump_option(
         );
 
         let sample_fmt = av_get_sample_fmt_name(format);
-        tools::to_string(sample_fmt).to_string()
+        tools::to_string(sample_fmt)
       }
       AV_OPT_TYPE_IMAGE_SIZE => {
         let width = 0i32;

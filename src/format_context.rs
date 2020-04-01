@@ -39,10 +39,10 @@ impl FormatContext {
   pub fn open_input(&mut self) -> Result<(), String> {
     unsafe {
       self.format_context = avformat_alloc_context();
-      let filename = CString::new(self.filename.to_owned());
+      let filename = CString::new(self.filename.to_owned()).unwrap();
       if avformat_open_input(
         &mut self.format_context,
-        filename.unwrap().as_ptr(),
+        filename.as_ptr(),
         null_mut(),
         null_mut(),
       ) < 0
@@ -65,13 +65,13 @@ impl FormatContext {
     parameters: &HashMap<String, ParameterValue>,
   ) -> Result<(), String> {
     unsafe {
-      let filename = CString::new(self.filename.to_owned());
+      let filename = CString::new(self.filename.to_owned()).unwrap();
 
       if avformat_alloc_output_context2(
         &mut self.format_context,
         null_mut(),
         null_mut(),
-        filename.unwrap().as_ptr(),
+        filename.as_ptr(),
       ) < 0
       {
         return Err(format!("Unable to open output file {:?}", self.filename));
@@ -228,11 +228,11 @@ impl FormatContext {
       }
       let frame = &self.frames[self.frame_index];
       unsafe {
-        let filename = CString::new(self.filename.to_owned());
+        let filename = CString::new(self.filename.to_owned()).unwrap();
         let mut avio_context: *mut AVIOContext = null_mut();
         check_result!(avio_open(
           &mut avio_context,
-          filename.unwrap().as_ptr(),
+          filename.as_ptr(),
           AVIO_FLAG_READ
         ));
         if avio_seek(avio_context, frame.offset as i64, 0) < 0 {
