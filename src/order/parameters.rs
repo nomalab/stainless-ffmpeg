@@ -1,10 +1,10 @@
+use crate::tools;
+use crate::tools::rational::Rational;
 use libc::c_void;
 use stainless_ffmpeg_sys::*;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::hash::BuildHasher;
-use tools;
-use tools::rational::Rational;
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[serde(untagged)]

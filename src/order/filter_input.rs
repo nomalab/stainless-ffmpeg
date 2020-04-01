@@ -1,4 +1,4 @@
-use order::input_kind::InputKind;
+use crate::order::input_kind::InputKind;
 
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct FilterInput {

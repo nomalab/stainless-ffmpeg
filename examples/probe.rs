@@ -1,8 +1,3 @@
-extern crate env_logger;
-extern crate log;
-extern crate serde_json;
-extern crate stainless_ffmpeg;
-
 use env_logger::{Builder, Env};
 use log::LevelFilter;
 use stainless_ffmpeg::probe::*;

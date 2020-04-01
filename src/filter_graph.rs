@@ -3,14 +3,14 @@ use stainless_ffmpeg_sys::*;
 use std::fmt;
 use std::ptr::null_mut;
 
-use audio_decoder::AudioDecoder;
-use filter::Filter;
-use frame::Frame;
-use order;
-use order::*;
-use tools;
-use tools::rational::Rational;
-use video_decoder::VideoDecoder;
+use crate::audio_decoder::AudioDecoder;
+use crate::filter::Filter;
+use crate::frame::Frame;
+use crate::order;
+use crate::order::*;
+use crate::tools;
+use crate::tools::rational::Rational;
+use crate::video_decoder::VideoDecoder;
 
 #[derive(Debug, PartialEq)]
 pub enum GraphKind {

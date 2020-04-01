@@ -2,10 +2,10 @@ use stainless_ffmpeg_sys::*;
 use std::ffi::CString;
 use std::ptr::null_mut;
 
-use format_context::FormatContext;
-use frame::Frame;
-use packet::Packet;
-use tools;
+use crate::format_context::FormatContext;
+use crate::frame::Frame;
+use crate::packet::Packet;
+use crate::tools;
 
 #[derive(Debug)]
 pub struct VideoDecoder {
@@ -53,8 +53,8 @@ impl VideoDecoder {
     stream_index: isize,
   ) -> Result<Self, String> {
     unsafe {
-      let cn = CString::new(codec_name);
-      let codec = avcodec_find_decoder_by_name(cn.unwrap().as_ptr());
+      let cn = CString::new(codec_name).unwrap();
+      let codec = avcodec_find_decoder_by_name(cn.as_ptr());
       let mut codec_context = avcodec_alloc_context3(codec);
 
       (*codec_context).width = width;
