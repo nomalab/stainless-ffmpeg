@@ -8,7 +8,7 @@
         "min_packet_size": 4352,
         "max_packet_size": 127488,
         "detected_silence": [],
-        "silent_stream": false
+        "silent_stream": null
       },
       {
         "stream_index": 1,
@@ -16,7 +16,7 @@
         "min_packet_size": 3840,
         "max_packet_size": 3840,
         "detected_silence": [],
-        "silent_stream": false
+        "silent_stream": null
       },
       {
         "stream_index": 2,
@@ -24,7 +24,7 @@
         "min_packet_size": 3840,
         "max_packet_size": 3840,
         "detected_silence": [],
-        "silent_stream": false
+        "silent_stream": null
       },
       {
         "stream_index": 3,
@@ -32,7 +32,7 @@
         "min_packet_size": 3840,
         "max_packet_size": 3840,
         "detected_silence": [],
-        "silent_stream": false
+        "silent_stream": null
       },
       {
         "stream_index": 4,
@@ -40,7 +40,7 @@
         "min_packet_size": 3840,
         "max_packet_size": 3840,
         "detected_silence": [],
-        "silent_stream": false
+        "silent_stream": null
       },
       {
         "stream_index": 5,
@@ -204,7 +204,7 @@
         "min_packet_size": 2,
         "max_packet_size": 58,
         "detected_silence": [],
-        "silent_stream": false
+        "silent_stream": null
       }
     ]
   }

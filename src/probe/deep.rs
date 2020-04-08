@@ -23,11 +23,7 @@ pub struct SilenceResult {
   pub end: i64,
 }
 
-fn is_false(x: &bool) -> bool {
-  !x
-}
-
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct StreamProbeResult {
   stream_index: usize,
   count_packets: usize,
@@ -35,8 +31,8 @@ pub struct StreamProbeResult {
   max_packet_size: i32,
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub detected_silence: Vec<SilenceResult>,
-  #[serde(skip_serializing_if = "is_false")]
-  pub silent_stream: bool,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub silent_stream: Option<bool>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -89,7 +85,7 @@ impl StreamProbeResult {
       min_packet_size: std::i32::MAX,
       max_packet_size: std::i32::MIN,
       detected_silence: vec![],
-      silent_stream: false,
+      silent_stream: None,
     }
   }
 }
@@ -125,22 +121,17 @@ impl DeepProbe {
 
     let mut streams = vec![];
     streams.resize(context.get_nb_streams() as usize, StreamProbeResult::new());
-    loop {
-      match context.next_packet() {
-        Ok(packet) => unsafe {
-          let stream_index = (*packet.packet).stream_index as usize;
-          let packet_size = (*packet.packet).size;
+    while let Ok(packet) = context.next_packet() {
+      unsafe {
+        let stream_index = (*packet.packet).stream_index as usize;
+        let packet_size = (*packet.packet).size;
 
-          streams[stream_index].stream_index = stream_index;
-          streams[stream_index].count_packets += 1;
-          streams[stream_index].min_packet_size =
-            cmp::min(packet_size, streams[stream_index].min_packet_size);
-          streams[stream_index].max_packet_size =
-            cmp::max(packet_size, streams[stream_index].max_packet_size);
-        },
-        Err(_) => {
-          break;
-        }
+        streams[stream_index].stream_index = stream_index;
+        streams[stream_index].count_packets += 1;
+        streams[stream_index].min_packet_size =
+          cmp::min(packet_size, streams[stream_index].min_packet_size);
+        streams[stream_index].max_packet_size =
+          cmp::max(packet_size, streams[stream_index].max_packet_size);
       }
     }
 
