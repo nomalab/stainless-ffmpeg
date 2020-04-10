@@ -222,7 +222,7 @@ impl FormatContext {
   }
 
   pub fn next_packet(&mut self) -> Result<Packet, String> {
-    if self.frames.is_empty() {
+    if !self.frames.is_empty() {
       if self.frame_index >= self.frames.len() as usize {
         return Err("End of data stream".to_string());
       }
