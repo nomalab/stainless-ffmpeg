@@ -1,5 +1,4 @@
 use crate::filter_graph::FilterGraph;
-use serde_json;
 use std::collections::HashMap;
 
 mod decoder_format;

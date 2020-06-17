@@ -32,7 +32,7 @@ pub fn random_string(length: usize) -> String {
 
   for _ in 0..length {
     let letter = ALPHABET.choose(&mut rng).unwrap();
-    result.push(letter.clone());
+    result.push(*letter);
   }
   String::from_utf8(result).unwrap()
 }
