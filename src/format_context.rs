@@ -267,7 +267,7 @@ unsafe impl Send for FormatContext {}
 
 impl From<*mut AVFormatContext> for FormatContext {
   fn from(format_context: *mut AVFormatContext) -> Self {
-    FormatContext{
+    FormatContext {
       filename: "virtual_source".to_string(),
       format_context,
       streams: vec![],
