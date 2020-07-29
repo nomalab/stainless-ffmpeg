@@ -1,3 +1,5 @@
+
+#[macro_export]
 macro_rules! check_result {
   ($condition: expr, $block: block) => {
     let errnum = $condition;
