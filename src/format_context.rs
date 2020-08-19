@@ -263,6 +263,20 @@ impl FormatContext {
   }
 }
 
+unsafe impl Send for FormatContext {}
+
+impl From<*mut AVFormatContext> for FormatContext {
+  fn from(format_context: *mut AVFormatContext) -> Self {
+    FormatContext {
+      filename: "virtual_source".to_string(),
+      format_context,
+      streams: vec![],
+      frames: vec![],
+      frame_index: 0,
+    }
+  }
+}
+
 impl Drop for FormatContext {
   fn drop(&mut self) {
     unsafe {
