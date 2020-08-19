@@ -29,8 +29,8 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
     let mut silencedetect_params: HashMap<String, ParameterValue> = HashMap::new();
     if let Some(duration) = params.get("duration") {
       if let Some(min_duration) = duration.min {
-        let min = (min_duration as f64 - 1.0) / 1000.0;
-        silencedetect_params.insert("duration".to_string(), ParameterValue::Float(min));
+        let min = min_duration as i64 * 1000;
+        silencedetect_params.insert("duration".to_string(), ParameterValue::Int64(min));
       }
     }
 

@@ -176,9 +176,7 @@ fn deep_probe_mxf_sample() {
   };
   probe.process(LevelFilter::Error, check_list).unwrap();
 
-  // println!("{}", serde_json::to_string(&probe).unwrap());
-
-  // let content = std::fs::read_to_string("tests/deep_probe.json").unwrap();
-  // let reference: DeepProbe = serde_json::from_str(&content).unwrap();
-  // assert_eq!(probe, reference);
+  let content = std::fs::read_to_string("tests/deep_probe.json").unwrap();
+  let reference: DeepProbe = serde_json::from_str(&content).unwrap();
+  assert_eq!(probe, reference);
 }

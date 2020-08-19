@@ -118,18 +118,9 @@ fn dump_option(
           "true".to_owned()
         }
       }
-      AV_OPT_TYPE_INT => {
-        let value = 0i64;
-        let value_ptr: *const i64 = &value;
-        av_opt_get_int(
-          filter as *mut _,
-          (*option).name,
-          AV_OPT_SEARCH_CHILDREN,
-          value_ptr as *mut _,
-        );
-        format!("{}", value)
-      }
-      AV_OPT_TYPE_INT64 => {
+      AV_OPT_TYPE_INT |
+      AV_OPT_TYPE_INT64 |
+      AV_OPT_TYPE_DURATION => {
         let value = 0i64;
         let value_ptr: *const i64 = &value;
         av_opt_get_int(
