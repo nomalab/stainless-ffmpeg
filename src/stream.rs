@@ -19,7 +19,7 @@ impl Stream {
     Ok(Stream { stream })
   }
 
-  fn get_time_base(&self) -> f32 {
+  pub fn get_time_base(&self) -> f32 {
     unsafe { (*self.stream).time_base.num as f32 / (*self.stream).time_base.den as f32 }
   }
 

@@ -1,4 +1,5 @@
 use crate::format_context::FormatContext;
+use crate::probe::black_detect::detect_black_frames;
 use crate::probe::silence_detect::detect_silence;
 use log::LevelFilter;
 use stainless_ffmpeg_sys::*;
@@ -23,6 +24,12 @@ pub struct SilenceResult {
   pub end: i64,
 }
 
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct BlackResult {
+  pub start: i64,
+  pub end: i64,
+}
+
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct StreamProbeResult {
   stream_index: usize,
@@ -33,6 +40,8 @@ pub struct StreamProbeResult {
   pub detected_silence: Vec<SilenceResult>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub silent_stream: Option<bool>,
+  #[serde(skip_serializing_if = "Vec::is_empty")]
+  pub detected_black: Vec<BlackResult>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -45,11 +54,14 @@ pub struct CheckParameterValue {
   pub num: Option<u64>,
   #[serde(default, skip_serializing_if = "Option::is_none")]
   pub den: Option<u64>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub th: Option<f64>,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
 pub struct DeepProbeCheck {
-  pub silence_detect: HashMap<String, CheckParameterValue>,
+  pub silence_detect: Option<HashMap<String, CheckParameterValue>>,
+  pub black_detect: Option<HashMap<String, CheckParameterValue>>,
 }
 
 impl fmt::Display for DeepProbeResult {
@@ -72,6 +84,11 @@ impl fmt::Display for DeepProbeResult {
         "{:30} : {:?}",
         "Silence detection", stream.detected_silence
       )?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
+        "Black detection", stream.detected_black
+      )?;
     }
     Ok(())
   }
@@ -86,6 +103,7 @@ impl StreamProbeResult {
       max_packet_size: std::i32::MIN,
       detected_silence: vec![],
       silent_stream: None,
+      detected_black: vec![],
     }
   }
 }
@@ -135,7 +153,7 @@ impl DeepProbe {
       }
     }
 
-    if !check.silence_detect.is_empty() {
+    if let Some(silence_parameters) = check.silence_detect {
       let mut audio_indexes = vec![];
       for stream_index in 0..context.get_nb_streams() {
         if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
@@ -146,7 +164,22 @@ impl DeepProbe {
         &self.filename,
         &mut streams,
         audio_indexes,
-        check.silence_detect,
+        silence_parameters,
+      );
+    }
+
+    if let Some(black_parameters) = check.black_detect {
+      let mut video_indexes = vec![];
+      for stream_index in 0..context.get_nb_streams() {
+        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
+          video_indexes.push(stream_index);
+        }
+      }
+      detect_black_frames(
+        &self.filename,
+        &mut streams,
+        video_indexes,
+        black_parameters,
       );
     }
 
@@ -169,10 +202,12 @@ fn deep_probe_mxf_sample() {
     max: None,
     num: None,
     den: None,
+    th: None,
   };
   params.insert("duration".to_string(), duration);
   let check_list = DeepProbeCheck {
-    silence_detect: params,
+    silence_detect: Some(params),
+    ..Default::default()
   };
   probe.process(LevelFilter::Error, check_list).unwrap();
 
