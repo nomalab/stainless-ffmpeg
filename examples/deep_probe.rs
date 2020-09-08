@@ -29,21 +29,21 @@ fn main() {
       max: None,
       num: None,
       den: None,
-      th: Some(0.0)
+      th: Some(0.0),
     };
     let black_picture_params = CheckParameterValue {
       min: None,
       max: None,
       num: None,
       den: None,
-      th: Some(1.0)
+      th: Some(1.0),
     };
     let spot_check = CheckParameterValue {
       min: None,
       max: Some(3),
       num: None,
       den: None,
-      th: None
+      th: None,
     };
     let mut params = HashMap::new();
     let mut black_params = HashMap::new();

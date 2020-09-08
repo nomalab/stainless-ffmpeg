@@ -96,16 +96,8 @@ impl fmt::Display for DeepProbeResult {
         "{:30} : {:?}",
         "Silence detection", stream.detected_silence
       )?;
-      writeln!(
-        f,
-        "{:30} : {:?}",
-        "Black detection", stream.detected_black
-      )?;
-      writeln!(
-        f,
-        "{:30} : {:?}",
-        "Crop detection", stream.detected_crop
-      )?;
+      writeln!(f, "{:30} : {:?}", "Black detection", stream.detected_black)?;
+      writeln!(f, "{:30} : {:?}", "Crop detection", stream.detected_crop)?;
     }
     Ok(())
   }
@@ -208,12 +200,7 @@ impl DeepProbe {
           video_indexes.push(stream_index);
         }
       }
-      detect_black_borders(
-        &self.filename,
-        &mut streams,
-        video_indexes,
-        crop_parameters,
-      );
+      detect_black_borders(&self.filename, &mut streams, video_indexes, crop_parameters);
     }
 
     self.result = Some(DeepProbeResult { streams });

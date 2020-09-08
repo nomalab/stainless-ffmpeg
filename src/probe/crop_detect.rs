@@ -11,11 +11,11 @@ use stainless_ffmpeg_sys::AVMediaType;
 use std::collections::HashMap;
 
 pub fn create_graph(
-  filename: &String,
+  filename: &str,
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
   nb_frames: i64,
-  limit: i32
+  limit: i32,
 ) -> Result<Order, String> {
   let mut filters = vec![];
   let mut inputs = vec![];
@@ -49,7 +49,7 @@ pub fn create_graph(
         kind: InputKind::Stream,
         stream_label: input_identifier,
       }]),
-      outputs: None
+      outputs: None,
     });
     filters.push(Filter {
       name: "select".to_string(),
@@ -87,11 +87,11 @@ pub fn create_graph(
 }
 
 pub fn detect_black_borders(
-  filename: &String,
+  filename: &str,
   streams: &mut Vec<StreamProbeResult>,
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
-) -> () {
+) {
   let mut context = FormatContext::new(&filename).unwrap();
   if let Err(msg) = context.open_input() {
     context.close_input();
@@ -103,21 +103,18 @@ pub fn detect_black_borders(
   let mut limit = 0;
   for index in 0..context.get_nb_streams() {
     if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
-      match context.get_stream_type(index as isize) {
-        AVMediaType::AVMEDIA_TYPE_VIDEO => {
-          nb_frames = stream.get_nb_frames();
-          // black threshold : 16 pour 8bits / 64 pour 10bits / 256 pour 12bits
-          limit = match stream.get_bits_per_raw_sample() {
-            Some(10) => 64,
-            Some(12) => 256,
-            _ => 16
-          }
+      if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
+        nb_frames = stream.get_nb_frames();
+        // black threshold : 16 pour 8bits / 64 pour 10bits / 256 pour 12bits
+        limit = match stream.get_bits_per_raw_sample() {
+          Some(10) => 64,
+          Some(12) => 256,
+          _ => 16,
         }
-        _ => {}
       }
     }
   }
-  let mut order = create_graph(filename, video_indexes.clone(), params.clone(), nb_frames, limit).unwrap();
+  let mut order = create_graph(filename, video_indexes, params, nb_frames, limit).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
     return;
@@ -138,58 +135,59 @@ pub fn detect_black_borders(
 
       for index in 0..context.get_nb_streams() {
         if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
-          match context.get_stream_type(index as isize) {
-            AVMediaType::AVMEDIA_TYPE_VIDEO => {
-              time_base = stream.get_time_base();
-              metadata_width = stream.get_width();
-              metadata_height = stream.get_height();
-              pict_size = stream.get_picture_aspect_ratio();
-              real_width = metadata_width;
-              real_height = metadata_height;
-            }
-            _ => {}
+          if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
+            time_base = stream.get_time_base();
+            metadata_width = stream.get_width();
+            metadata_height = stream.get_height();
+            pict_size = stream.get_picture_aspect_ratio();
+            real_width = metadata_width;
+            real_height = metadata_height;
           }
         }
       }
       for result in results {
-        match result {
-          Entry(entry_map) => {
-            if let Some(stream_id) = entry_map.get("stream_id") {
-              let index: i32 = stream_id.parse().unwrap();
-              let mut crop = CropResult {
-                width: metadata_width,
-                height: metadata_height,
-                ..Default::default()
-              };
-              if let (Some(x1), Some(x2)) = (entry_map.get("lavfi.cropdetect.x1"), entry_map.get("lavfi.cropdetect.x2")) {
-                let width = x2.parse::<i32>().unwrap() - x1.parse::<i32>().unwrap() + 1;
-                if width != metadata_width {
-                  w_changed = true;
-                }
-                real_width = width;
+        if let Entry(entry_map) = result {
+          if let Some(stream_id) = entry_map.get("stream_id") {
+            let index: i32 = stream_id.parse().unwrap();
+            let mut crop = CropResult {
+              width: metadata_width,
+              height: metadata_height,
+              ..Default::default()
+            };
+            if let (Some(x1), Some(x2)) = (
+              entry_map.get("lavfi.cropdetect.x1"),
+              entry_map.get("lavfi.cropdetect.x2"),
+            ) {
+              let width = x2.parse::<i32>().unwrap() - x1.parse::<i32>().unwrap() + 1;
+              if width != metadata_width {
+                w_changed = true;
               }
-              if let (Some(y1), Some(y2)) = (entry_map.get("lavfi.cropdetect.y1"), entry_map.get("lavfi.cropdetect.y2")) {
-                let height = y2.parse::<i32>().unwrap() - y1.parse::<i32>().unwrap() + 1;
-                if height != metadata_height {
-                  h_changed = true;
-                }
-                real_height = height;
+              real_width = width;
+            }
+            if let (Some(y1), Some(y2)) = (
+              entry_map.get("lavfi.cropdetect.y1"),
+              entry_map.get("lavfi.cropdetect.y2"),
+            ) {
+              let height = y2.parse::<i32>().unwrap() - y1.parse::<i32>().unwrap() + 1;
+              if height != metadata_height {
+                h_changed = true;
               }
-              if let Some(pts) = entry_map.get("pts") {
-                if w_changed || h_changed {
-                  crop.width = real_width;
-                  crop.height = real_height;
-                  crop.pts = (pts.parse::<f32>().unwrap() * time_base * 1000.0) as i64;
-                  let real_aspect = (real_width * pict_size.num) as f32/ (real_height * pict_size.den) as f32;
-                  crop.aspect_ratio = real_aspect;
-                  streams[(index) as usize].detected_crop.push(crop);
-                  w_changed = false;
-                  h_changed = false;
-                }
+              real_height = height;
+            }
+            if let Some(pts) = entry_map.get("pts") {
+              if w_changed || h_changed {
+                crop.width = real_width;
+                crop.height = real_height;
+                crop.pts = (pts.parse::<f32>().unwrap() * time_base * 1000.0) as i64;
+                let real_aspect =
+                  (real_width * pict_size.num) as f32 / (real_height * pict_size.den) as f32;
+                crop.aspect_ratio = real_aspect;
+                streams[(index) as usize].detected_crop.push(crop);
+                w_changed = false;
+                h_changed = false;
               }
             }
           }
-          _ => {}
         }
       }
     }

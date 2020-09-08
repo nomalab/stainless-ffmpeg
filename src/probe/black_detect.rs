@@ -4,13 +4,13 @@ use crate::order::{
   output::Output, output_kind::OutputKind, stream::Stream,
 };
 use crate::order::{Filter, Order, OutputResult::Entry, ParameterValue};
-use crate::probe::deep::{CheckParameterValue, BlackResult, StreamProbeResult};
+use crate::probe::deep::{BlackResult, CheckParameterValue, StreamProbeResult};
 use crate::stream::Stream as ContextStream;
 use stainless_ffmpeg_sys::AVMediaType;
 use std::collections::HashMap;
 
 pub fn create_graph(
-  filename: &String,
+  filename: &str,
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
 ) -> Result<Order, String> {
@@ -29,7 +29,10 @@ pub fn create_graph(
     let mut blackdetect_params: HashMap<String, ParameterValue> = HashMap::new();
     if let Some(picture) = params.get("picture") {
       if let Some(pic_th) = picture.th {
-        blackdetect_params.insert("picture_black_ratio_th".to_string(), ParameterValue::Float(pic_th));
+        blackdetect_params.insert(
+          "picture_black_ratio_th".to_string(),
+          ParameterValue::Float(pic_th),
+        );
       }
     }
     if let Some(pixel) = params.get("pixel") {
@@ -73,12 +76,12 @@ pub fn create_graph(
 }
 
 pub fn detect_black_frames(
-  filename: &String,
+  filename: &str,
   streams: &mut Vec<StreamProbeResult>,
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
-) -> () {
-  let mut order = create_graph(filename, video_indexes.clone(), params.clone()).unwrap();
+) {
+  let mut order = create_graph(filename, video_indexes, params.clone()).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
     return;
@@ -106,55 +109,51 @@ pub fn detect_black_frames(
       }
       for index in 0..context.get_nb_streams() {
         if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
-          match context.get_stream_type(index as isize) {
-            AVMediaType::AVMEDIA_TYPE_VIDEO => {
-              let rational_frame_rate = stream.get_frame_rate();
-              frame_rate = rational_frame_rate.num as f32 / rational_frame_rate.den as f32;
-              if let Some(stream_duration) = stream.get_duration() {
-                duration = (stream_duration * 1000.0) as i64;
-              } else {
-                duration = (results.len() as f32 / frame_rate * 1000.0) as i64;
-              }
-              time_base = stream.get_time_base();
+          if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
+            let rational_frame_rate = stream.get_frame_rate();
+            frame_rate = rational_frame_rate.num as f32 / rational_frame_rate.den as f32;
+            if let Some(stream_duration) = stream.get_duration() {
+              duration = (stream_duration * 1000.0) as i64;
+            } else {
+              duration = (results.len() as f32 / frame_rate * 1000.0) as i64;
             }
-            _ => {}
+            time_base = stream.get_time_base();
           }
         }
       }
       for result in results {
-        match result {
-          Entry(entry_map) => {
-            if let Some(stream_id) = entry_map.get("stream_id") {
-              let index: i32 = stream_id.parse().unwrap();
-              let mut black = BlackResult {
-                start: 0,
-                end: duration,
-              };
+        if let Entry(entry_map) = result {
+          if let Some(stream_id) = entry_map.get("stream_id") {
+            let index: i32 = stream_id.parse().unwrap();
+            let mut black = BlackResult {
+              start: 0,
+              end: duration,
+            };
 
-              if let Some(value) = entry_map.get("lavfi.black_start") {
-                black.start = (value.parse::<f32>().unwrap() * time_base / frame_rate * 1000.0) as i64;
-                black_duration = black.start.clone();
-                streams[(index) as usize].detected_black.push(black);
-              }
-              if let Some(value) = entry_map.get("lavfi.black_end") {
-                if let Some(last_detect) = streams[(index) as usize].detected_black.last_mut() {
-                  last_detect.end = (value.parse::<f32>().unwrap() * time_base / frame_rate * 1000.0) as i64;
-                  black_duration = last_detect.end - black_duration;
-                  if let Some(max) = max_duration {
-                    if black_duration > max as i64 {
-                      streams[(index) as usize].detected_black.pop();
-                    }
+            if let Some(value) = entry_map.get("lavfi.black_start") {
+              black.start =
+                (value.parse::<f32>().unwrap() * time_base / frame_rate * 1000.0) as i64;
+              black_duration = black.start;
+              streams[(index) as usize].detected_black.push(black);
+            }
+            if let Some(value) = entry_map.get("lavfi.black_end") {
+              if let Some(last_detect) = streams[(index) as usize].detected_black.last_mut() {
+                last_detect.end =
+                  (value.parse::<f32>().unwrap() * time_base / frame_rate * 1000.0) as i64;
+                black_duration = last_detect.end - black_duration;
+                if let Some(max) = max_duration {
+                  if black_duration > max as i64 {
+                    streams[(index) as usize].detected_black.pop();
                   }
-                  if let Some(min) = min_duration {
-                    if black_duration < min as i64 {
-                      streams[(index) as usize].detected_black.pop();
-                    }
+                }
+                if let Some(min) = min_duration {
+                  if black_duration < min as i64 {
+                    streams[(index) as usize].detected_black.pop();
                   }
                 }
               }
             }
           }
-          _ => {}
         }
       }
     }

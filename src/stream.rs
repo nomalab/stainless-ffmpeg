@@ -84,9 +84,7 @@ impl Stream {
   }
 
   pub fn get_duration_pts(&self) -> i64 {
-    unsafe {
-      (*self.stream).duration
-    }
+    unsafe { (*self.stream).duration }
   }
 
   pub fn get_nb_frames(&self) -> i64 {
@@ -103,20 +101,17 @@ impl Stream {
     unsafe {
       if (*self.stream).sample_aspect_ratio.num == 0 {
         if (*(*self.stream).codecpar).sample_aspect_ratio.num == 0 {
-          Rational {
-            num: 1,
-            den: 1
-          }
+          Rational { num: 1, den: 1 }
         } else {
           Rational {
             num: (*(*self.stream).codecpar).sample_aspect_ratio.num,
-            den: (*(*self.stream).codecpar).sample_aspect_ratio.den
+            den: (*(*self.stream).codecpar).sample_aspect_ratio.den,
           }
         }
       } else {
         Rational {
           num: (*self.stream).sample_aspect_ratio.num,
-          den: (*self.stream).sample_aspect_ratio.den
+          den: (*self.stream).sample_aspect_ratio.den,
         }
       }
     }
@@ -147,7 +142,7 @@ impl Stream {
           if (*self.stream).sample_aspect_ratio.num == 0 {
             Rational {
               num: (*(*self.stream).codecpar).width,
-              den: (*(*self.stream).codecpar).height
+              den: (*(*self.stream).codecpar).height,
             }
             .reduce()
           } else {
