@@ -19,7 +19,7 @@ impl Stream {
     Ok(Stream { stream })
   }
 
-  fn get_time_base(&self) -> f32 {
+  pub fn get_time_base(&self) -> f32 {
     unsafe { (*self.stream).time_base.num as f32 / (*self.stream).time_base.den as f32 }
   }
 
@@ -83,6 +83,40 @@ impl Stream {
     }
   }
 
+  pub fn get_duration_pts(&self) -> i64 {
+    unsafe { (*self.stream).duration }
+  }
+
+  pub fn get_nb_frames(&self) -> i64 {
+    unsafe {
+      if (*self.stream).nb_frames == 0 {
+        self.get_duration_pts()
+      } else {
+        (*self.stream).nb_frames
+      }
+    }
+  }
+
+  pub fn get_picture_aspect_ratio(&self) -> Rational {
+    unsafe {
+      if (*self.stream).sample_aspect_ratio.num == 0 {
+        if (*(*self.stream).codecpar).sample_aspect_ratio.num == 0 {
+          Rational { num: 1, den: 1 }
+        } else {
+          Rational {
+            num: (*(*self.stream).codecpar).sample_aspect_ratio.num,
+            den: (*(*self.stream).codecpar).sample_aspect_ratio.den,
+          }
+        }
+      } else {
+        Rational {
+          num: (*self.stream).sample_aspect_ratio.num,
+          den: (*self.stream).sample_aspect_ratio.den,
+        }
+      }
+    }
+  }
+
   pub fn get_start_time(&self) -> Option<f32> {
     unsafe {
       if (*self.stream).start_time == AV_NOPTS_VALUE {
@@ -105,11 +139,19 @@ impl Stream {
     unsafe {
       if (*self.stream).display_aspect_ratio.den == 0 {
         if (*(*self.stream).codecpar).sample_aspect_ratio.num == 0 {
-          Rational {
-            num: (*(*self.stream).codecpar).width * (*self.stream).sample_aspect_ratio.num,
-            den: (*(*self.stream).codecpar).height * (*self.stream).sample_aspect_ratio.den,
+          if (*self.stream).sample_aspect_ratio.num == 0 {
+            Rational {
+              num: (*(*self.stream).codecpar).width,
+              den: (*(*self.stream).codecpar).height,
+            }
+            .reduce()
+          } else {
+            Rational {
+              num: (*(*self.stream).codecpar).width * (*self.stream).sample_aspect_ratio.num,
+              den: (*(*self.stream).codecpar).height * (*self.stream).sample_aspect_ratio.den,
+            }
+            .reduce()
           }
-          .reduce()
         } else {
           Rational {
             num: (*(*self.stream).codecpar).width
@@ -239,6 +281,16 @@ impl Stream {
       }
       av_timecode_make_mpeg_tc_string(tc, timecode as u32);
       Some(tc.to_string())
+    }
+  }
+
+  pub fn get_bits_per_raw_sample(&self) -> Option<i32> {
+    unsafe {
+      if (*(*self.stream).codec).bits_per_raw_sample == 0 {
+        None
+      } else {
+        Some((*(*self.stream).codec).bits_per_raw_sample)
+      }
     }
   }
 

@@ -88,6 +88,15 @@ impl VideoDecoder {
     }
   }
 
+  pub fn get_frame_rate(&self) -> (i32, i32) {
+    unsafe {
+      (
+        (*self.codec_context).framerate.num,
+        (*self.codec_context).framerate.den,
+      )
+    }
+  }
+
   pub fn get_aspect_ratio(&self) -> (i32, i32) {
     unsafe {
       (
