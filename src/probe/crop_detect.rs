@@ -32,7 +32,7 @@ pub fn create_graph(
     let mut select_params = HashMap::new();
     if let Some(spot_check) = params.get("spot_check") {
       if let Some(max_checks) = spot_check.max {
-        let scale = (nb_frames as u64 / max_checks) - 1;
+        let scale = (nb_frames / max_checks as i64) - 1;
         let expr = format!("not(mod(n,{}))", scale);
         select_params.insert("expr".to_string(), ParameterValue::String(expr));
       }
@@ -104,7 +104,9 @@ pub fn detect_black_borders(
   for index in 0..context.get_nb_streams() {
     if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
       if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-        nb_frames = stream.get_nb_frames();
+        if let Some(frames) = stream.get_nb_frames() {
+          nb_frames = frames;
+        }
         // black threshold : 16 pour 8bits / 64 pour 10bits / 256 pour 12bits
         limit = match stream.get_bits_per_raw_sample() {
           Some(10) => 64,
