@@ -42,7 +42,7 @@ impl Stream {
       } else {
         let mut long_name = tools::to_string((*av_codec_id).long_name);
         if let Some(suffix) = self.get_codec_tag() {
-          long_name.push_str(" ");
+          long_name.push(' ');
           long_name.push_str(&suffix);
         }
         Some(long_name)
