@@ -42,7 +42,7 @@ impl Stream {
       } else {
         let mut long_name = tools::to_string((*av_codec_id).long_name);
         if let Some(suffix) = self.get_codec_tag() {
-          long_name.push_str(" ");
+          long_name.push(' ');
           long_name.push_str(&suffix);
         }
         Some(long_name)
@@ -83,16 +83,22 @@ impl Stream {
     }
   }
 
-  pub fn get_duration_pts(&self) -> i64 {
-    unsafe { (*self.stream).duration }
+  pub fn get_duration_pts(&self) -> Option<i64> {
+    unsafe {
+      if (*self.stream).duration == AV_NOPTS_VALUE {
+        None
+      } else {
+        Some((*self.stream).duration)
+      }
+    }
   }
 
-  pub fn get_nb_frames(&self) -> i64 {
+  pub fn get_nb_frames(&self) -> Option<i64> {
     unsafe {
       if (*self.stream).nb_frames == 0 {
         self.get_duration_pts()
       } else {
-        (*self.stream).nb_frames
+        Some((*self.stream).nb_frames)
       }
     }
   }
