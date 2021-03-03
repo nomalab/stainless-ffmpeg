@@ -1,10 +1,14 @@
-use crate::format_context::FormatContext;
-use crate::stream::Stream;
-use crate::tools::rational::Rational;
-use log::LevelFilter;
+use crate::{
+  format_context::FormatContext,
+  stream::Stream,
+  tools::rational::Rational,
+};
 use ffmpeg_sys::*;
-use std::collections::{BTreeMap, HashMap};
-use std::fmt;
+use log::LevelFilter;
+use std::{
+  collections::{BTreeMap, HashMap},
+  fmt,
+};
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct Probe {
@@ -57,6 +61,7 @@ pub struct VideoProperties {
   chroma_subsampling: Option<String>,
   timecode: Option<String>,
   pix_fmt: Option<String>,
+  nb_frames: Option<i64>,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
@@ -114,6 +119,7 @@ impl fmt::Display for Format {
         )?;
         writeln!(f, "{:30} : {:?}", "Timecode", vp.timecode)?;
         writeln!(f, "{:30} : {:?}", "Pixel format", vp.pix_fmt)?;
+        writeln!(f, "{:30} : {:?}", "Number of frames", vp.nb_frames)?;
       }
       if let Some(ref ap) = stream.audio_properties {
         writeln!(f, "{:30} : {}", "Channels", ap.channels)?;
@@ -200,6 +206,7 @@ impl Probe {
             let profile = stream.get_profile();
             let timecode = stream.get_timecode();
             let pix_fmt = stream.get_pix_fmt_name();
+            let nb_frames = stream.get_nb_frames();
 
             vp = Some(VideoProperties {
               width,
@@ -212,6 +219,7 @@ impl Probe {
               chroma_subsampling,
               timecode,
               pix_fmt,
+              nb_frames,
             });
           }
           AVMediaType::AVMEDIA_TYPE_AUDIO => {

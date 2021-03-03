@@ -1,7 +1,7 @@
 use crate::tools;
 use crate::tools::rational::Rational;
-use libc::c_void;
 use ffmpeg_sys::*;
+use libc::c_void;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::hash::BuildHasher;

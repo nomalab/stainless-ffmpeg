@@ -31,24 +31,36 @@ fn main() {
       }
     }
 
-    let first_audio_stream = first_audio_stream.unwrap();    
+    let first_audio_stream = first_audio_stream.unwrap();
 
     let audio_decoder = AudioDecoder::new(
       "audio_decoder".to_string(),
       &format_context,
       first_audio_stream,
-    ).unwrap();
+    )
+    .unwrap();
 
     log::info!("{}", audio_decoder.get_sample_fmt_name());
 
     let mut graph = FilterGraph::new().unwrap();
 
-    graph.add_input_from_audio_decoder("source_audio", &audio_decoder).unwrap();
+    graph
+      .add_input_from_audio_decoder("source_audio", &audio_decoder)
+      .unwrap();
 
     let mut parameters = HashMap::new();
-    parameters.insert("sample_rates".to_string(), ParameterValue::String("48000".to_string()));
-    parameters.insert("channel_layouts".to_string(), ParameterValue::String("stereo".to_string()));
-    parameters.insert("sample_fmts".to_string(), ParameterValue::String("s32".to_string()));
+    parameters.insert(
+      "sample_rates".to_string(),
+      ParameterValue::String("48000".to_string()),
+    );
+    parameters.insert(
+      "channel_layouts".to_string(),
+      ParameterValue::String("stereo".to_string()),
+    );
+    parameters.insert(
+      "sample_fmts".to_string(),
+      ParameterValue::String("s32".to_string()),
+    );
 
     let filter = Filter {
       name: "aformat".to_string(),
@@ -78,7 +90,7 @@ fn main() {
 
       unsafe {
         let size = ((*frame.frame).channels * (*frame.frame).nb_samples) as usize;
-        let sample_format : SampleFormat = (*frame.frame).format.try_into().unwrap();
+        let sample_format: SampleFormat = (*frame.frame).format.try_into().unwrap();
 
         log::info!(
           "Frame {} samples, {} channels, {:?}, {} bytes // {} bytes",

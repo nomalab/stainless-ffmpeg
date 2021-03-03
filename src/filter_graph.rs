@@ -1,5 +1,5 @@
-use libc::c_void;
 use ffmpeg_sys::*;
+use libc::c_void;
 use std::fmt;
 use std::ptr::null_mut;
 
@@ -66,7 +66,7 @@ impl FilterGraph {
     let height = ParameterValue::Int64(i64::from(video_decoder.get_height()));
     height.set("height", buffer.context as *mut c_void)?;
 
-    let (mut num, den) = video_decoder.get_time_base();
+    let (mut num, den) = video_decoder.get_frame_rate();
     if num == 0 {
       num = 25;
     }
