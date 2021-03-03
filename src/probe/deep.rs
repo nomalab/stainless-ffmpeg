@@ -216,7 +216,7 @@ impl DeepProbe {
 
 #[test]
 fn deep_probe_mxf_sample() {
-  use serde_json;
+  // use serde_json;
   use std::collections::HashMap;
 
   let mut probe = DeepProbe::new("tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf");
