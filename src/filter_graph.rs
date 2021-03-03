@@ -1,5 +1,5 @@
 use libc::c_void;
-use stainless_ffmpeg_sys::*;
+use ffmpeg_sys::*;
 use std::fmt;
 use std::ptr::null_mut;
 

@@ -3,7 +3,7 @@ use crate::order::output::{ColorRange, Colorspace, OutputStream, PixelFormat};
 use crate::order::parameters::ParameterValue;
 use crate::packet::Packet;
 use crate::tools;
-use stainless_ffmpeg_sys::*;
+use ffmpeg_sys::*;
 use std::ptr::null_mut;
 
 #[derive(Debug)]
@@ -130,7 +130,7 @@ impl VideoEncoder {
 
       if ret == AVERROR(EAGAIN) || ret == AVERROR_EOF {
         let mut data = [0i8; AV_ERROR_MAX_STRING_SIZE];
-        av_strerror(ret, data.as_mut_ptr(), AV_ERROR_MAX_STRING_SIZE as u64);
+        av_strerror(ret, data.as_mut_ptr(), AV_ERROR_MAX_STRING_SIZE);
         trace!("{}", tools::to_string(data.as_ptr()));
         return Ok(false);
       }

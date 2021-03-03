@@ -15,6 +15,7 @@ pub mod frame;
 pub mod order;
 pub mod packet;
 pub mod probe;
+pub mod prelude;
 pub mod stream;
 pub mod subtitle_decoder;
 pub mod subtitle_encoder;

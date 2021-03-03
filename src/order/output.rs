@@ -1,7 +1,8 @@
 use crate::order::output_kind::OutputKind;
 use crate::order::parameters::ParameterValue;
-use stainless_ffmpeg_sys::*;
+use ffmpeg_sys::*;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -26,6 +27,25 @@ pub enum SampleFormat {
   Double,
   #[serde(rename = "doublep")]
   DoublePlanar,
+}
+
+impl TryFrom<i32> for SampleFormat {
+  type Error = String;
+  fn try_from(value: i32) -> Result<Self, Self::Error> {
+    match value {
+      0 => Ok(SampleFormat::Unsigned8),
+      1 => Ok(SampleFormat::Signed16),
+      2 => Ok(SampleFormat::Signed32),
+      3 => Ok(SampleFormat::Float),
+      4 => Ok(SampleFormat::Double),
+      5 => Ok(SampleFormat::Unsigned8Planar),
+      6 => Ok(SampleFormat::Signed16Planar),
+      7 => Ok(SampleFormat::Signed32Planar),
+      8 => Ok(SampleFormat::FloatPlanar),
+      9 => Ok(SampleFormat::DoublePlanar),
+      _ => Err(format!("'{}' is not a valid value for SampleFormat", value)),
+    }
+  }
 }
 
 impl FromStr for SampleFormat {

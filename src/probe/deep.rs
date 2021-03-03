@@ -1,7 +1,7 @@
 use crate::format_context::FormatContext;
 use crate::probe::silence_detect::detect_silence;
 use log::LevelFilter;
-use stainless_ffmpeg_sys::*;
+use ffmpeg_sys::*;
 use std::{cmp, collections::HashMap, fmt};
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
