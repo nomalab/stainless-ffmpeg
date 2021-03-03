@@ -1,6 +1,6 @@
+use ffmpeg_sys::{avcodec_find_encoder_by_name, AVCodec, AVMediaType};
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
-use ffmpeg_sys::{avcodec_find_encoder_by_name, AVCodec, AVMediaType};
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;

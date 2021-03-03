@@ -19,11 +19,7 @@ pub use crate::{
   filter_graph::FilterGraph,
   format_context::FormatContext,
   frame::Frame,
-  order::{
-    output::SampleFormat,
-    Filter,
-    ParameterValue,
-  },
+  order::{output::SampleFormat, Filter, ParameterValue},
   packet::Packet,
   tools,
   video_decoder::VideoDecoder,

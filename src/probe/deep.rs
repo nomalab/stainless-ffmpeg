@@ -2,8 +2,8 @@ use crate::format_context::FormatContext;
 use crate::probe::black_detect::detect_black_frames;
 use crate::probe::crop_detect::detect_black_borders;
 use crate::probe::silence_detect::detect_silence;
-use log::LevelFilter;
 use ffmpeg_sys::*;
+use log::LevelFilter;
 use std::{cmp, collections::HashMap, fmt};
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
@@ -212,7 +212,7 @@ impl DeepProbe {
 
 #[test]
 fn deep_probe_mxf_sample() {
-  use serde_json;
+  // use serde_json;
   use std::collections::HashMap;
 
   let mut probe = DeepProbe::new("tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf");
