@@ -28,6 +28,3 @@ pub use crate::{
 
 #[doc(no_inline)]
 pub use ffmpeg_sys::*;
-
-#[doc(no_inline)]
-pub use ffmpeg_sys::*;
