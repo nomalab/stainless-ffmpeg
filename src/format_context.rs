@@ -251,10 +251,11 @@ impl FormatContext {
     }
 
     unsafe {
-      let packet = av_packet_alloc();
+      let mut packet = av_packet_alloc();
       av_init_packet(packet);
 
       if av_read_frame(self.format_context, packet) < 0 {
+        av_packet_free(&mut packet);
         return Err("Unable to read next packet".to_string());
       }
 
