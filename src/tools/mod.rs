@@ -1,6 +1,7 @@
+use ffmpeg_sys::{avcodec_find_encoder_by_name, AVCodec, AVMediaType};
+use libc::c_char;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
-use stainless_ffmpeg_sys::{avcodec_find_encoder_by_name, AVCodec, AVMediaType};
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
@@ -19,7 +20,7 @@ pub unsafe fn from_buf_raw<T>(ptr: *const T, elts: usize) -> Vec<T> {
 static ALPHABET: &[u8] = b"abcdefghijklmnopqrstuvwxyz";
 
 /// # Safety
-pub unsafe fn to_string(data: *const i8) -> String {
+pub unsafe fn to_string(data: *const c_char) -> String {
   if data.is_null() {
     return "".to_string();
   }

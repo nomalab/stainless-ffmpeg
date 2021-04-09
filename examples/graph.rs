@@ -1,16 +1,18 @@
 #[macro_use]
 extern crate log;
 
-use env_logger::{Builder, Env};
+use env_logger::Builder;
 use stainless_ffmpeg::order::OutputResult::Entry;
 use stainless_ffmpeg::order::*;
-use stainless_ffmpeg_sys::{av_log_set_level, AV_LOG_ERROR};
+use stainless_ffmpeg::prelude::*;
 use std::env;
 use std::fs::File;
 use std::io::Read;
 
 fn main() {
-  Builder::from_env(Env::default().default_filter_or("debug")).init();
+  let mut builder = Builder::from_default_env();
+  builder.init();
+
   unsafe {
     av_log_set_level(AV_LOG_ERROR);
   }

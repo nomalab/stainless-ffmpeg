@@ -5,7 +5,7 @@ use crate::packet::Packet;
 use crate::subtitle_encoder::SubtitleEncoder;
 use crate::tools;
 use crate::video_encoder::VideoEncoder;
-use stainless_ffmpeg_sys::*;
+use ffmpeg_sys::*;
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::CString;
 use std::ptr::null_mut;
@@ -251,10 +251,11 @@ impl FormatContext {
     }
 
     unsafe {
-      let packet = av_packet_alloc();
+      let mut packet = av_packet_alloc();
       av_init_packet(packet);
 
       if av_read_frame(self.format_context, packet) < 0 {
+        av_packet_free(&mut packet);
         return Err("Unable to read next packet".to_string());
       }
 

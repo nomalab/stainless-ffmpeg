@@ -14,6 +14,7 @@ pub mod format_context;
 pub mod frame;
 pub mod order;
 pub mod packet;
+pub mod prelude;
 pub mod probe;
 pub mod stream;
 pub mod subtitle_decoder;

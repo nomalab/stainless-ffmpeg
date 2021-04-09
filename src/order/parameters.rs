@@ -1,7 +1,7 @@
 use crate::tools;
 use crate::tools::rational::Rational;
-use libc::c_void;
-use stainless_ffmpeg_sys::*;
+use ffmpeg_sys::*;
+use libc::{c_char, c_void};
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::hash::BuildHasher;
@@ -38,7 +38,7 @@ impl ParameterValue {
       }
       ParameterValue::String(data) => self.set_str_parameter(context, &key, &data),
       ParameterValue::ChannelLayout(data) => {
-        let mut ch_layout = [0i8; 64];
+        let mut ch_layout = [0; 64];
         unsafe {
           av_get_channel_layout_string(ch_layout.as_mut_ptr(), 64, 0, *data);
         }
@@ -47,7 +47,12 @@ impl ParameterValue {
     }
   }
 
-  fn set_parameter(&self, context: *mut c_void, key: &str, value: *const i8) -> Result<(), String> {
+  fn set_parameter(
+    &self,
+    context: *mut c_void,
+    key: &str,
+    value: *const c_char,
+  ) -> Result<(), String> {
     let key_str = CString::new(key).unwrap();
     unsafe {
       check_result!(av_opt_set(
