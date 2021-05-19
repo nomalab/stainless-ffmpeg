@@ -33,7 +33,11 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
         silencedetect_params.insert("duration".to_string(), ParameterValue::Float(min));
       }
     }
-
+    if let Some(noise) = params.get("noise") {
+      if let Some(noise_th) = noise.th {
+        silencedetect_params.insert("noise".to_string(), ParameterValue::Float(noise_th));
+      } 
+    }
     let channel_layouts = ParameterValue::String("mono".to_string());
     let mut aformat_params: HashMap<String, ParameterValue> = HashMap::new();
     aformat_params.insert("channel_layouts".to_string(), channel_layouts);
