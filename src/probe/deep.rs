@@ -2,6 +2,7 @@ use crate::format_context::FormatContext;
 use crate::probe::black_detect::detect_black_frames;
 use crate::probe::crop_detect::detect_black_borders;
 use crate::probe::silence_detect::detect_silence;
+use crate::stream::Stream;
 use log::LevelFilter;
 use stainless_ffmpeg_sys::*;
 use std::{cmp, collections::HashMap, fmt};
@@ -17,6 +18,7 @@ pub struct DeepProbe {
 pub struct DeepProbeResult {
   #[serde(default)]
   streams: Vec<StreamProbeResult>,
+  format : FormatProbeResult,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -53,8 +55,14 @@ pub struct StreamProbeResult {
   pub detected_black: Vec<BlackResult>,
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub detected_crop: Vec<CropResult>,
+  pub detected_bitrate: Option<i64>,
 }
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct FormatProbeResult {
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_bitrate_format: Option<i64>,
 
+}
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct CheckParameterValue {
   #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -98,6 +106,7 @@ impl fmt::Display for DeepProbeResult {
       )?;
       writeln!(f, "{:30} : {:?}", "Black detection", stream.detected_black)?;
       writeln!(f, "{:30} : {:?}", "Crop detection", stream.detected_crop)?;
+      writeln!(f, "{:30} : {:?}", "Bitrate detection", stream.detected_bitrate)?;
     }
     Ok(())
   }
@@ -114,10 +123,17 @@ impl StreamProbeResult {
       silent_stream: None,
       detected_black: vec![],
       detected_crop: vec![],
+      detected_bitrate: None,
     }
   }
 }
-
+impl FormatProbeResult {
+  pub fn new() -> Self {
+    FormatProbeResult {
+      detected_bitrate_format: None,
+    }
+  }
+} 
 impl DeepProbe {
   pub fn new(filename: &str) -> Self {
     DeepProbe {
@@ -148,7 +164,10 @@ impl DeepProbe {
     }
 
     let mut streams = vec![];
+    let mut format = FormatProbeResult::new();
+
     streams.resize(context.get_nb_streams() as usize, StreamProbeResult::new());
+
     while let Ok(packet) = context.next_packet() {
       unsafe {
         let stream_index = (*packet.packet).stream_index as usize;
@@ -202,8 +221,15 @@ impl DeepProbe {
       }
       detect_black_borders(&self.filename, &mut streams, video_indexes, crop_parameters);
     }
+    for index in 0..context.get_nb_streams(){
+     if let Ok(stream) = Stream::new(context.get_stream(index as isize)) {
+           streams[(index) as usize].detected_bitrate = stream.get_bit_rate() ; 
+      }
+    }
+  
+   format.detected_bitrate_format = context.get_bit_rate() ; 
 
-    self.result = Some(DeepProbeResult { streams });
+    self.result = Some(DeepProbeResult { streams , format });
 
     context.close_input();
     Ok(())
