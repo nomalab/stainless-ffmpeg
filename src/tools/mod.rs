@@ -19,7 +19,7 @@ pub unsafe fn from_buf_raw<T>(ptr: *const T, elts: usize) -> Vec<T> {
 static ALPHABET: &[u8] = b"abcdefghijklmnopqrstuvwxyz";
 
 /// # Safety
-pub unsafe fn to_string(data: *const i8) -> String {
+pub unsafe fn to_string(data: *const libc::c_char) -> String {
   if data.is_null() {
     return "".to_string();
   }

@@ -40,14 +40,19 @@ impl ParameterValue {
       ParameterValue::ChannelLayout(data) => {
         let mut ch_layout = [0i8; 64];
         unsafe {
-          av_get_channel_layout_string(ch_layout.as_mut_ptr(), 64, 0, *data);
+          av_get_channel_layout_string(ch_layout.as_mut_ptr() as *mut libc::c_char, 64, 0, *data);
         }
-        self.set_parameter(context, &key, ch_layout.as_ptr())
+        self.set_parameter(context, &key, ch_layout.as_ptr() as *const libc::c_char)
       }
     }
   }
 
-  fn set_parameter(&self, context: *mut c_void, key: &str, value: *const i8) -> Result<(), String> {
+  fn set_parameter(
+    &self,
+    context: *mut c_void,
+    key: &str,
+    value: *const libc::c_char,
+  ) -> Result<(), String> {
     let key_str = CString::new(key).unwrap();
     unsafe {
       check_result!(av_opt_set(

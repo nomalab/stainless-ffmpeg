@@ -173,7 +173,7 @@ fn dump_option(
           value_ptr as *mut *mut _,
         );
 
-        tools::to_string(data as *const i8)
+        tools::to_string(data as *const libc::c_char)
       }
       AV_OPT_TYPE_SAMPLE_FMT => {
         let format = AVSampleFormat::AV_SAMPLE_FMT_NONE;
@@ -244,7 +244,7 @@ fn dump_options(filter: *mut AVFilterContext, class: *const AVClass, f: &mut fmt
 }
 
 fn dump_link(
-  pad_name: *const i8,
+  pad_name: *const libc::c_char,
   link: *mut AVFilterLink,
   mode: &str,
   is_input: bool,
@@ -302,13 +302,13 @@ impl fmt::Display for Filter {
 
       let input_links = tools::from_buf_raw((*filter).inputs, (*filter).nb_inputs as usize);
       for (index, input_link) in input_links.iter().enumerate() {
-        let name = avfilter_pad_get_name((*filter).input_pads, index as i32);
+        let name: *const libc::c_char = avfilter_pad_get_name((*filter).input_pads, index as i32);
         dump_link(name, *input_link, ">-", true, f)?;
       }
 
       let output_links = tools::from_buf_raw((*filter).outputs, (*filter).nb_outputs as usize);
       for (index, output_link) in output_links.iter().enumerate() {
-        let name = avfilter_pad_get_name((*filter).output_pads, index as i32);
+        let name: *const libc::c_char = avfilter_pad_get_name((*filter).output_pads, index as i32);
         dump_link(name, *output_link, "->", false, f)?;
       }
     }
