@@ -207,10 +207,10 @@ impl Probe {
             vp = Some(VideoProperties {
               width,
               height,
-              level,
-              profile,
               display_aspect_ratio,
               frame_rate,
+              level,
+              profile,
               scanning_type,
               chroma_subsampling,
               timecode,

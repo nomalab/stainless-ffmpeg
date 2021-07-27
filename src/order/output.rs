@@ -67,9 +67,9 @@ impl FromStr for SampleFormat {
   }
 }
 
-impl Into<AVSampleFormat> for SampleFormat {
-  fn into(self) -> AVSampleFormat {
-    match self {
+impl From<SampleFormat> for AVSampleFormat {
+  fn from(sample: SampleFormat) -> AVSampleFormat {
+    match sample {
       SampleFormat::Unsigned8 => AVSampleFormat::AV_SAMPLE_FMT_U8,
       SampleFormat::Unsigned8Planar => AVSampleFormat::AV_SAMPLE_FMT_U8P,
       SampleFormat::Signed16 => AVSampleFormat::AV_SAMPLE_FMT_S16,
@@ -112,9 +112,9 @@ impl std::str::FromStr for PixelFormat {
   }
 }
 
-impl Into<AVPixelFormat> for PixelFormat {
-  fn into(self) -> AVPixelFormat {
-    match self {
+impl From<PixelFormat> for AVPixelFormat {
+  fn from(format: PixelFormat) -> AVPixelFormat {
+    match format {
       PixelFormat::Yuv420p => AVPixelFormat::AV_PIX_FMT_YUV420P,
       PixelFormat::Yuv422p => AVPixelFormat::AV_PIX_FMT_YUV422P,
       PixelFormat::Rgb24 => AVPixelFormat::AV_PIX_FMT_RGB24,
@@ -161,9 +161,9 @@ impl std::str::FromStr for Colorspace {
   }
 }
 
-impl Into<AVColorSpace> for Colorspace {
-  fn into(self) -> AVColorSpace {
-    match self {
+impl From<Colorspace> for AVColorSpace {
+  fn from(space: Colorspace) -> AVColorSpace {
+    match space {
       Colorspace::Rgb => AVColorSpace::AVCOL_SPC_RGB,
       Colorspace::Bt470bg => AVColorSpace::AVCOL_SPC_BT470BG,
       Colorspace::Bt709 => AVColorSpace::AVCOL_SPC_BT709,
@@ -195,9 +195,9 @@ impl std::str::FromStr for ColorRange {
   }
 }
 
-impl Into<AVColorRange> for ColorRange {
-  fn into(self) -> AVColorRange {
-    match self {
+impl From<ColorRange> for AVColorRange {
+  fn from(range: ColorRange) -> AVColorRange {
+    match range {
       ColorRange::Head => AVColorRange::AVCOL_RANGE_MPEG,
       ColorRange::Full => AVColorRange::AVCOL_RANGE_JPEG,
     }
@@ -226,9 +226,9 @@ impl std::str::FromStr for ChannelLayout {
   }
 }
 
-impl Into<u64> for ChannelLayout {
-  fn into(self) -> u64 {
-    match self {
+impl From<ChannelLayout> for u64 {
+  fn from(layout: ChannelLayout) -> u64 {
+    match layout {
       ChannelLayout::Mono => AV_CH_LAYOUT_MONO,
       ChannelLayout::Stereo => AV_CH_LAYOUT_STEREO,
       ChannelLayout::Multi5_1 => AV_CH_LAYOUT_5POINT1,

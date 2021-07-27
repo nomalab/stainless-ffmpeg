@@ -26,11 +26,11 @@ impl Rational {
   }
 }
 
-impl Into<AVRational> for Rational {
-  fn into(self) -> AVRational {
+impl From<Rational> for AVRational {
+  fn from(ratio: Rational) -> AVRational {
     AVRational {
-      num: self.num,
-      den: self.den,
+      num: ratio.num,
+      den: ratio.den,
     }
   }
 }
