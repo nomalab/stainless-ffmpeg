@@ -1,10 +1,9 @@
-use stainless_ffmpeg_sys::*;
-use std::ptr::null_mut;
-
 use crate::format_context::FormatContext;
 use crate::frame::Frame;
 use crate::packet::Packet;
 use crate::tools;
+use ffmpeg_sys::*;
+use std::ptr::null_mut;
 
 #[derive(Debug)]
 pub struct AudioDecoder {

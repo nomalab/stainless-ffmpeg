@@ -1,8 +1,8 @@
 use crate::format_context::FormatContext;
 use crate::stream::Stream;
 use crate::tools::rational::Rational;
+use ffmpeg_sys::*;
 use log::LevelFilter;
-use stainless_ffmpeg_sys::*;
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 
@@ -207,10 +207,10 @@ impl Probe {
             vp = Some(VideoProperties {
               width,
               height,
-              level,
-              profile,
               display_aspect_ratio,
               frame_rate,
+              level,
+              profile,
               scanning_type,
               chroma_subsampling,
               timecode,

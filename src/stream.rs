@@ -1,6 +1,6 @@
 use crate::tools;
 use crate::tools::rational::Rational;
-use stainless_ffmpeg_sys::*;
+use ffmpeg_sys::*;
 use std::char;
 use std::collections::HashMap;
 use std::ffi::CString;

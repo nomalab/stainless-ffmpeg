@@ -1,11 +1,13 @@
 language: rust
 
 rust:
-  - 1.40.0
-  - 1.41.0
-  - 1.42.0
-  - 1.43.0
-  - 1.44.0
+  - 1.47.0
+  - 1.48.0
+  - 1.49.0
+  - 1.50.0
+  - 1.51.0
+  - 1.52.0
+  - 1.53.0
   - stable
   - beta
   - nightly
@@ -51,7 +53,7 @@ cache:
 before_script:
   - sudo add-apt-repository ppa:jonathonf/ffmpeg-4 -y
   - sudo apt-get update -q
-  - sudo apt-get install ffmpeg libavcodec-dev libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev libavresample-dev libpostproc-dev libswscale-dev -y
+  - sudo apt-get install ffmpeg libasound2-dev libavcodec-dev libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev libavresample-dev libpostproc-dev libswscale-dev -y
 
 before_cache:
   # Travis can't cache files that are not readable by "others"

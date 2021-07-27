@@ -1,6 +1,7 @@
 use crate::tools;
-use stainless_ffmpeg_sys::AVOptionType::*;
-use stainless_ffmpeg_sys::*;
+use ffmpeg_sys::AVOptionType::*;
+use ffmpeg_sys::*;
+use libc::c_char;
 use std::ffi::CString;
 use std::fmt;
 use std::ptr::null_mut;
@@ -31,7 +32,7 @@ impl Filter {
       ));
     }
 
-    let context = if instance_name == "" {
+    let context = if instance_name.is_empty() {
       avfilter_graph_alloc_filter(filter_graph, filter, null_mut())
     } else {
       let i_name = CString::new(instance_name).unwrap();
@@ -173,7 +174,7 @@ fn dump_option(
           value_ptr as *mut *mut _,
         );
 
-        tools::to_string(data as *const i8)
+        tools::to_string(data as *const c_char)
       }
       AV_OPT_TYPE_SAMPLE_FMT => {
         let format = AVSampleFormat::AV_SAMPLE_FMT_NONE;
@@ -244,7 +245,7 @@ fn dump_options(filter: *mut AVFilterContext, class: *const AVClass, f: &mut fmt
 }
 
 fn dump_link(
-  pad_name: *const i8,
+  pad_name: *const c_char,
   link: *mut AVFilterLink,
   mode: &str,
   is_input: bool,

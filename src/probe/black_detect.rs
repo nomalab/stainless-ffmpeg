@@ -6,7 +6,7 @@ use crate::order::{
 use crate::order::{Filter, Order, OutputResult::Entry, ParameterValue};
 use crate::probe::deep::{BlackResult, CheckParameterValue, StreamProbeResult};
 use crate::stream::Stream as ContextStream;
-use stainless_ffmpeg_sys::AVMediaType;
+use ffmpeg_sys::AVMediaType;
 use std::collections::HashMap;
 
 pub fn create_graph(

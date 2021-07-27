@@ -1,12 +1,12 @@
-use env_logger::{Builder, Env};
+use env_logger::Builder;
 use log::LevelFilter;
-use stainless_ffmpeg::probe::deep::CheckParameterValue;
 use stainless_ffmpeg::probe::*;
 use std::collections::HashMap;
 use std::env;
 
 fn main() {
-  Builder::from_env(Env::default().default_filter_or("debug")).init();
+  let mut builder = Builder::from_default_env();
+  builder.init();
 
   if let Some(path) = env::args().last() {
     let mut probe = DeepProbe::new(&path);
