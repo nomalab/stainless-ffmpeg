@@ -30,7 +30,7 @@ impl DecoderFormat {
         let audio_decoders = vec![];
         let subtitle_decoders = vec![];
         let mut video_decoders = vec![];
-        let mut context = FormatContext::new(&path)?;
+        let mut context = FormatContext::new(path)?;
         context.set_frames_addresses(frames);
 
         let identifier = if let Some(ref identifier) = label {
@@ -55,7 +55,7 @@ impl DecoderFormat {
         let mut audio_decoders = vec![];
         let mut subtitle_decoders = vec![];
         let mut video_decoders = vec![];
-        let mut context = FormatContext::new(&path)?;
+        let mut context = FormatContext::new(path)?;
         context.open_input()?;
 
         for stream in streams {

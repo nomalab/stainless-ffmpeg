@@ -108,7 +108,7 @@ impl Order {
                 }
 
                 for key in &output.keys {
-                  if let Some(value) = output_frame.get_metadata(&key) {
+                  if let Some(value) = output_frame.get_metadata(key) {
                     entry.insert(key.clone(), value);
                   }
                 }
@@ -141,7 +141,7 @@ impl Order {
               }
 
               for key in &output.keys {
-                if let Some(value) = output_frame.get_metadata(&key) {
+                if let Some(value) = output_frame.get_metadata(key) {
                   entry.insert(key.clone(), value);
                 }
               }
@@ -220,7 +220,7 @@ impl Order {
 
   fn build_input_format(&mut self) -> Result<(), String> {
     for input in &self.inputs {
-      let decoder = DecoderFormat::new(&mut self.filter_graph, &input)?;
+      let decoder = DecoderFormat::new(&mut self.filter_graph, input)?;
       self.total_streams += decoder.context.get_nb_streams();
       self.input_formats.push(decoder);
     }
@@ -231,7 +231,7 @@ impl Order {
     for output in &self.outputs {
       match output.kind {
         Some(OutputKind::File) | Some(OutputKind::Packet) => {
-          let encoder = EncoderFormat::new(&mut self.filter_graph, &output)?;
+          let encoder = EncoderFormat::new(&mut self.filter_graph, output)?;
           self.output_formats.push(encoder);
         }
         Some(OutputKind::AudioMetadata) => {
@@ -254,7 +254,7 @@ impl Order {
     let mut filters = vec![];
 
     for filter_description in &self.graph {
-      let filter = self.filter_graph.add_filter(&filter_description)?;
+      let filter = self.filter_graph.add_filter(filter_description)?;
       if let Some(ref inputs) = filter_description.inputs {
         for (index, input) in inputs.iter().enumerate() {
           match *input {
@@ -267,7 +267,7 @@ impl Order {
               if let Err(msg) =
                 self
                   .filter_graph
-                  .connect_input(&label, decoder_stream_index, &filter, index as u32)
+                  .connect_input(label, decoder_stream_index, &filter, index as u32)
               {
                 return Err(format!(
                   "unable to connect input stream {} ({}): {}",

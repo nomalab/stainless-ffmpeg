@@ -101,7 +101,7 @@ pub fn detect_black_frames(
         max_duration = duration.max;
         min_duration = duration.min;
       }
-      let mut context = FormatContext::new(&filename).unwrap();
+      let mut context = FormatContext::new(filename).unwrap();
       if let Err(msg) = context.open_input() {
         context.close_input();
         error!("{:?}", msg);

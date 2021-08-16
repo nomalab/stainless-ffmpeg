@@ -102,7 +102,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
       let mut duration = 0;
-      let mut context = FormatContext::new(&filename).unwrap();
+      let mut context = FormatContext::new(filename).unwrap();
       if let Err(msg) = context.open_input() {
         context.close_input();
         error!("{:?}", msg);
