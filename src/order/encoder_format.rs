@@ -51,19 +51,19 @@ impl EncoderFormat {
 
       match tools::get_codec_type(&stream.codec) {
         Some(AVMediaType::AVMEDIA_TYPE_VIDEO) => {
-          let video_encoder = VideoEncoder::new(identifier.clone(), index as isize, &stream)?;
+          let video_encoder = VideoEncoder::new(identifier.clone(), index as isize, stream)?;
           format.add_video_stream(&video_encoder)?;
           video_encoders.push(video_encoder);
           graph.add_video_output(&identifier)?;
         }
         Some(AVMediaType::AVMEDIA_TYPE_AUDIO) => {
-          let audio_encoder = AudioEncoder::new(identifier.clone(), index as isize, &stream)?;
+          let audio_encoder = AudioEncoder::new(identifier.clone(), index as isize, stream)?;
           format.add_audio_stream(&audio_encoder)?;
           audio_encoders.push(audio_encoder);
           graph.add_audio_output(&identifier)?;
         }
         Some(AVMediaType::AVMEDIA_TYPE_SUBTITLE) => {
-          let subtitle_encoder = SubtitleEncoder::new(identifier.clone(), index as isize, &stream)?;
+          let subtitle_encoder = SubtitleEncoder::new(identifier.clone(), index as isize, stream)?;
           format.add_subtitle_stream(&subtitle_encoder)?;
           subtitle_encoders.push(subtitle_encoder);
         }

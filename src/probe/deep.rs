@@ -2,6 +2,7 @@ use crate::format_context::FormatContext;
 use crate::probe::black_detect::detect_black_frames;
 use crate::probe::crop_detect::detect_black_borders;
 use crate::probe::silence_detect::detect_silence;
+use crate::stream::Stream;
 use ffmpeg_sys::*;
 use log::LevelFilter;
 use std::{cmp, collections::HashMap, fmt};
@@ -17,6 +18,7 @@ pub struct DeepProbe {
 pub struct DeepProbeResult {
   #[serde(default)]
   streams: Vec<StreamProbeResult>,
+  format: FormatProbeResult,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -53,6 +55,14 @@ pub struct StreamProbeResult {
   pub detected_black: Vec<BlackResult>,
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub detected_crop: Vec<CropResult>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_bitrate: Option<i64>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct FormatProbeResult {
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_bitrate_format: Option<i64>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -98,6 +108,11 @@ impl fmt::Display for DeepProbeResult {
       )?;
       writeln!(f, "{:30} : {:?}", "Black detection", stream.detected_black)?;
       writeln!(f, "{:30} : {:?}", "Crop detection", stream.detected_crop)?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
+        "Bitrate detection", stream.detected_bitrate
+      )?;
     }
     Ok(())
   }
@@ -114,6 +129,15 @@ impl StreamProbeResult {
       silent_stream: None,
       detected_black: vec![],
       detected_crop: vec![],
+      detected_bitrate: None,
+    }
+  }
+}
+
+impl FormatProbeResult {
+  pub fn new() -> Self {
+    FormatProbeResult {
+      detected_bitrate_format: None,
     }
   }
 }
@@ -203,7 +227,16 @@ impl DeepProbe {
       detect_black_borders(&self.filename, &mut streams, video_indexes, crop_parameters);
     }
 
-    self.result = Some(DeepProbeResult { streams });
+    for index in 0..context.get_nb_streams() {
+      if let Ok(stream) = Stream::new(context.get_stream(index as isize)) {
+        streams[(index) as usize].detected_bitrate = stream.get_bit_rate();
+      }
+    }
+
+    let mut format = FormatProbeResult::new();
+    format.detected_bitrate_format = context.get_bit_rate();
+
+    self.result = Some(DeepProbeResult { streams, format });
 
     context.close_input();
     Ok(())

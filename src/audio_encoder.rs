@@ -39,7 +39,7 @@ impl AudioEncoder {
         (*codec_context).sample_fmt = sample_fmt.into();
       }
 
-      (*codec_context).channel_layout = AudioEncoder::select_channel_layout(codec, &parameters);
+      (*codec_context).channel_layout = AudioEncoder::select_channel_layout(codec, parameters);
       (*codec_context).channels =
         av_get_channel_layout_nb_channels((*codec_context).channel_layout);
 

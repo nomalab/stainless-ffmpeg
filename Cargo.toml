@@ -1,6 +1,6 @@
 [package]
 name = "stainless_ffmpeg"
-version = "0.2.6"
+version = "0.2.7"
 edition = "2018"
 authors = [
   "Marc-Antoine Arnaud <arnaud.marcantoine@gmail.com>",

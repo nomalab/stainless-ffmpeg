@@ -30,19 +30,19 @@ pub fn set_parameters<S: BuildHasher>(
 impl ParameterValue {
   pub fn set(&self, key: &str, context: *mut c_void) -> Result<(), String> {
     match self {
-      ParameterValue::Bool(data) => self.set_int_parameter(context, &key, *data as i64),
-      ParameterValue::Int64(data) => self.set_int_parameter(context, &key, *data),
-      ParameterValue::Float(data) => self.set_float_parameter(context, &key, *data),
+      ParameterValue::Bool(data) => self.set_int_parameter(context, key, *data as i64),
+      ParameterValue::Int64(data) => self.set_int_parameter(context, key, *data),
+      ParameterValue::Float(data) => self.set_float_parameter(context, key, *data),
       ParameterValue::Rational(data) => {
-        self.set_rational_parameter(context, &key, data.num, data.den)
+        self.set_rational_parameter(context, key, data.num, data.den)
       }
-      ParameterValue::String(data) => self.set_str_parameter(context, &key, &data),
+      ParameterValue::String(data) => self.set_str_parameter(context, key, data),
       ParameterValue::ChannelLayout(data) => {
         let mut ch_layout = [0; 64];
         unsafe {
           av_get_channel_layout_string(ch_layout.as_mut_ptr(), 64, 0, *data);
         }
-        self.set_parameter(context, &key, ch_layout.as_ptr())
+        self.set_parameter(context, key, ch_layout.as_ptr())
       }
     }
   }
