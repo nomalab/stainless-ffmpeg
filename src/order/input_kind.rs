@@ -1,4 +1,4 @@
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub enum InputKind {
   #[serde(rename = "stream")]
   Stream,

@@ -1,6 +1,7 @@
 use crate::format_context::FormatContext;
 use crate::probe::black_detect::detect_black_frames;
 use crate::probe::crop_detect::detect_black_borders;
+use crate::probe::loudness_detect::detect_loudness;
 use crate::probe::silence_detect::detect_silence;
 use crate::stream::Stream;
 use ffmpeg_sys_next::*;
@@ -42,11 +43,19 @@ pub struct CropResult {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct LoudnessResult {
+  pub integrated: f64,
+  pub range: f64,
+  pub true_peaks: Vec<f64>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct StreamProbeResult {
   stream_index: usize,
   count_packets: usize,
   min_packet_size: i32,
   max_packet_size: i32,
+  pub channels_number: usize,
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub detected_silence: Vec<SilenceResult>,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -55,6 +64,8 @@ pub struct StreamProbeResult {
   pub detected_black: Vec<BlackResult>,
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub detected_crop: Vec<CropResult>,
+  #[serde(skip_serializing_if = "Vec::is_empty")]
+  pub detected_loudness: Vec<LoudnessResult>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_bitrate: Option<i64>,
 }
@@ -77,6 +88,8 @@ pub struct CheckParameterValue {
   pub den: Option<u64>,
   #[serde(default, skip_serializing_if = "Option::is_none")]
   pub th: Option<f64>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub pair: Option<Vec<Vec<u8>>>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq)]
@@ -84,12 +97,18 @@ pub struct DeepProbeCheck {
   pub silence_detect: Option<HashMap<String, CheckParameterValue>>,
   pub black_detect: Option<HashMap<String, CheckParameterValue>>,
   pub crop_detect: Option<HashMap<String, CheckParameterValue>>,
+  pub loudness_detect: Option<HashMap<String, CheckParameterValue>>,
 }
 
 impl fmt::Display for DeepProbeResult {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     for (index, stream) in self.streams.iter().enumerate() {
       writeln!(f, "\n{:30} : {:?}", "Stream Index", index)?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
+        "Number of channels", stream.channels_number
+      )?;
       writeln!(f, "{:30} : {:?}", "Number of packets", stream.count_packets)?;
       writeln!(
         f,
@@ -111,6 +130,11 @@ impl fmt::Display for DeepProbeResult {
       writeln!(
         f,
         "{:30} : {:?}",
+        "Loudness detection", stream.detected_loudness
+      )?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
         "Bitrate detection", stream.detected_bitrate
       )?;
     }
@@ -123,12 +147,14 @@ impl StreamProbeResult {
     StreamProbeResult {
       stream_index: 0,
       count_packets: 0,
+      channels_number: 0,
       min_packet_size: std::i32::MAX,
       max_packet_size: std::i32::MIN,
       detected_silence: vec![],
       silent_stream: None,
       detected_black: vec![],
       detected_crop: vec![],
+      detected_loudness: vec![],
       detected_bitrate: None,
     }
   }
@@ -177,6 +203,11 @@ impl DeepProbe {
       unsafe {
         let stream_index = (*packet.packet).stream_index as usize;
         let packet_size = (*packet.packet).size;
+
+        if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
+          let channels_number = stream.get_channels();
+          streams[stream_index].channels_number = channels_number as usize;
+        }
 
         streams[stream_index].stream_index = stream_index;
         streams[stream_index].count_packets += 1;
@@ -233,6 +264,16 @@ impl DeepProbe {
       }
     }
 
+    if let Some(loudness_parameters) = check.loudness_detect {
+      let mut audio_indexes = vec![];
+      for stream_index in 0..context.get_nb_streams() {
+        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
+          audio_indexes.push(stream_index);
+        }
+      }
+      detect_loudness(&self.filename, &mut streams, loudness_parameters);
+    }
+
     let mut format = FormatProbeResult::new();
     format.detected_bitrate_format = context.get_bit_rate();
 
@@ -256,6 +297,7 @@ fn deep_probe_mxf_sample() {
     num: None,
     den: None,
     th: None,
+    pair: None,
   };
   params.insert("duration".to_string(), duration);
   let check_list = DeepProbeCheck {
