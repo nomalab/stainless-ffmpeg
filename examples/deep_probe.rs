@@ -15,6 +15,7 @@ fn main() {
       num: None,
       den: None,
       th: None,
+      pair: None,
     };
     let black_duration_params = CheckParameterValue {
       min: Some(40),
@@ -22,27 +23,31 @@ fn main() {
       num: None,
       den: None,
       th: None,
+      pair: None,
     };
     let black_pixel_params = CheckParameterValue {
       min: None,
       max: None,
       num: None,
       den: None,
-      th: Some(0.0),
+      th: None, //Some(0.0),
+      pair: None,
     };
     let black_picture_params = CheckParameterValue {
       min: None,
       max: None,
       num: None,
       den: None,
-      th: Some(1.0),
+      th: None, //Some(1.0),
+      pair: None,
     };
     let spot_check = CheckParameterValue {
       min: None,
-      max: Some(3),
+      max: None, //Some(3),
       num: None,
       den: None,
       th: None,
+      pair: None,
     };
     let black_and_silence_check = CheckParameterValue {
       min: Some(40),
@@ -50,6 +55,19 @@ fn main() {
       num: None,
       den: None,
       th: None,
+      pair: None,
+    };
+
+    let mut pairing = vec![vec![]];
+    pairing.push([1].to_vec());
+    pairing.push([2].to_vec());
+    let loudness_check = CheckParameterValue {
+      min: None,
+      max: None,
+      num: None,
+      den: None,
+      th: None,
+      pair: Some(pairing),
     };
     let scene_check = CheckParameterValue {
       min: None,
@@ -57,6 +75,7 @@ fn main() {
       num: None,
       den: None,
       th: Some(10.0),
+      pair: None,
     };
     let ocr_check = CheckParameterValue {
       min: None,
@@ -64,6 +83,7 @@ fn main() {
       num: None,
       den: None,
       th: Some(14.0),
+      pair: None,
     };
 
     let mut silence_params = HashMap::new();
@@ -72,11 +92,13 @@ fn main() {
     let mut black_and_silence_params = HashMap::new();
     let mut scene_params = HashMap::new();
     let mut ocr_params = HashMap::new();
+    let mut loudness_params = HashMap::new();
     silence_params.insert("duration".to_string(), duration_params);
     black_params.insert("duration".to_string(), black_duration_params);
     black_params.insert("picture".to_string(), black_picture_params);
     black_params.insert("pixel".to_string(), black_pixel_params);
     select_params.insert("spot_check".to_string(), spot_check);
+    loudness_params.insert("pairing_list".to_string(), loudness_check);
     black_and_silence_params.insert("duration".to_string(), black_and_silence_check);
     scene_params.insert("threshold".to_string(), scene_check);
     ocr_params.insert("threshold".to_string(), ocr_check);
@@ -87,6 +109,7 @@ fn main() {
       black_and_silence_detect: Some(black_and_silence_params),
       scene_detect: Some(scene_params),
       ocr_detect: Some(ocr_params),
+      loudness_detect: Some(loudness_params),
     };
     probe.process(LevelFilter::Off, check).unwrap();
     let result = serde_json::to_string(&probe).unwrap();

@@ -385,7 +385,7 @@ fn parse_sample_audio_encoding_graph() {
       Filter {
         name: "amerge".to_string(),
         label: Some("amerge_filter".to_string()),
-        parameters: amerge_params,
+        parameters: amerge_params.clone(),
         inputs: Some(vec![
           FilterInput {
             kind: InputKind::Stream,

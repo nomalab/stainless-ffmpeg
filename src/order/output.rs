@@ -209,6 +209,8 @@ pub enum ChannelLayout {
   Stereo,
   #[serde(rename = "5.1")]
   Multi5_1,
+  #[serde(rename = "7.1")]
+  Multi7_1,
 }
 
 impl std::str::FromStr for ChannelLayout {
@@ -218,6 +220,7 @@ impl std::str::FromStr for ChannelLayout {
       "mono" => Ok(ChannelLayout::Mono),
       "stereo" => Ok(ChannelLayout::Stereo),
       "5.1" => Ok(ChannelLayout::Multi5_1),
+      "7.1" => Ok(ChannelLayout::Multi7_1),
       _ => Err(format!("'{s}' is not a valid value for ChannelLayout")),
     }
   }
@@ -229,11 +232,12 @@ impl From<ChannelLayout> for u64 {
       ChannelLayout::Mono => AV_CH_LAYOUT_MONO,
       ChannelLayout::Stereo => AV_CH_LAYOUT_STEREO,
       ChannelLayout::Multi5_1 => AV_CH_LAYOUT_5POINT1,
+      ChannelLayout::Multi7_1 => AV_CH_LAYOUT_7POINT1,
     }
   }
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct OutputStream {
   pub label: Option<String>,
   pub codec: String,
