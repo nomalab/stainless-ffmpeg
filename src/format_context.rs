@@ -172,7 +172,7 @@ impl FormatContext {
 
   pub fn get_bit_rate(&self) -> Option<i64> {
     unsafe {
-      if (*self.format_context).bit_rate == AV_NOPTS_VALUE {
+      if (*self.format_context).bit_rate == AV_NOPTS_VALUE || (*self.format_context).bit_rate == 0 {
         None
       } else {
         Some((*self.format_context).bit_rate)

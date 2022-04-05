@@ -29,7 +29,7 @@
         "codec_long_name": "MPEG-2 video",
         "start_time": 0.0,
         "duration": 10.0,
-        "bit_rate": 0,
+        "bit_rate": null,
         "width": 1440,
         "height": 1080,
         "display_aspect_ratio": {
@@ -44,7 +44,7 @@
         "profile": "Main",
         "scanning_type": "interlaced",
         "chroma_subsampling": "4:2:0",
-        "pix_fmt":"yuv420p",
+        "pix_fmt": "yuv420p",
         "nb_frames": 250,
         "stream_metadata": {
           "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
@@ -328,7 +328,7 @@
         "stream_type": "data",
         "start_time": 0.0,
         "duration": 10.0,
-        "bit_rate": 0,
+        "bit_rate": null,
         "stream_metadata": {
           "file_package_umid": "0x060A2B340101010501010F43130000002EE65B4E5614141E616F00B00901B339",
           "track_name": "Material Package: Data Track #1",
