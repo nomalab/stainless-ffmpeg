@@ -10,25 +10,133 @@ on:
   pull_request:
     branches: [ master ]
 
-  # Allows you to run this workflow manually from the Actions tab
-  # workflow_dispatch:
-
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
+
+  build_and_test:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    
+
+    strategy:
+      matrix:
+        rust: [
+          1.54.0,
+          1.55.0,
+          1.56.0,
+          1.57.0,
+          1.58.0,
+          1.59.0,
+          stable,
+          beta,
+          nightly
+        ]
+
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-        - name: Run .travis.yml build script
-          uses: ktomk/run-travis-yml@v1
-          with:
-            file: .travis.yml
-            steps: |
-              install
-              before_script
-              script
-            allow-failure: false
+      - uses: actions/checkout@v3
+
+      - name: Get FFmpeg
+        run: |-
+          'sudo add-apt-repository ppa:jonathonf/ffmpeg-4 -y'
+          sudo apt-get update -q
+
+      - name: Install FFmpeg and libs
+        run: >-
+          sudo apt-get install ffmpeg libasound2-dev libavcodec-dev
+          libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev
+          libavresample-dev libpostproc-dev libswscale-dev -y
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+
+      - name: Run cargo test
+        run: cargo test
+
+  fmt:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust with rustfmt
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: rustfmt
+
+      - name: Show version
+        run: cargo fmt --version
+
+      - name: Run cargo fmt
+        run: cargo fmt -- --check
+
+  clippy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get FFmpeg
+        run: |-
+          'sudo add-apt-repository ppa:jonathonf/ffmpeg-4 -y'
+          sudo apt-get update -q
+
+      - name: Install FFmpeg and libs
+        run: >-
+          sudo apt-get install ffmpeg libasound2-dev libavcodec-dev
+          libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev
+          libavresample-dev libpostproc-dev libswscale-dev -y
+
+      - name: Install Rust with clippy
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: clippy
+
+      - name: Run cargo clippy
+        run: cargo clippy 2>&1 | tee ./clippy.out && ! grep -qe "error:\|warning:" ./clippy.out
+
+  tarpaulin:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies (Ubuntu)
+        run: |-
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev
+
+      - name: Get FFmpeg
+        run: |-
+          'sudo add-apt-repository ppa:jonathonf/ffmpeg-4 -y'
+          sudo apt-get update -q
+
+      - name: Install FFmpeg and libs
+        run: >-
+          sudo apt-get install ffmpeg libasound2-dev libavcodec-dev
+          libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev
+          libavresample-dev libpostproc-dev libswscale-dev -y
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - name: Install tarpaulin
+        run: cargo install cargo-tarpaulin --force
+        env:
+          RUSTFLAGS: '--cfg procmacro2_semver_exempt'
+
+      - name: Run cargo-tarpaulin
+        uses: actions-rs/tarpaulin@v0.1
+        with:
+          version: latest
+          args: '-v --ciserver travis-ci --coveralls $GITHUB_JOB'
 
