@@ -35,13 +35,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get FFmpeg
-        run: |-
-          'sudo add-apt-repository ppa:jonathonf/ffmpeg-4 -y'
-          sudo apt-get update -q
-
       - name: Install FFmpeg and libs
         run: >-
+          sudo apt-get update &&
           sudo apt-get install ffmpeg libasound2-dev libavcodec-dev
           libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev
           libavresample-dev libpostproc-dev libswscale-dev -y
@@ -80,13 +76,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get FFmpeg
-        run: |-
-          'sudo add-apt-repository ppa:jonathonf/ffmpeg-4 -y'
-          sudo apt-get update -q
-
       - name: Install FFmpeg and libs
         run: >-
+          sudo apt-get update &&
           sudo apt-get install ffmpeg libasound2-dev libavcodec-dev
           libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev
           libavresample-dev libpostproc-dev libswscale-dev -y
@@ -112,13 +104,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libssl-dev
 
-      - name: Get FFmpeg
-        run: |-
-          'sudo add-apt-repository ppa:jonathonf/ffmpeg-4 -y'
-          sudo apt-get update -q
-
       - name: Install FFmpeg and libs
         run: >-
+          sudo apt-get update &&
           sudo apt-get install ffmpeg libasound2-dev libavcodec-dev
           libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev
           libavresample-dev libpostproc-dev libswscale-dev -y
