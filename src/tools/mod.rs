@@ -11,9 +11,9 @@ pub mod rational;
 
 /// # Safety
 pub unsafe fn from_buf_raw<T>(ptr: *const T, elts: usize) -> Vec<T> {
-  let mut dst = Vec::with_capacity(elts);
-  dst.set_len(elts);
+  let mut dst: Vec<T> = Vec::with_capacity(elts);
   ptr::copy(ptr, dst.as_mut_ptr(), elts);
+  dst.set_len(elts);
   dst
 }
 
