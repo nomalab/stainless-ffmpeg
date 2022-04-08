@@ -47,6 +47,11 @@ pub struct StreamProbeResult {
   count_packets: usize,
   min_packet_size: i32,
   max_packet_size: i32,
+  pub color_space: Option<String>,
+  pub color_range: Option<String>,
+  pub color_primaries: Option<String>,
+  pub color_trc: Option<String>,
+  pub color_matrix: Option<String>,
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub detected_silence: Vec<SilenceResult>,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -101,6 +106,19 @@ impl fmt::Display for DeepProbeResult {
         "{:30} : {:?}",
         "Maximum packet size", stream.max_packet_size
       )?;
+      writeln!(f, "{:30} : {:?}", "Color space", stream.color_space)?;
+      writeln!(f, "{:30} : {:?}", "Color range", stream.color_range)?;
+      writeln!(f, "{:30} : {:?}", "Color Primaries", stream.color_primaries)?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
+        "Transfer characteristics", stream.color_trc
+      )?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
+        "Matrix coefficients", stream.color_matrix
+      )?;
       writeln!(
         f,
         "{:30} : {:?}",
@@ -123,6 +141,11 @@ impl StreamProbeResult {
     StreamProbeResult {
       stream_index: 0,
       count_packets: 0,
+      color_space: None,
+      color_range: None,
+      color_primaries: None,
+      color_trc: None,
+      color_matrix: None,
       min_packet_size: std::i32::MAX,
       max_packet_size: std::i32::MIN,
       detected_silence: vec![],
@@ -184,6 +207,16 @@ impl DeepProbe {
           cmp::min(packet_size, streams[stream_index].min_packet_size);
         streams[stream_index].max_packet_size =
           cmp::max(packet_size, streams[stream_index].max_packet_size);
+
+        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
+          if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
+            streams[stream_index].color_space = stream.get_color_space();
+            streams[stream_index].color_range = stream.get_color_range();
+            streams[stream_index].color_primaries = stream.get_color_primaries();
+            streams[stream_index].color_trc = stream.get_color_trc();
+            streams[stream_index].color_matrix = stream.get_color_matrix();
+          }
+        }
       }
     }
 

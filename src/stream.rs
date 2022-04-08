@@ -324,4 +324,85 @@ impl Stream {
       metadata
     }
   }
+
+  pub fn get_color_range(&self) -> Option<String> {
+    unsafe {
+      if (*(*self.stream).codecpar).color_range == AVColorRange::AVCOL_RANGE_UNSPECIFIED {
+        None
+      } else {
+        let range = av_color_range_name((*(*self.stream).codecpar).color_range);
+        if tools::to_string(range) == "tv" {
+          Some("tv (limited)".to_string())
+        } else if tools::to_string(range) == "pc" {
+          Some("pc (full)".to_string())
+        } else {
+          Some(tools::to_string(range))
+        }
+      }
+    }
+  }
+
+  pub fn get_color_matrix(&self) -> Option<String> {
+    unsafe {
+      if (*(*self.stream).codecpar).color_space == AVColorSpace::AVCOL_SPC_UNSPECIFIED {
+        None
+      } else {
+        let matrix = av_color_space_name((*(*self.stream).codecpar).color_space);
+        Some(tools::to_string(matrix))
+      }
+    }
+  }
+
+  pub fn get_color_trc(&self) -> Option<String> {
+    unsafe {
+      if (*(*self.stream).codecpar).color_trc
+        == AVColorTransferCharacteristic::AVCOL_TRC_UNSPECIFIED
+      {
+        None
+      } else {
+        let trc = av_color_transfer_name((*(*self.stream).codecpar).color_trc);
+        Some(tools::to_string(trc))
+      }
+    }
+  }
+
+  pub fn get_color_primaries(&self) -> Option<String> {
+    unsafe {
+      if (*(*self.stream).codecpar).color_primaries == AVColorPrimaries::AVCOL_PRI_UNSPECIFIED {
+        None
+      } else {
+        let primaries = av_color_primaries_name((*(*self.stream).codecpar).color_primaries);
+        Some(tools::to_string(primaries))
+      }
+    }
+  }
+
+  pub fn get_color_space(&self) -> Option<String> {
+    unsafe {
+      let pixel_format: AVPixelFormat = std::mem::transmute((*(*self.stream).codecpar).format);
+      let av_pix_fmt_desc = av_pix_fmt_desc_get(pixel_format);
+      if av_pix_fmt_desc.is_null() {
+        None
+      } else {
+        let cxyz = CString::new("xyz").unwrap();
+        let xyzptr = cxyz.as_ptr();
+
+        if (*av_pix_fmt_desc).flags as i32 & AV_PIX_FMT_FLAG_PAL > 0
+          || (*av_pix_fmt_desc).flags as i32 & AV_PIX_FMT_FLAG_RGB > 0
+        {
+          Some("RGB".to_string())
+        } else if (*av_pix_fmt_desc).nb_components == 1 || (*av_pix_fmt_desc).nb_components == 2 {
+          Some("GRAY".to_string())
+        } else if !(*av_pix_fmt_desc).name.is_null()
+          && strncmp((*av_pix_fmt_desc).name, xyzptr, 3) == 0
+        {
+          Some("XYZ".to_string())
+        } else if (*av_pix_fmt_desc).nb_components == 0 {
+          Some("N/A".to_string())
+        } else {
+          Some("YUV".to_string())
+        }
+      }
+    }
+  }
 }
