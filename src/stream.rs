@@ -178,7 +178,8 @@ impl Stream {
 
   pub fn get_bit_rate(&self) -> Option<i64> {
     unsafe {
-      if (*(*self.stream).codec).bit_rate == AV_NOPTS_VALUE {
+      if (*(*self.stream).codec).bit_rate == AV_NOPTS_VALUE || (*(*self.stream).codec).bit_rate == 0
+      {
         None
       } else {
         Some((*(*self.stream).codec).bit_rate)
