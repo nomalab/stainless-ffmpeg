@@ -1,4 +1,5 @@
 use crate::format_context::FormatContext;
+use crate::probe::black_and_silence::detect_black_and_silence;
 use crate::probe::black_detect::detect_black_frames;
 use crate::probe::crop_detect::detect_black_borders;
 use crate::probe::silence_detect::detect_silence;
@@ -33,6 +34,12 @@ pub struct BlackResult {
   pub end: i64,
 }
 
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct BlackAndSilenceResult {
+  pub start: i64,
+  pub end: i64,
+}
+
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct CropResult {
   pub pts: i64,
@@ -57,6 +64,8 @@ pub struct StreamProbeResult {
   pub detected_crop: Vec<CropResult>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_bitrate: Option<i64>,
+  #[serde(skip_serializing_if = "Vec::is_empty")]
+  pub black_and_silence: Vec<BlackAndSilenceResult>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
@@ -83,6 +92,7 @@ pub struct CheckParameterValue {
 pub struct DeepProbeCheck {
   pub silence_detect: Option<HashMap<String, CheckParameterValue>>,
   pub black_detect: Option<HashMap<String, CheckParameterValue>>,
+  pub black_and_silence_detect: Option<HashMap<String, CheckParameterValue>>,
   pub crop_detect: Option<HashMap<String, CheckParameterValue>>,
 }
 
@@ -107,6 +117,11 @@ impl fmt::Display for DeepProbeResult {
         "Silence detection", stream.detected_silence
       )?;
       writeln!(f, "{:30} : {:?}", "Black detection", stream.detected_black)?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
+        "Black and silence detection", stream.black_and_silence
+      )?;
       writeln!(f, "{:30} : {:?}", "Crop detection", stream.detected_crop)?;
       writeln!(
         f,
@@ -128,6 +143,7 @@ impl StreamProbeResult {
       detected_silence: vec![],
       silent_stream: None,
       detected_black: vec![],
+      black_and_silence: vec![],
       detected_crop: vec![],
       detected_bitrate: None,
     }
@@ -187,43 +203,45 @@ impl DeepProbe {
       }
     }
 
-    if let Some(silence_parameters) = check.silence_detect {
-      let mut audio_indexes = vec![];
-      for stream_index in 0..context.get_nb_streams() {
-        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
-          audio_indexes.push(stream_index);
-        }
+    let mut audio_indexes = vec![];
+    let mut video_indexes = vec![];
+    for stream_index in 0..context.get_nb_streams() {
+      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
+        video_indexes.push(stream_index);
       }
+      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
+        audio_indexes.push(stream_index);
+      }
+    }
+
+    if let Some(silence_parameters) = check.silence_detect {
       detect_silence(
         &self.filename,
         &mut streams,
-        audio_indexes,
+        audio_indexes.clone(),
         silence_parameters,
       );
     }
 
     if let Some(black_parameters) = check.black_detect {
-      let mut video_indexes = vec![];
-      for stream_index in 0..context.get_nb_streams() {
-        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
-          video_indexes.push(stream_index);
-        }
-      }
       detect_black_frames(
         &self.filename,
         &mut streams,
-        video_indexes,
+        video_indexes.clone(),
         black_parameters,
       );
     }
 
+    if let Some(black_and_silence_parameters) = check.black_and_silence_detect {
+      detect_black_and_silence(
+        &mut streams,
+        video_indexes.clone(),
+        audio_indexes,
+        black_and_silence_parameters,
+      );
+    }
+
     if let Some(crop_parameters) = check.crop_detect {
-      let mut video_indexes = vec![];
-      for stream_index in 0..context.get_nb_streams() {
-        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
-          video_indexes.push(stream_index);
-        }
-      }
       detect_black_borders(&self.filename, &mut streams, video_indexes, crop_parameters);
     }
 
