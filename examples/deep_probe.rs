@@ -3,6 +3,8 @@ use log::LevelFilter;
 use stainless_ffmpeg::probe::*;
 use std::{collections::HashMap, env};
 
+use crate::deep::Track;
+
 fn main() {
   let mut builder = Builder::from_default_env();
   builder.init();
@@ -15,7 +17,7 @@ fn main() {
       num: None,
       den: None,
       th: None,
-      pair: None,
+      pairs: None,
     };
     let black_duration_params = CheckParameterValue {
       min: Some(40),
@@ -23,31 +25,31 @@ fn main() {
       num: None,
       den: None,
       th: None,
-      pair: None,
+      pairs: None,
     };
     let black_pixel_params = CheckParameterValue {
       min: None,
       max: None,
       num: None,
       den: None,
-      th: None, //Some(0.0),
-      pair: None,
+      th: Some(0.0),
+      pairs: None,
     };
     let black_picture_params = CheckParameterValue {
       min: None,
       max: None,
       num: None,
       den: None,
-      th: None, //Some(1.0),
-      pair: None,
+      th: Some(1.0),
+      pairs: None,
     };
     let spot_check = CheckParameterValue {
       min: None,
-      max: None, //Some(3),
+      max: Some(3),
       num: None,
       den: None,
       th: None,
-      pair: None,
+      pairs: None,
     };
     let black_and_silence_check = CheckParameterValue {
       min: Some(40),
@@ -55,19 +57,32 @@ fn main() {
       num: None,
       den: None,
       th: None,
-      pair: None,
+      pairs: None,
     };
 
-    let mut pairing = vec![vec![]];
-    pairing.push([1].to_vec());
-    pairing.push([2].to_vec());
+    let mut message = vec![vec![]]; //the json message (contains a list of a list of index to pair)
+    message.drain(..);
+    message.push([1].to_vec());
+    let mut pairs = vec![vec![]];
+    let mut pair = vec![];
+    let mut ind: Track;
+    pairs.drain(..);
+    pair.drain(..);
+    for vec in message {
+      for index in vec {
+        ind = Track::new(index);
+        pair.push(ind);
+      }
+      pairs.push(pair.clone());
+      pair.drain(..);
+    }
     let loudness_check = CheckParameterValue {
       min: None,
       max: None,
       num: None,
       den: None,
       th: None,
-      pair: Some(pairing),
+      pairs: Some(pairs),
     };
     let scene_check = CheckParameterValue {
       min: None,
@@ -75,7 +90,7 @@ fn main() {
       num: None,
       den: None,
       th: Some(10.0),
-      pair: None,
+      pairs: None,
     };
     let ocr_check = CheckParameterValue {
       min: None,
@@ -83,7 +98,7 @@ fn main() {
       num: None,
       den: None,
       th: Some(14.0),
-      pair: None,
+      pairs: None,
     };
 
     let mut silence_params = HashMap::new();
