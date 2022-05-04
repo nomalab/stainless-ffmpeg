@@ -276,7 +276,12 @@ impl FilterGraph {
 
       for (index, output_filter) in self.audio_outputs.iter().enumerate() {
         let output_frame = av_frame_alloc();
-        check_result!(av_buffersink_get_frame(output_filter.context, output_frame));
+        let result = av_buffersink_get_frame(output_filter.context, output_frame);
+        if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
+          break;
+        } else {
+          check_result!(result);
+        }
         output_audio_frames.push(Frame {
           name: Some(output_filter.get_label()),
           frame: output_frame,
@@ -287,13 +292,16 @@ impl FilterGraph {
       for (index, output_filter) in self.video_outputs.iter().enumerate() {
         let output_frame = av_frame_alloc();
         let result = av_buffersink_get_frame(output_filter.context, output_frame);
-        if result >= 0 {
-          output_video_frames.push(Frame {
-            name: Some(output_filter.get_label()),
-            frame: output_frame,
-            index,
-          });
+        if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
+          break;
+        } else {
+          check_result!(result);
         }
+        output_video_frames.push(Frame {
+          name: Some(output_filter.get_label()),
+          frame: output_frame,
+          index,
+        });
       }
     }
 
