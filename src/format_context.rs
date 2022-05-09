@@ -5,7 +5,7 @@ use crate::packet::Packet;
 use crate::subtitle_encoder::SubtitleEncoder;
 use crate::tools;
 use crate::video_encoder::VideoEncoder;
-use ffmpeg_sys::*;
+use ffmpeg_sys_next::*;
 use std::collections::{BTreeMap, HashMap};
 use std::ffi::CString;
 use std::ptr::null_mut;

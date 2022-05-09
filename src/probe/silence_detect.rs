@@ -6,7 +6,7 @@ use crate::order::{
 };
 use crate::probe::deep::{CheckParameterValue, SilenceResult, StreamProbeResult};
 use crate::stream::Stream as ContextStream;
-use ffmpeg_sys::AVMediaType;
+use ffmpeg_sys_next::AVMediaType;
 use std::collections::HashMap;
 
 pub fn create_graph<S: ::std::hash::BuildHasher>(
@@ -29,7 +29,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
     let mut silencedetect_params: HashMap<String, ParameterValue> = HashMap::new();
     if let Some(duration) = params.get("duration") {
       if let Some(min_duration) = duration.min {
-        let min = (min_duration as f64 - 1.0) / 1000.0;
+        let min = min_duration as f64 * 1000.0;
         silencedetect_params.insert("duration".to_string(), ParameterValue::Float(min));
       }
     }

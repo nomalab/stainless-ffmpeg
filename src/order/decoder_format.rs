@@ -5,7 +5,7 @@ use crate::order::input::Input;
 use crate::subtitle_decoder::SubtitleDecoder;
 use crate::tools;
 use crate::video_decoder::VideoDecoder;
-use ffmpeg_sys::AVMediaType;
+use ffmpeg_sys_next::AVMediaType;
 
 #[derive(Debug)]
 pub struct DecoderFormat {

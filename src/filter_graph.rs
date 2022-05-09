@@ -1,4 +1,4 @@
-use ffmpeg_sys::*;
+use ffmpeg_sys_next::*;
 use libc::c_void;
 use std::fmt;
 use std::ptr::null_mut;

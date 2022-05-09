@@ -1,7 +1,7 @@
 use crate::format_context::FormatContext;
 use crate::stream::Stream;
 use crate::tools::rational::Rational;
-use ffmpeg_sys::*;
+use ffmpeg_sys_next::*;
 use log::LevelFilter;
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;

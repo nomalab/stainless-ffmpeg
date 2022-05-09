@@ -1,6 +1,6 @@
 use crate::order::output_kind::OutputKind;
 use crate::order::parameters::ParameterValue;
-use ffmpeg_sys::*;
+use ffmpeg_sys_next::*;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::str::FromStr;

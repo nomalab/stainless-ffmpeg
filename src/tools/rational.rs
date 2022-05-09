@@ -1,4 +1,4 @@
-use ffmpeg_sys::*;
+use ffmpeg_sys_next::*;
 use std::mem::swap;
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]

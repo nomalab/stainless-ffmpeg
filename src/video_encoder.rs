@@ -3,7 +3,7 @@ use crate::order::output::{ColorRange, Colorspace, OutputStream, PixelFormat};
 use crate::order::parameters::ParameterValue;
 use crate::packet::Packet;
 use crate::tools;
-use ffmpeg_sys::*;
+use ffmpeg_sys_next::*;
 use std::ptr::null_mut;
 
 #[derive(Debug)]

@@ -1,6 +1,6 @@
 use crate::tools;
-use ffmpeg_sys::AVOptionType::*;
-use ffmpeg_sys::*;
+use ffmpeg_sys_next::AVOptionType::*;
+use ffmpeg_sys_next::*;
 use libc::c_char;
 use std::ffi::CString;
 use std::fmt;

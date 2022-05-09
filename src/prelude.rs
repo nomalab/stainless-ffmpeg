@@ -27,4 +27,4 @@ pub use crate::{
 };
 
 #[doc(no_inline)]
-pub use ffmpeg_sys::*;
+pub use ffmpeg_sys_next::*;

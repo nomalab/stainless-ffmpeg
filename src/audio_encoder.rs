@@ -3,7 +3,7 @@ use crate::order::output::{ChannelLayout, OutputStream, SampleFormat};
 use crate::order::parameters::ParameterValue;
 use crate::packet::Packet;
 use crate::tools;
-use ffmpeg_sys::*;
+use ffmpeg_sys_next::*;
 use std::collections::HashMap;
 use std::ptr::null_mut;
 
