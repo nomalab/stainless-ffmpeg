@@ -7,7 +7,7 @@ use crate::order::{Filter, Order, OutputResult::Entry, ParameterValue};
 use crate::probe::deep::{CheckParameterValue, CropResult, StreamProbeResult};
 use crate::stream::Stream as ContextStream;
 use crate::tools::rational::Rational;
-use ffmpeg_sys::AVMediaType;
+use ffmpeg_sys_next::AVMediaType;
 use std::collections::HashMap;
 
 pub fn create_graph(
@@ -88,7 +88,7 @@ pub fn create_graph(
 
 pub fn detect_black_borders(
   filename: &str,
-  streams: &mut Vec<StreamProbeResult>,
+  streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
 ) {

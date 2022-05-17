@@ -1,9 +1,13 @@
-use crate::frame::Frame;
-use crate::order::output::{ColorRange, Colorspace, OutputStream, PixelFormat};
-use crate::order::parameters::ParameterValue;
-use crate::packet::Packet;
-use crate::tools;
-use ffmpeg_sys::*;
+use crate::{
+  frame::Frame,
+  order::{
+    output::{ColorRange, Colorspace, OutputStream, PixelFormat},
+    parameters::ParameterValue,
+  },
+  packet::Packet,
+  tools,
+};
+use ffmpeg_sys_next::*;
 use std::ptr::null_mut;
 
 #[derive(Debug)]
@@ -11,7 +15,7 @@ pub struct VideoEncoder {
   pub identifier: String,
   pub stream_index: isize,
   pub codec_context: *mut AVCodecContext,
-  pub codec: *mut AVCodec,
+  pub codec: *const AVCodec,
   pub pts: i64,
 }
 

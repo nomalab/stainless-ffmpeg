@@ -1,10 +1,8 @@
 use crate::tools;
-use ffmpeg_sys::AVOptionType::*;
-use ffmpeg_sys::*;
+use ffmpeg_sys_next::AVOptionType::*;
+use ffmpeg_sys_next::*;
 use libc::c_char;
-use std::ffi::CString;
-use std::fmt;
-use std::ptr::null_mut;
+use std::{ffi::CString, fmt, ptr::null_mut};
 
 #[derive(Debug, PartialEq)]
 pub struct Filter {

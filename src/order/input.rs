@@ -1,5 +1,4 @@
-use crate::order::frame::FrameAddress;
-use crate::order::stream::Stream;
+use crate::order::{frame::FrameAddress, stream::Stream};
 
 #[derive(Debug, PartialEq, Deserialize)]
 #[serde(untagged)]

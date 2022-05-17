@@ -1,4 +1,4 @@
-use ffmpeg_sys::{av_packet_free, AVPacket};
+use ffmpeg_sys_next::{av_packet_free, AVPacket};
 
 pub struct Packet {
   pub name: Option<String>,

@@ -6,7 +6,7 @@ use crate::order::{
 };
 use crate::probe::deep::{CheckParameterValue, SilenceResult, StreamProbeResult};
 use crate::stream::Stream as ContextStream;
-use ffmpeg_sys::AVMediaType;
+use ffmpeg_sys_next::AVMediaType;
 use std::collections::HashMap;
 
 pub fn create_graph<S: ::std::hash::BuildHasher>(
@@ -87,7 +87,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
 
 pub fn detect_silence<S: ::std::hash::BuildHasher>(
   filename: &str,
-  streams: &mut Vec<StreamProbeResult>,
+  streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
 ) {

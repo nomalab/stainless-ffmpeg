@@ -1,9 +1,6 @@
-use crate::order::output_kind::OutputKind;
-use crate::order::parameters::ParameterValue;
-use ffmpeg_sys::*;
-use std::collections::HashMap;
-use std::convert::TryFrom;
-use std::str::FromStr;
+use crate::order::{output_kind::OutputKind, parameters::ParameterValue};
+use ffmpeg_sys_next::*;
+use std::{collections::HashMap, convert::TryFrom, str::FromStr};
 
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 pub enum SampleFormat {

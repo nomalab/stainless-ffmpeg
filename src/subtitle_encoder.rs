@@ -1,7 +1,8 @@
-use crate::order::output::OutputStream;
-use crate::order::parameters::ParameterValue;
-use crate::tools;
-use ffmpeg_sys::*;
+use crate::{
+  order::{output::OutputStream, parameters::ParameterValue},
+  tools,
+};
+use ffmpeg_sys_next::*;
 
 #[derive(Debug)]
 pub struct SubtitleEncoder {

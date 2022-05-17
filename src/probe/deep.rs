@@ -3,7 +3,7 @@ use crate::probe::black_detect::detect_black_frames;
 use crate::probe::crop_detect::detect_black_borders;
 use crate::probe::silence_detect::detect_silence;
 use crate::stream::Stream;
-use ffmpeg_sys::*;
+use ffmpeg_sys_next::*;
 use log::LevelFilter;
 use std::{cmp, collections::HashMap, fmt};
 

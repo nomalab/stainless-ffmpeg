@@ -1,10 +1,7 @@
-use crate::tools;
-use crate::tools::rational::Rational;
-use ffmpeg_sys::*;
+use crate::{tools, tools::rational::Rational};
+use ffmpeg_sys_next::*;
 use libc::{c_char, c_void};
-use std::collections::HashMap;
-use std::ffi::CString;
-use std::hash::BuildHasher;
+use std::{collections::HashMap, ffi::CString, hash::BuildHasher};
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[serde(untagged)]

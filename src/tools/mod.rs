@@ -1,11 +1,11 @@
-use ffmpeg_sys::{avcodec_find_encoder_by_name, AVCodec, AVMediaType};
+use ffmpeg_sys_next::{avcodec_find_encoder_by_name, AVCodec, AVMediaType};
 use libc::c_char;
-use rand::prelude::SliceRandom;
-use rand::thread_rng;
-use std::ffi::CStr;
-use std::ffi::CString;
-use std::ptr;
-use std::str::from_utf8_unchecked;
+use rand::{prelude::SliceRandom, thread_rng};
+use std::{
+  ffi::{CStr, CString},
+  ptr,
+  str::from_utf8_unchecked,
+};
 
 pub mod rational;
 
@@ -38,7 +38,7 @@ pub fn random_string(length: usize) -> String {
   String::from_utf8(result).unwrap()
 }
 
-pub fn get_codec(codec_name: &str) -> *mut AVCodec {
+pub fn get_codec(codec_name: &str) -> *const AVCodec {
   unsafe {
     let cs_codec_name = CString::new(codec_name).unwrap();
     avcodec_find_encoder_by_name(cs_codec_name.as_ptr())
