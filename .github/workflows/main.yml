@@ -15,7 +15,7 @@ jobs:
 
   build_and_test:
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     continue-on-error: ${{ (matrix.rust == 'beta') || (matrix.rust == 'nightly') }}
 
@@ -27,6 +27,7 @@ jobs:
           1.57.0,
           1.58.0,
           1.59.0,
+          1.60.0,
           stable,
           beta,
           nightly
@@ -39,9 +40,12 @@ jobs:
       - name: Install FFmpeg and libs
         run: >-
           sudo apt-get update &&
+          sudo add-apt-repository ppa:savoury1/ffmpeg5 &&
+          sudo add-apt-repository ppa:savoury1/ffmpeg4 &&
+          sudo apt-get update &&
           sudo apt-get install ffmpeg libasound2-dev libavcodec-dev
           libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev
-          libavresample-dev libpostproc-dev libswscale-dev -y
+          libpostproc-dev libswscale-dev -y
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -54,7 +58,7 @@ jobs:
         run: cargo test
 
   fmt:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v3
@@ -74,7 +78,7 @@ jobs:
         run: cargo fmt -- --check
 
   clippy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v3
@@ -82,9 +86,12 @@ jobs:
       - name: Install FFmpeg and libs
         run: >-
           sudo apt-get update &&
+          sudo add-apt-repository ppa:savoury1/ffmpeg5 &&
+          sudo add-apt-repository ppa:savoury1/ffmpeg4 &&
+          sudo apt-get update &&
           sudo apt-get install ffmpeg libasound2-dev libavcodec-dev
           libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev
-          libavresample-dev libpostproc-dev libswscale-dev -y
+          libpostproc-dev libswscale-dev -y
 
       - name: Install Rust with clippy
         uses: actions-rs/toolchain@v1
@@ -98,7 +105,7 @@ jobs:
         run: cargo clippy 2>&1 | tee ./clippy.out && ! grep -qe "error:\|warning:" ./clippy.out
 
   tarpaulin:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v3
@@ -111,9 +118,12 @@ jobs:
       - name: Install FFmpeg and libs
         run: >-
           sudo apt-get update &&
+          sudo add-apt-repository ppa:savoury1/ffmpeg5 &&
+          sudo add-apt-repository ppa:savoury1/ffmpeg4 &&
+          sudo apt-get update &&
           sudo apt-get install ffmpeg libasound2-dev libavcodec-dev
           libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev
-          libavresample-dev libpostproc-dev libswscale-dev -y
+          libpostproc-dev libswscale-dev -y
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
