@@ -7,6 +7,7 @@ use crate::probe::loudness_detect::detect_loudness;
 use crate::probe::ocr_detect::detect_ocr;
 use crate::probe::scene_detect::detect_scene;
 use crate::probe::silence_detect::detect_silence;
+use crate::probe::sine_detect::detect_sine;
 use crate::stream::Stream;
 use ffmpeg_sys_next::*;
 use log::LevelFilter;
@@ -50,6 +51,13 @@ pub struct CropResult {
   pub width: i32,
   pub height: i32,
   pub aspect_ratio: f32,
+}
+
+#[derive(Copy, Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct SineResult {
+  pub channel: u8,
+  pub start: i64,
+  pub end: i64,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
@@ -114,6 +122,7 @@ pub struct StreamProbeResult {
   pub detected_loudness: Vec<LoudnessResult>,
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub detected_dualmono: Vec<DualMonoResult>,
+  pub detected_sine: Vec<SineResult>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_bitrate: Option<i64>,
   #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -158,6 +167,7 @@ pub struct DeepProbeCheck {
   pub ocr_detect: Option<HashMap<String, CheckParameterValue>>,
   pub loudness_detect: Option<HashMap<String, CheckParameterValue>>,
   pub dualmono_detect: Option<HashMap<String, CheckParameterValue>>,
+  pub sine_detect: Option<HashMap<String, CheckParameterValue>>,
 }
 
 impl fmt::Display for DeepProbeResult {
@@ -193,6 +203,7 @@ impl fmt::Display for DeepProbeResult {
         "{:30} : {:?}",
         "Silence detection", stream.detected_silence
       )?;
+      writeln!(f, "{:30} : {:?}", "1000Hz detection", stream.detected_sine)?;
       writeln!(f, "{:30} : {:?}", "Black detection", stream.detected_black)?;
       writeln!(
         f,
@@ -253,6 +264,7 @@ impl StreamProbeResult {
       detected_ocr: vec![],
       detected_loudness: vec![],
       detected_dualmono: vec![],
+      detected_sine: vec![],
       detected_bitrate: None,
     }
   }
@@ -348,6 +360,16 @@ impl DeepProbe {
         audio_indexes.clone(),
         silence_parameters,
       );
+    }
+
+    if let Some(sine_parameters) = check.sine_detect {
+      let mut audio_indexes = vec![];
+      for stream_index in 0..context.get_nb_streams() {
+        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
+          audio_indexes.push(stream_index);
+        }
+      }
+      detect_sine(&self.filename, &mut streams, audio_indexes, sine_parameters);
     }
 
     if let Some(black_parameters) = check.black_detect {

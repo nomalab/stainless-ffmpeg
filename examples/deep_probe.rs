@@ -106,6 +106,14 @@ fn main() {
       th: Some(14.0),
       pairs: None,
     };
+    let sine_check = CheckParameterValue {
+      min: Some(40),
+      max: None,
+      num: None,
+      den: None,
+      th: None,
+      pairs: None,
+    };
 
     let mut silence_params = HashMap::new();
     let mut black_params = HashMap::new();
@@ -126,6 +134,7 @@ fn main() {
     black_and_silence_params.insert("duration".to_string(), black_and_silence_check);
     scene_params.insert("threshold".to_string(), scene_check);
     ocr_params.insert("threshold".to_string(), ocr_check);
+    sine_params.insert("duration".to_string(), sine_check);
     let check = DeepProbeCheck {
       silence_detect: Some(silence_params),
       black_detect: Some(black_params),
@@ -135,6 +144,7 @@ fn main() {
       ocr_detect: Some(ocr_params),
       loudness_detect: Some(loudness_params),
       dualmono_detect: Some(dualmono_params),
+      sine_detect: Some(sine_params),
     };
     probe.process(LevelFilter::Off, check).unwrap();
     let result = serde_json::to_string(&probe).unwrap();
