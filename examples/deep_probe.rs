@@ -3,8 +3,6 @@ use log::LevelFilter;
 use stainless_ffmpeg::probe::*;
 use std::{collections::HashMap, env};
 
-use crate::deep::Track;
-
 fn main() {
   let mut builder = Builder::from_default_env();
   builder.init();
@@ -51,29 +49,29 @@ fn main() {
       th: None,
       pairs: None,
     };
-    let mut message = vec![vec![]]; //the json message (contains a list of a list of index to pair)
-    message.drain(..);
-    message.push([1].to_vec());
-    let mut pairs = vec![vec![]];
-    let mut pair = vec![];
-    let mut ind: Track;
-    pairs.drain(..);
-    pair.drain(..);
-    for vec in message {
-      for index in vec {
-        ind = Track::new(index);
-        pair.push(ind);
-      }
-      pairs.push(pair.clone());
-      pair.drain(..);
-    }
+
+    let mut audio_qualif = vec![];
+    audio_qualif.push([Track::new(1)].to_vec()); // analyze the first stream only
+    audio_qualif.push([Track::new(2), Track::new(3)].to_vec()); // analyze 2 and 3 as stereo
+    audio_qualif.push(
+      [
+        Track::new(4),
+        Track::new(5),
+        Track::new(6),
+        Track::new(7),
+        Track::new(8),
+        Track::new(9),
+      ]
+      .to_vec(),
+    ); // analyze all those streams as 5.1
+       // This audio_qualif needs the stream to have at least 9 audio streams.
     let loudness_check = CheckParameterValue {
       min: None,
       max: None,
       num: None,
       den: None,
       th: None,
-      pairs: Some(pairs),
+      pairs: Some(audio_qualif),
     };
 
     let mut silence_params = HashMap::new();
@@ -87,9 +85,9 @@ fn main() {
     select_params.insert("spot_check".to_string(), spot_check);
     loudness_params.insert("pairing_list".to_string(), loudness_check);
     let check = DeepProbeCheck {
-      silence_detect: None, //Some(silence_params),
-      black_detect: None,   //Some(black_params),
-      crop_detect: None,    //Some(select_params),
+      silence_detect: Some(silence_params),
+      black_detect: Some(black_params),
+      crop_detect: Some(select_params),
       loudness_detect: Some(loudness_params),
     };
     probe.process(LevelFilter::Off, check).unwrap();
