@@ -3,8 +3,6 @@ use log::LevelFilter;
 use stainless_ffmpeg::probe::*;
 use std::{collections::HashMap, env};
 
-use crate::deep::Track;
-
 fn main() {
   let mut builder = Builder::from_default_env();
   builder.init();
@@ -59,30 +57,19 @@ fn main() {
       th: None,
       pairs: None,
     };
-
-    let mut message = vec![vec![]]; //the json message (contains a list of a list of index to pair)
-    message.drain(..);
-    message.push([1].to_vec());
-    let mut pairs = vec![vec![]];
-    let mut pair = vec![];
-    let mut ind: Track;
-    pairs.drain(..);
-    pair.drain(..);
-    for vec in message {
-      for index in vec {
-        ind = Track::new(index);
-        pair.push(ind);
-      }
-      pairs.push(pair.clone());
-      pair.drain(..);
-    }
+    let mut audio_qualif = vec![];
+    // definition : [Track::new(stream_index, channels_number)]
+    audio_qualif.push([Track::new(1, 1), Track::new(2, 1)].to_vec()); // is stereo to merge.
+    audio_qualif.push([Track::new(3, 1), Track::new(4, 1)].to_vec()); // is stereo to merge.
+    audio_qualif.push([Track::new(5, 1)].to_vec()); // is stereo to merge.
+                                                    // This audio_qualif needs the stream to have at least 12 audio streams
     let loudness_check = CheckParameterValue {
       min: None,
       max: None,
       num: None,
       den: None,
       th: None,
-      pairs: Some(pairs),
+      pairs: Some(audio_qualif),
     };
     let scene_check = CheckParameterValue {
       min: None,

@@ -32,17 +32,17 @@ pub fn detect_black_and_silence(
           if bas.start < bas.end {
             let bas_duration = bas.end - bas.start;
             streams[si_index as usize]
-              .black_and_silence
+              .detected_black_and_silence
               .push(bas.clone());
 
             if let Some(min) = duration_min {
               if bas_duration < min as i64 {
-                streams[si_index as usize].black_and_silence.pop();
+                streams[si_index as usize].detected_black_and_silence.pop();
               }
             }
             if let Some(max) = duration_max {
               if bas_duration > max as i64 {
-                streams[si_index as usize].black_and_silence.pop();
+                streams[si_index as usize].detected_black_and_silence.pop();
               }
             }
           }
