@@ -1,18 +1,21 @@
-use crate::frame::Frame;
-use crate::order::output::{ChannelLayout, OutputStream, SampleFormat};
-use crate::order::parameters::ParameterValue;
-use crate::packet::Packet;
-use crate::tools;
-use ffmpeg_sys::*;
-use std::collections::HashMap;
-use std::ptr::null_mut;
+use crate::{
+  frame::Frame,
+  order::{
+    output::{ChannelLayout, OutputStream, SampleFormat},
+    parameters::ParameterValue,
+  },
+  packet::Packet,
+  tools,
+};
+use ffmpeg_sys_next::*;
+use std::{collections::HashMap, ptr::null_mut};
 
 #[derive(Debug)]
 pub struct AudioEncoder {
   pub identifier: String,
   pub stream_index: isize,
   pub codec_context: *mut AVCodecContext,
-  pub codec: *mut AVCodec,
+  pub codec: *const AVCodec,
 }
 
 impl AudioEncoder {
@@ -79,7 +82,7 @@ impl AudioEncoder {
   }
 
   fn select_channel_layout(
-    codec: *mut AVCodec,
+    codec: *const AVCodec,
     parameters: &HashMap<String, ParameterValue>,
   ) -> u64 {
     unsafe {

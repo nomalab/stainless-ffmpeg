@@ -13,7 +13,7 @@ license = "Apache-2.0"
 repository = "https://github.com/nomalab/stainless-ffmpeg"
 
 [dependencies]
-ffmpeg-sys = "4.2.1"
+ffmpeg-sys-next = "5.0.1"
 libc = "0.2.42"
 log = "^0.4"
 serde = "^1.0"
@@ -23,5 +23,5 @@ rand = "0.8"
 
 [dev-dependencies]
 cpal = "0.13"
-env_logger = "^0.8"
+env_logger = "^0.9"
 ringbuf = "0.2.3"

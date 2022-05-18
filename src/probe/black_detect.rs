@@ -1,12 +1,14 @@
-use crate::format_context::FormatContext;
-use crate::order::{
-  filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
-  output::Output, output_kind::OutputKind, stream::Stream,
+use crate::{
+  format_context::FormatContext,
+  order::{
+    filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
+    output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
+    ParameterValue,
+  },
+  probe::deep::{BlackResult, CheckParameterValue, StreamProbeResult},
+  stream::Stream as ContextStream,
 };
-use crate::order::{Filter, Order, OutputResult::Entry, ParameterValue};
-use crate::probe::deep::{BlackResult, CheckParameterValue, StreamProbeResult};
-use crate::stream::Stream as ContextStream;
-use ffmpeg_sys::AVMediaType;
+use ffmpeg_sys_next::AVMediaType;
 use std::collections::HashMap;
 
 pub fn create_graph(
@@ -77,7 +79,7 @@ pub fn create_graph(
 
 pub fn detect_black_frames(
   filename: &str,
-  streams: &mut Vec<StreamProbeResult>,
+  streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
 ) {

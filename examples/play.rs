@@ -2,9 +2,7 @@ use cpal::{SampleRate, Stream};
 use env_logger::Builder;
 use ringbuf::{Consumer, RingBuffer};
 use stainless_ffmpeg::prelude::*;
-use std::collections::HashMap;
-use std::convert::TryInto;
-use std::env;
+use std::{collections::HashMap, convert::TryInto, env};
 
 const SAMPLE_RATE: SampleRate = SampleRate(48_000);
 
@@ -143,8 +141,8 @@ fn audio_player(mut consumer: Consumer<f32>) -> Stream {
     .build_output_stream(
       &config,
       move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-        for i in 0..data.len() {
-          data[i] = 0.0;
+        for data_index in data.iter_mut() {
+          *data_index = 0.0;
         }
         if consumer.len() > 2 * 1024 * 1024 {
           started = true;

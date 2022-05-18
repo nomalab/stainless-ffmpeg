@@ -6,7 +6,7 @@ use crate::order::{
 };
 use crate::probe::deep::{CheckParameterValue, SilenceResult, StreamProbeResult};
 use crate::stream::Stream as ContextStream;
-use ffmpeg_sys::AVMediaType;
+use ffmpeg_sys_next::AVMediaType;
 use std::collections::HashMap;
 
 pub fn create_graph<S: ::std::hash::BuildHasher>(
@@ -27,16 +27,12 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
     }];
 
     let mut silencedetect_params: HashMap<String, ParameterValue> = HashMap::new();
-    if let Some(duration) = params.get("duration") {
-      if let Some(min_duration) = duration.min {
-        let min = (min_duration as f64 - 1.0) / 1000.0;
-        silencedetect_params.insert("duration".to_string(), ParameterValue::Float(min));
-      }
+    if let Some(min_duration) = params.get("duration").and_then(|duration| duration.min) {
+      let min = (min_duration as f64 - 1.0) * 1000.0;
+      silencedetect_params.insert("duration".to_string(), ParameterValue::Float(min));
     }
-    if let Some(noise) = params.get("noise") {
-      if let Some(noise_th) = noise.th {
-        silencedetect_params.insert("noise".to_string(), ParameterValue::Float(noise_th));
-      }
+    if let Some(noise_th) = params.get("noise").and_then(|noise| noise.th) {
+      silencedetect_params.insert("noise".to_string(), ParameterValue::Float(noise_th));
     }
 
     let channel_layouts = ParameterValue::String("mono".to_string());
@@ -87,7 +83,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
 
 pub fn detect_silence<S: ::std::hash::BuildHasher>(
   filename: &str,
-  streams: &mut Vec<StreamProbeResult>,
+  streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
 ) {

@@ -1,10 +1,6 @@
-use crate::tools;
-use crate::tools::rational::Rational;
-use ffmpeg_sys::*;
-use std::char;
-use std::collections::HashMap;
-use std::ffi::CString;
-use std::ptr::null_mut;
+use crate::{tools, tools::rational::Rational};
+use ffmpeg_sys_next::*;
+use std::{char, collections::HashMap, ffi::CString, ptr::null_mut};
 
 #[derive(Clone)]
 pub struct Stream {
@@ -134,55 +130,49 @@ impl Stream {
   }
 
   pub fn get_width(&self) -> i32 {
-    unsafe { (*(*self.stream).codec).width }
+    unsafe { (*(*self.stream).codecpar).width }
   }
 
   pub fn get_height(&self) -> i32 {
-    unsafe { (*(*self.stream).codec).height }
+    unsafe { (*(*self.stream).codecpar).height }
   }
 
   pub fn get_display_aspect_ratio(&self) -> Rational {
     unsafe {
-      if (*self.stream).display_aspect_ratio.den == 0 {
-        if (*(*self.stream).codecpar).sample_aspect_ratio.num == 0 {
-          if (*self.stream).sample_aspect_ratio.num == 0 {
-            Rational {
-              num: (*(*self.stream).codecpar).width,
-              den: (*(*self.stream).codecpar).height,
-            }
-            .reduce()
-          } else {
-            Rational {
-              num: (*(*self.stream).codecpar).width * (*self.stream).sample_aspect_ratio.num,
-              den: (*(*self.stream).codecpar).height * (*self.stream).sample_aspect_ratio.den,
-            }
-            .reduce()
+      if (*(*self.stream).codecpar).sample_aspect_ratio.num == 0 {
+        if (*self.stream).sample_aspect_ratio.num == 0 {
+          Rational {
+            num: (*(*self.stream).codecpar).width,
+            den: (*(*self.stream).codecpar).height,
           }
+          .reduce()
         } else {
           Rational {
-            num: (*(*self.stream).codecpar).width
-              * (*(*self.stream).codecpar).sample_aspect_ratio.num,
-            den: (*(*self.stream).codecpar).height
-              * (*(*self.stream).codecpar).sample_aspect_ratio.den,
+            num: (*(*self.stream).codecpar).width * (*self.stream).sample_aspect_ratio.num,
+            den: (*(*self.stream).codecpar).height * (*self.stream).sample_aspect_ratio.den,
           }
           .reduce()
         }
       } else {
         Rational {
-          num: (*self.stream).display_aspect_ratio.num,
-          den: (*self.stream).display_aspect_ratio.den,
+          num: (*(*self.stream).codecpar).width
+            * (*(*self.stream).codecpar).sample_aspect_ratio.num,
+          den: (*(*self.stream).codecpar).height
+            * (*(*self.stream).codecpar).sample_aspect_ratio.den,
         }
+        .reduce()
       }
     }
   }
 
   pub fn get_bit_rate(&self) -> Option<i64> {
     unsafe {
-      if (*(*self.stream).codec).bit_rate == AV_NOPTS_VALUE || (*(*self.stream).codec).bit_rate == 0
+      if (*(*self.stream).codecpar).bit_rate == AV_NOPTS_VALUE
+        || (*(*self.stream).codecpar).bit_rate == 0
       {
         None
       } else {
-        Some((*(*self.stream).codec).bit_rate)
+        Some((*(*self.stream).codecpar).bit_rate)
       }
     }
   }
@@ -198,7 +188,7 @@ impl Stream {
 
   pub fn get_level(&self) -> Option<i32> {
     unsafe {
-      let level = (*(*self.stream).codec).level;
+      let level = (*(*self.stream).codecpar).level;
       if level == FF_LEVEL_UNKNOWN {
         None
       } else {
@@ -209,12 +199,12 @@ impl Stream {
 
   pub fn get_profile(&self) -> Option<String> {
     unsafe {
-      let profile = (*(*self.stream).codec).profile;
+      let profile = (*(*self.stream).codecpar).profile;
       if profile == FF_PROFILE_UNKNOWN {
         None
       } else {
         Some(tools::to_string(avcodec_profile_name(
-          (*(*self.stream).codec).codec_id,
+          (*(*self.stream).codecpar).codec_id,
           profile,
         )))
       }
@@ -223,7 +213,7 @@ impl Stream {
 
   pub fn get_scanning_type(&self) -> Option<String> {
     unsafe {
-      match (*(*self.stream).codec).field_order {
+      match (*(*self.stream).codecpar).field_order {
         AVFieldOrder::AV_FIELD_PROGRESSIVE => Some("progressive".to_string()),
         AVFieldOrder::AV_FIELD_TT
         | AVFieldOrder::AV_FIELD_BB
@@ -238,65 +228,74 @@ impl Stream {
     unsafe {
       let hshift = &mut 0;
       let vshift = &mut 0;
-      let pix_fmt = (*(*self.stream).codec).pix_fmt;
-      if pix_fmt == AVPixelFormat::AV_PIX_FMT_NONE {
+      let pixel_format: AVPixelFormat = std::mem::transmute((*(*self.stream).codecpar).format);
+      if pixel_format == AVPixelFormat::AV_PIX_FMT_NONE {
         return None;
       }
-      avcodec_get_chroma_sub_sample(pix_fmt, hshift, vshift);
+      av_pix_fmt_get_chroma_sub_sample(pixel_format, hshift, vshift);
       match (hshift, vshift) {
         (0, 0) => Some("4:4:4".to_string()),
         (1, 0) => Some("4:2:2".to_string()),
         (1, 1) => Some("4:2:0".to_string()),
         (2, 0) => Some("4:1:1".to_string()),
-        (_, _) => Some(tools::to_string(av_get_pix_fmt_name(pix_fmt))),
+        (_, _) => Some(tools::to_string(av_get_pix_fmt_name(pixel_format))),
       }
     }
   }
 
   pub fn get_pix_fmt_name(&self) -> Option<String> {
     unsafe {
-      if (*(*self.stream).codec).pix_fmt == AVPixelFormat::AV_PIX_FMT_NONE {
+      let pixel_format: AVPixelFormat = std::mem::transmute((*(*self.stream).codecpar).format);
+      if pixel_format == AVPixelFormat::AV_PIX_FMT_NONE {
         return None;
       }
-      let input_fmt_str = av_get_pix_fmt_name((*(*self.stream).codec).pix_fmt);
+      let input_fmt_str = av_get_pix_fmt_name(pixel_format);
       Some(tools::to_string(input_fmt_str))
     }
   }
 
   pub fn get_bits_per_sample(&self) -> i32 {
-    unsafe { av_get_bits_per_sample((*(*self.stream).codec).codec_id) }
+    unsafe { av_get_bits_per_sample((*(*self.stream).codecpar).codec_id) }
   }
 
   pub fn get_sample_fmt(&self) -> String {
-    unsafe { tools::to_string(av_get_sample_fmt_name((*(*self.stream).codec).sample_fmt)) }
+    unsafe {
+      let pixel_format: AVSampleFormat = std::mem::transmute((*(*self.stream).codecpar).format);
+      tools::to_string(av_get_sample_fmt_name(pixel_format))
+    }
   }
 
   pub fn get_sample_rate(&self) -> i32 {
-    unsafe { (*(*self.stream).codec).sample_rate }
+    unsafe { (*(*self.stream).codecpar).sample_rate }
   }
 
   pub fn get_channels(&self) -> i32 {
-    unsafe { (*(*self.stream).codec).channels }
+    unsafe { (*(*self.stream).codecpar).channels }
   }
 
   pub fn get_timecode(&self) -> Option<String> {
     unsafe {
-      let tc = &mut 0;
-      let timecode = (*(*self.stream).codec).timecode_frame_start;
-      if timecode < 0 {
+      let timecode_side_data = av_stream_get_side_data(
+        self.stream,
+        AVPacketSideDataType::AV_PKT_DATA_S12M_TIMECODE,
+        null_mut(),
+      );
+
+      let timecode = &mut 0;
+      if timecode_side_data.is_null() {
         return None;
       }
-      av_timecode_make_mpeg_tc_string(tc, timecode as u32);
-      Some(tc.to_string())
+      av_timecode_make_mpeg_tc_string(timecode, timecode_side_data as u32);
+      Some(timecode.to_string())
     }
   }
 
   pub fn get_bits_per_raw_sample(&self) -> Option<i32> {
     unsafe {
-      if (*(*self.stream).codec).bits_per_raw_sample == 0 {
+      if (*(*self.stream).codecpar).bits_per_raw_sample == 0 {
         None
       } else {
-        Some((*(*self.stream).codec).bits_per_raw_sample)
+        Some((*(*self.stream).codecpar).bits_per_raw_sample)
       }
     }
   }

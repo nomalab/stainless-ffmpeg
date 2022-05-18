@@ -1,16 +1,13 @@
-use crate::audio_encoder::AudioEncoder;
-use crate::order::frame::FrameAddress;
-use crate::order::*;
-use crate::packet::Packet;
-use crate::subtitle_encoder::SubtitleEncoder;
-use crate::tools;
-use crate::video_encoder::VideoEncoder;
-use ffmpeg_sys::*;
-use std::collections::{BTreeMap, HashMap};
-use std::ffi::CString;
-use std::ptr::null_mut;
-
-use std::ffi::c_void;
+use crate::{
+  audio_encoder::AudioEncoder, order::frame::FrameAddress, order::*, packet::Packet,
+  subtitle_encoder::SubtitleEncoder, tools, video_encoder::VideoEncoder,
+};
+use ffmpeg_sys_next::*;
+use std::{
+  collections::{BTreeMap, HashMap},
+  ffi::{c_void, CString},
+  ptr::null_mut,
+};
 
 #[derive(Debug)]
 pub struct FormatContext {

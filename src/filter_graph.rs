@@ -1,16 +1,10 @@
-use ffmpeg_sys::*;
+use crate::{
+  audio_decoder::AudioDecoder, filter::Filter, frame::Frame, order::*, tools,
+  tools::rational::Rational, video_decoder::VideoDecoder,
+};
+use ffmpeg_sys_next::*;
 use libc::c_void;
-use std::fmt;
-use std::ptr::null_mut;
-
-use crate::audio_decoder::AudioDecoder;
-use crate::filter::Filter;
-use crate::frame::Frame;
-use crate::order;
-use crate::order::*;
-use crate::tools;
-use crate::tools::rational::Rational;
-use crate::video_decoder::VideoDecoder;
+use std::{fmt, ptr::null_mut};
 
 #[derive(Debug, PartialEq)]
 pub enum GraphKind {
@@ -129,7 +123,7 @@ impl FilterGraph {
     Ok(())
   }
 
-  pub fn add_filter(&self, args: &order::filter::Filter) -> Result<Filter, String> {
+  pub fn add_filter(&self, args: &filter::Filter) -> Result<Filter, String> {
     let filter = if let Some(ref label) = args.label {
       unsafe { Filter::new_with_label(self.graph, &args.name, label)? }
     } else {

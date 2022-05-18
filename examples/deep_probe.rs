@@ -1,8 +1,7 @@
 use env_logger::Builder;
 use log::LevelFilter;
 use stainless_ffmpeg::probe::*;
-use std::collections::HashMap;
-use std::env;
+use std::{collections::HashMap, env};
 
 fn main() {
   let mut builder = Builder::from_default_env();

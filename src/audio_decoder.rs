@@ -1,8 +1,5 @@
-use crate::format_context::FormatContext;
-use crate::frame::Frame;
-use crate::packet::Packet;
-use crate::tools;
-use ffmpeg_sys::*;
+use crate::{format_context::FormatContext, frame::Frame, packet::Packet, tools};
+use ffmpeg_sys_next::*;
 use std::ptr::null_mut;
 
 #[derive(Debug)]
