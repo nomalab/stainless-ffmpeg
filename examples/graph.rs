@@ -30,15 +30,15 @@ fn main() {
         info!("-> {:?} frames processed", results.len());
         for result in results {
           if let Entry(entry_map) = result {
-              if let Some(value) = entry_map.get("lavfi.silence_start") {
-                info!("silence start: {}", value);
-              }
-              if let Some(value) = entry_map.get("lavfi.silence_duration") {
-                info!("silence duration: {}", value);
-              }
-              if let Some(value) = entry_map.get("lavfi.r128.I") {
-                info!("Program Loudness: {}", value);
-              }
+            if let Some(value) = entry_map.get("lavfi.silence_start") {
+              info!("silence start: {}", value);
+            }
+            if let Some(value) = entry_map.get("lavfi.silence_duration") {
+              info!("silence duration: {}", value);
+            }
+            if let Some(value) = entry_map.get("lavfi.r128.I") {
+              info!("Program Loudness: {}", value);
+            }
           }
         }
       }

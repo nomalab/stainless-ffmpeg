@@ -228,7 +228,7 @@ impl Stream {
     unsafe {
       let hshift = &mut 0;
       let vshift = &mut 0;
-      let pixel_format: AVPixelFormat = std::mem::transmute((*(*self.stream).codecpar).format );
+      let pixel_format: AVPixelFormat = std::mem::transmute((*(*self.stream).codecpar).format);
       if pixel_format == AVPixelFormat::AV_PIX_FMT_NONE {
         return None;
       }
@@ -245,7 +245,7 @@ impl Stream {
 
   pub fn get_pix_fmt_name(&self) -> Option<String> {
     unsafe {
-      let pixel_format: AVPixelFormat = std::mem::transmute((*(*self.stream).codecpar).format );
+      let pixel_format: AVPixelFormat = std::mem::transmute((*(*self.stream).codecpar).format);
       if pixel_format == AVPixelFormat::AV_PIX_FMT_NONE {
         return None;
       }
@@ -260,7 +260,7 @@ impl Stream {
 
   pub fn get_sample_fmt(&self) -> String {
     unsafe {
-      let pixel_format: AVSampleFormat = std::mem::transmute((*(*self.stream).codecpar).format );
+      let pixel_format: AVSampleFormat = std::mem::transmute((*(*self.stream).codecpar).format);
       tools::to_string(av_get_sample_fmt_name(pixel_format))
     }
   }
@@ -275,7 +275,11 @@ impl Stream {
 
   pub fn get_timecode(&self) -> Option<String> {
     unsafe {
-      let timecode_side_data = av_stream_get_side_data(self.stream, AVPacketSideDataType::AV_PKT_DATA_S12M_TIMECODE, null_mut());
+      let timecode_side_data = av_stream_get_side_data(
+        self.stream,
+        AVPacketSideDataType::AV_PKT_DATA_S12M_TIMECODE,
+        null_mut(),
+      );
 
       let timecode = &mut 0;
       if timecode_side_data.is_null() {
