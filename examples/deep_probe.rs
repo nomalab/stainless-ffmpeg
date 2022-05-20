@@ -51,20 +51,21 @@ fn main() {
     };
 
     let mut audio_qualif = vec![];
-    audio_qualif.push([Track::new(1)].to_vec()); // analyze the first stream only
-    audio_qualif.push([Track::new(2), Track::new(3)].to_vec()); // analyze 2 and 3 as stereo
+    // definition : [Track::new(stream_index, channels_number)]
+    audio_qualif.push([Track::new(1, 1)].to_vec()); //stream to not merge
+    audio_qualif.push([Track::new(2, 1), Track::new(3, 1)].to_vec()); //streams to merge -> stereo
     audio_qualif.push(
       [
-        Track::new(4),
-        Track::new(5),
-        Track::new(6),
-        Track::new(7),
-        Track::new(8),
-        Track::new(9),
+        Track::new(4, 1),
+        Track::new(5, 1),
+        Track::new(6, 1),
+        Track::new(7, 1),
+        Track::new(8, 1),
+        Track::new(9, 1),
       ]
       .to_vec(),
-    ); // analyze all those streams as 5.1
-       // This audio_qualif needs the stream to have at least 9 audio streams.
+    ); //to merge to get 5.1
+       // This audio_qualif needs the stream to have at least 9 audio streams
     let loudness_check = CheckParameterValue {
       min: None,
       max: None,

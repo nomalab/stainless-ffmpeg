@@ -31,10 +31,18 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
           let mut input_streams_vec = vec![];
           let mut keys_vec = vec!["lavfi.r128.I".to_string(), "lavfi.r128.LRA".to_string()];
           let output_label = format!("output_label_{:?}", iter);
+          let mut channel;
 
-          for (id, track) in pair.iter().enumerate() {
-            let key = format!("lavfi.r128.true_peaks_ch{}", id);
-            keys_vec.push(key);
+          for track in pair {
+            if pair.len() == 1 {
+              channel = track.channel;
+            } else {
+              channel = pair.len() as u8;
+            }
+            for ch in 0..channel {
+              let key = format!("lavfi.r128.true_peaks_ch{}", ch);
+              keys_vec.push(key);
+            }
             let input_label = format!("input_label_{}", track.index);
             amerge_input.push(FilterInput {
               kind: InputKind::Stream,
@@ -90,7 +98,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
         }
       }
     }
-    None => warn!("No input message for the loudness analysis (list of indexes to merge)"),
+    None => warn!("No input message for the loudness analysis (audio qualification)"),
   }
   Order::new(inputs, filters, outputs)
 }
@@ -124,6 +132,8 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
               integrated: -99.9,
               true_peaks: vec![],
             };
+            let mut channel_start = 0;
+            let mut channel_end = 0;
 
             if let Some(value) = entry_map.get("lavfi.r128.I") {
               let x = (value.parse::<f64>().unwrap()) as f64;
@@ -136,7 +146,28 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
               let y = (value.parse::<f64>().unwrap()) as f64;
               loudness.range = (y * 100.0).round() / 100.0;
             }
-            for i in 0..8 {
+
+            match params.get("pairing_list") {
+              Some(pairing_list) => {
+                if let Some(pairs) = &pairing_list.pairs {
+                  for pair in pairs {
+                    for (pos, track) in pair.iter().enumerate() {
+                      if index == track.index as i32 {
+                        if pair.len() == 1 {
+                          channel_start = 0;
+                          channel_end = track.channel;
+                        } else {
+                          channel_start = pos as u8;
+                          channel_end = (pos + 1) as u8;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              None => warn!("No input message for the loudness analysis (audio qualification)"),
+            }
+            for i in channel_start..channel_end {
               let str_tpk_key = format!("lavfi.r128.true_peaks_ch{}", i);
               if let Some(value) = entry_map.get(&str_tpk_key) {
                 let energy = value.parse::<f64>().unwrap() as f64;

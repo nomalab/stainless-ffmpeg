@@ -78,6 +78,7 @@ pub struct FormatProbeResult {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Track {
   pub index: u8,
+  pub channel: u8,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -167,8 +168,11 @@ impl FormatProbeResult {
 }
 
 impl Track {
-  pub fn new(ind: u8) -> Self {
-    Track { index: ind }
+  pub fn new(ind: u8, ch: u8) -> Self {
+    Track {
+      index: ind,
+      channel: ch,
+    }
   }
 }
 
