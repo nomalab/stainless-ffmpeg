@@ -11,7 +11,7 @@ fn main() {
     let mut probe = DeepProbe::new(&path);
     let duration_params = CheckParameterValue {
       min: Some(1000),
-      max: Some(10000),
+      max: Some(20000),
       num: None,
       den: None,
       th: None,
@@ -52,22 +52,36 @@ fn main() {
 
     let mut audio_qualif = vec![];
     // definition : [Track::new(stream_index, channels_number)]
-    audio_qualif.push([Track::new(1, 1)].to_vec()); //stream to not merge
-    audio_qualif.push([Track::new(2, 1), Track::new(3, 1)].to_vec()); //streams to merge -> stereo
-    audio_qualif.push(
-      [
-        Track::new(4, 1),
-        Track::new(5, 1),
-        Track::new(6, 1),
-        Track::new(7, 1),
-        Track::new(8, 1),
-        Track::new(9, 1),
-      ]
-      .to_vec(),
-    ); //to merge to get 5.1
-       // This audio_qualif needs the stream to have at least 9 audio streams
+    audio_qualif.push([Track::new(1, 2)].to_vec());
+    audio_qualif.push([Track::new(2, 2)].to_vec());
+    // audio_qualif.push([Track::new(3, 1)].to_vec());
+    audio_qualif.push([Track::new(4, 1), Track::new(3, 1)].to_vec());
+    audio_qualif.push([Track::new(6, 2)].to_vec());
+    audio_qualif.push([Track::new(7, 2)].to_vec());
+    audio_qualif.push([Track::new(8, 2)].to_vec());
+    audio_qualif.push([Track::new(9, 2)].to_vec());
+    // audio_qualif.push(
+    //   [
+    //     Track::new(4, 1),
+    //     Track::new(5, 1),
+    //     Track::new(6, 1),
+    //     Track::new(7, 1),
+    //     Track::new(8, 1),
+    //     Track::new(9, 1),
+    //   ]
+    //   .to_vec(),
+    // ); //to merge to get 5.1
+    // This audio_qualif needs the stream to have at least 9 audio streams
     let loudness_check = CheckParameterValue {
       min: None,
+      max: None,
+      num: None,
+      den: None,
+      th: None,
+      pairs: Some(audio_qualif.clone()),
+    };
+    let dualmono_duration_params = CheckParameterValue {
+      min: Some(1000),
       max: None,
       num: None,
       den: None,
@@ -75,20 +89,24 @@ fn main() {
       pairs: Some(audio_qualif),
     };
 
-    let mut silence_params = HashMap::new();
+    let mut params = HashMap::new();
     let mut black_params = HashMap::new();
     let mut select_params = HashMap::new();
     let mut loudness_params = HashMap::new();
-    silence_params.insert("duration".to_string(), duration_params);
+    let mut dualmono_params = HashMap::new();
+    params.insert("duration".to_string(), duration_params);
     black_params.insert("duration".to_string(), black_duration_params);
     black_params.insert("picture".to_string(), black_picture_params);
     black_params.insert("pixel".to_string(), black_pixel_params);
     select_params.insert("spot_check".to_string(), spot_check);
-    loudness_params.insert("pairing_list".to_string(), loudness_check);
+    loudness_params.insert("pairing_list".to_string(), loudness_check.clone());
+    dualmono_params.insert("duration".to_string(), dualmono_duration_params.clone());
+    dualmono_params.insert("pairing_list".to_string(), dualmono_duration_params);
     let check = DeepProbeCheck {
-      silence_detect: Some(silence_params),
+      silence_detect: Some(params),
       black_detect: Some(black_params),
       crop_detect: Some(select_params),
+      dualmono_detect: Some(dualmono_params),
       loudness_detect: Some(loudness_params),
     };
     probe.process(LevelFilter::Off, check).unwrap();

@@ -1,6 +1,7 @@
 use crate::format_context::FormatContext;
 use crate::probe::black_detect::detect_black_frames;
 use crate::probe::crop_detect::detect_black_borders;
+use crate::probe::dualmono_detect::detect_dualmono;
 use crate::probe::loudness_detect::detect_loudness;
 use crate::probe::silence_detect::detect_silence;
 use crate::stream::Stream;
@@ -50,6 +51,12 @@ pub struct LoudnessResult {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct DualMonoResult {
+  pub start: i64,
+  pub end: i64,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct StreamProbeResult {
   stream_index: usize,
   count_packets: usize,
@@ -65,6 +72,8 @@ pub struct StreamProbeResult {
   pub detected_crop: Vec<CropResult>,
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub detected_loudness: Vec<LoudnessResult>,
+  #[serde(skip_serializing_if = "Vec::is_empty")]
+  pub detected_dualmono: Vec<DualMonoResult>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_bitrate: Option<i64>,
 }
@@ -103,6 +112,7 @@ pub struct DeepProbeCheck {
   pub black_detect: Option<HashMap<String, CheckParameterValue>>,
   pub crop_detect: Option<HashMap<String, CheckParameterValue>>,
   pub loudness_detect: Option<HashMap<String, CheckParameterValue>>,
+  pub dualmono_detect: Option<HashMap<String, CheckParameterValue>>,
 }
 
 impl fmt::Display for DeepProbeResult {
@@ -135,6 +145,11 @@ impl fmt::Display for DeepProbeResult {
       writeln!(
         f,
         "{:30} : {:?}",
+        "DualMono detection", stream.detected_dualmono,
+      )?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
         "Bitrate detection", stream.detected_bitrate
       )?;
     }
@@ -154,6 +169,7 @@ impl StreamProbeResult {
       detected_black: vec![],
       detected_crop: vec![],
       detected_loudness: vec![],
+      detected_dualmono: vec![],
       detected_bitrate: None,
     }
   }
@@ -269,6 +285,10 @@ impl DeepProbe {
 
     if let Some(loudness_parameters) = check.loudness_detect {
       detect_loudness(&self.filename, &mut streams, loudness_parameters);
+    }
+
+    if let Some(dualmono_parameters) = check.dualmono_detect {
+      detect_dualmono(&self.filename, &mut streams, dualmono_parameters);
     }
 
     let mut format = FormatProbeResult::new();
