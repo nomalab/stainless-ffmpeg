@@ -302,30 +302,133 @@ impl DeepProbe {
 }
 
 #[test]
-fn deep_probe_mxf_sample() {
-  // use serde_json;
+fn deep_probe_mxf_sample_dualmono() {
+  /*
+   * Test avec fichier dualmono.mxf :
+   * -S#0.0 : mire de barre
+   * -S#0.1 : stereo dual-mono 10sec
+   * -S#0.2 : stereo non dual-mono (silence+programme) 10sec
+   * -S#0.3 : mono programme 10sec
+   * -S#0.4 : mono programme 10sec
+   * -S#0.5 : mono silence 10sec
+   * -S#0.6 : stereo dual-mono 5sec + stereo non dual-mono 5sec
+   * -S#0.7 : stereo non dual-mono 5sec + stereo dual-mono 5sec
+   * -S#0.8 : stereo dual-mono 2sec + stereo non dual-mono 6sec + stereo dual-mono 2sec
+   * -S#0.9 : stereo non dual-mono 2sec + stereo dual-mono 6sec + stereo non dual-mono 2sec
+   * audio_qualif en conséquences
+   * test réalisables sur ce fichier :
+   *   -loudness
+   *   -dualmono
+   *   -1000hz
+   */
   use std::collections::HashMap;
 
-  let mut probe = DeepProbe::new("tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf");
-  let mut params = HashMap::new();
-  let duration = CheckParameterValue {
-    min: Some(2000),
-    max: None,
+  let mut probe = DeepProbe::new("tests/dualmono.mxf");
+  let duration_params = CheckParameterValue {
+    min: Some(1000),
+    max: Some(20000),
     num: None,
     den: None,
     th: None,
     pairs: None,
   };
-  params.insert("duration".to_string(), duration);
-  let check_list = DeepProbeCheck {
-    silence_detect: Some(params),
-    ..Default::default()
+  let black_duration_params = CheckParameterValue {
+    min: Some(40),
+    max: Some(10000),
+    num: None,
+    den: None,
+    th: None,
+    pairs: None,
   };
-  probe.process(LevelFilter::Error, check_list).unwrap();
+  let black_pixel_params = CheckParameterValue {
+    min: None,
+    max: None,
+    num: None,
+    den: None,
+    th: Some(0.0),
+    pairs: None,
+  };
+  let black_picture_params = CheckParameterValue {
+    min: None,
+    max: None,
+    num: None,
+    den: None,
+    th: Some(1.0),
+    pairs: None,
+  };
+  let spot_check = CheckParameterValue {
+    min: None,
+    max: Some(3),
+    num: None,
+    den: None,
+    th: None,
+    pairs: None,
+  };
 
-  // println!("{}", serde_json::to_string(&probe).unwrap());
+  let mut audio_qualif = vec![];
+  // definition : [Track::new(stream_index, channels_number)]
+  audio_qualif.push([Track::new(1, 2)].to_vec());
+  audio_qualif.push([Track::new(2, 2)].to_vec());
+  // audio_qualif.push([Track::new(3, 1)].to_vec());
+  audio_qualif.push([Track::new(4, 1), Track::new(3, 1)].to_vec());
+  audio_qualif.push([Track::new(6, 2)].to_vec());
+  audio_qualif.push([Track::new(7, 2)].to_vec());
+  audio_qualif.push([Track::new(8, 2)].to_vec());
+  audio_qualif.push([Track::new(9, 2)].to_vec());
+  // audio_qualif.push(
+  //   [
+  //     Track::new(4, 1),
+  //     Track::new(5, 1),
+  //     Track::new(6, 1),
+  //     Track::new(7, 1),
+  //     Track::new(8, 1),
+  //     Track::new(9, 1),
+  //   ]
+  //   .to_vec(),
+  // ); //to merge to get 5.1
+  // This audio_qualif needs the stream to have at least 9 audio streams
+  let loudness_check = CheckParameterValue {
+    min: None,
+    max: None,
+    num: None,
+    den: None,
+    th: None,
+    pairs: Some(audio_qualif.clone()),
+  };
+  let dualmono_duration_params = CheckParameterValue {
+    min: Some(1000),
+    max: None,
+    num: None,
+    den: None,
+    th: None,
+    pairs: Some(audio_qualif),
+  };
 
-  // let content = std::fs::read_to_string("tests/deep_probe.json").unwrap();
-  // let reference: DeepProbe = serde_json::from_str(&content).unwrap();
-  // assert_eq!(probe, reference);
+  let mut params = HashMap::new();
+  let mut black_params = HashMap::new();
+  let mut select_params = HashMap::new();
+  let mut loudness_params = HashMap::new();
+  let mut dualmono_params = HashMap::new();
+  params.insert("duration".to_string(), duration_params);
+  black_params.insert("duration".to_string(), black_duration_params);
+  black_params.insert("picture".to_string(), black_picture_params);
+  black_params.insert("pixel".to_string(), black_pixel_params);
+  select_params.insert("spot_check".to_string(), spot_check);
+  loudness_params.insert("pairing_list".to_string(), loudness_check.clone());
+  dualmono_params.insert("duration".to_string(), dualmono_duration_params.clone());
+  dualmono_params.insert("pairing_list".to_string(), dualmono_duration_params);
+  let check = DeepProbeCheck {
+    silence_detect: Some(params),
+    black_detect: Some(black_params),
+    crop_detect: Some(select_params),
+    dualmono_detect: Some(dualmono_params),
+    loudness_detect: Some(loudness_params),
+  };
+  probe.process(LevelFilter::Error, check).unwrap();
+
+  println!("{}", serde_json::to_string(&probe).unwrap());
+
+  let content = std::fs::read_to_string("tests/deep_probe_dualmono.json").unwrap();
+  let reference: DeepProbe = serde_json::from_str(&content).unwrap();
+  assert_eq!(probe, reference);
 }
