@@ -153,14 +153,10 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
         {
           streams[(index) as usize].silent_stream = Some(true);
         }
-        let len = streams[(index) as usize].detected_silence.len();
-        for i in 0..len {
-          if let Some(max) = max_duration {
-            if (streams[(index) as usize].detected_silence[i].end
-              - streams[(index) as usize].detected_silence[i].start)
-              > max as i64
-            {
-              streams[(index) as usize].detected_silence.remove(i);
+        if let Some(max) = max_duration {
+          if let Some(detect_silence) = streams[(index) as usize].detected_silence.last_mut() {
+            if (detect_silence.end - detect_silence.start) > max as i64 {
+              streams[(index) as usize].detected_silence.pop();
             }
           }
         }
