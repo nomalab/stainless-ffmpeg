@@ -133,7 +133,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
             }
             if let Some(value) = entry_map.get("lavfi.silence_end") {
               if let Some(last_detect) = streams[(index) as usize].detected_silence.last_mut() {
-              last_detect.end = (value.parse::<f64>().unwrap() * 1000.0) as i64;
+                last_detect.end = (value.parse::<f64>().unwrap() * 1000.0) as i64;
               }
             }
             if let Some(value) = entry_map.get("lavfi.silence_duration") {
@@ -156,10 +156,12 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
         let len = streams[(index) as usize].detected_silence.len();
         for i in 0..len {
           if let Some(max) = max_duration {
-            if (streams[(index) as usize].detected_silence[i].end -
-                streams[(index) as usize].detected_silence[i].start) > max as i64 {
-                  streams[(index) as usize].detected_silence.remove(i);
-                }
+            if (streams[(index) as usize].detected_silence[i].end
+              - streams[(index) as usize].detected_silence[i].start)
+              > max as i64
+            {
+              streams[(index) as usize].detected_silence.remove(i);
+            }
           }
         }
       }
