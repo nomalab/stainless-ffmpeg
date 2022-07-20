@@ -114,6 +114,10 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
           }
         }
       }
+      let mut max_duration = None;
+      if let Some(duration) = params.get("duration") {
+        max_duration = duration.max;
+      }
       for result in results {
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
@@ -122,10 +126,6 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
               start: 0,
               end: duration,
             };
-            let mut max_duration = None;
-            if let Some(duration) = params.get("duration") {
-              max_duration = duration.max;
-            }
 
             if let Some(value) = entry_map.get("lavfi.silence_start") {
               silence.start = (value.parse::<f64>().unwrap() * 1000.0) as i64;
@@ -133,7 +133,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
             }
             if let Some(value) = entry_map.get("lavfi.silence_end") {
               if let Some(last_detect) = streams[(index) as usize].detected_silence.last_mut() {
-                last_detect.end = (value.parse::<f64>().unwrap() * 1000.0) as i64;
+              last_detect.end = (value.parse::<f64>().unwrap() * 1000.0) as i64;
               }
             }
             if let Some(value) = entry_map.get("lavfi.silence_duration") {
@@ -152,6 +152,15 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
           && streams[(index) as usize].detected_silence[0].end == duration
         {
           streams[(index) as usize].silent_stream = Some(true);
+        }
+        let len = streams[(index) as usize].detected_silence.len();
+        for i in 0..len {
+          if let Some(max) = max_duration {
+            if (streams[(index) as usize].detected_silence[i].end -
+                streams[(index) as usize].detected_silence[i].start) > max as i64 {
+                  streams[(index) as usize].detected_silence.remove(i);
+                }
+          }
         }
       }
     }
