@@ -2,7 +2,7 @@ use crate::order::{output_kind::OutputKind, parameters::ParameterValue};
 use ffmpeg_sys_next::*;
 use std::{collections::HashMap, convert::TryFrom, str::FromStr};
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub enum SampleFormat {
   #[serde(rename = "s8")]
   Unsigned8,
@@ -81,7 +81,7 @@ impl From<SampleFormat> for AVSampleFormat {
   }
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub enum PixelFormat {
   #[serde(rename = "yuv420p")]
   Yuv420p,
@@ -121,7 +121,7 @@ impl From<PixelFormat> for AVPixelFormat {
   }
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub enum Colorspace {
   #[serde(rename = "rgb")]
   Rgb,
@@ -173,7 +173,7 @@ impl From<Colorspace> for AVColorSpace {
   }
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub enum ColorRange {
   #[serde(rename = "head")]
   Head,
@@ -201,7 +201,7 @@ impl From<ColorRange> for AVColorRange {
   }
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub enum ChannelLayout {
   #[serde(rename = "mono")]
   Mono,

@@ -22,19 +22,19 @@ pub struct DeepProbeResult {
   format: FormatProbeResult,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct SilenceResult {
   pub start: i64,
   pub end: i64,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct BlackResult {
   pub start: i64,
   pub end: i64,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct BlackAndSilenceResult {
   pub start: i64,
   pub end: i64,
@@ -73,7 +73,7 @@ pub struct StreamProbeResult {
   pub black_and_silence: Vec<BlackAndSilenceResult>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
 pub struct FormatProbeResult {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_bitrate_format: Option<i64>,

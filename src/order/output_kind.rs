@@ -1,4 +1,4 @@
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Eq)]
 pub enum OutputKind {
   #[serde(rename = "file")]
   File,
