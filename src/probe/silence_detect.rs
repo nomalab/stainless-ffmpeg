@@ -138,7 +138,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
             }
             if let Some(value) = entry_map.get("lavfi.silence_duration") {
               if let Some(max) = max_duration {
-                if value.parse::<f64>().unwrap() * 1000.0 > max as f64 {
+                if (value.parse::<f64>().unwrap() * 1000.0) as u64 > max {
                   streams[(index) as usize].detected_silence.pop();
                 }
               }

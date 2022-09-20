@@ -6,13 +6,13 @@ use ffmpeg_sys_next::*;
 use libc::c_void;
 use std::{fmt, ptr::null_mut};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum GraphKind {
   Video,
   Audio,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct FilterGraph {
   pub kind: GraphKind,
   pub graph: *mut AVFilterGraph,

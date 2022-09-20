@@ -1,6 +1,6 @@
 use crate::order::{frame::FrameAddress, stream::Stream};
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Deserialize)]
 #[serde(untagged)]
 pub enum Input {
   Streams {

@@ -4,7 +4,7 @@ use ffmpeg_sys_next::*;
 use libc::c_char;
 use std::{ffi::CString, fmt, ptr::null_mut};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Filter {
   pub context: *mut AVFilterContext,
 }

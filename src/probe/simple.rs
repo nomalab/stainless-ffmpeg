@@ -45,7 +45,7 @@ pub struct StreamDescriptor {
   audio_properties: Option<AudioProperties>,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct VideoProperties {
   width: i32,
   height: i32,
@@ -60,7 +60,7 @@ pub struct VideoProperties {
   nb_frames: Option<i64>,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct AudioProperties {
   channels: i32,
   sample_rate: i32,
@@ -68,7 +68,7 @@ pub struct AudioProperties {
   bits_per_sample: i32,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct SubtitleProperties {}
 
 impl fmt::Display for Format {
