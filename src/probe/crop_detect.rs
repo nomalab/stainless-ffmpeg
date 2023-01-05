@@ -21,8 +21,8 @@ pub fn create_graph(
   let mut inputs = vec![];
   let mut outputs = vec![];
   for i in video_indexes {
-    let input_identifier = format!("video_input_{}", i);
-    let output_identifier = format!("video_output_{}", i);
+    let input_identifier = format!("video_input_{i}");
+    let output_identifier = format!("video_output_{i}");
 
     let input_streams = vec![Stream {
       index: i,
@@ -33,7 +33,7 @@ pub fn create_graph(
     if let Some(spot_check) = params.get("spot_check") {
       if let Some(max_checks) = spot_check.max {
         let scale = (nb_frames / max_checks as i64) - 1;
-        let expr = format!("not(mod(n,{}))", scale);
+        let expr = format!("not(mod(n,{scale}))");
         select_params.insert("expr".to_string(), ParameterValue::String(expr));
       }
     }
@@ -43,7 +43,7 @@ pub fn create_graph(
 
     filters.push(Filter {
       name: "cropdetect".to_string(),
-      label: Some(format!("cropdetect_filter{}", i)),
+      label: Some(format!("cropdetect_filter{i}")),
       parameters: crop_params,
       inputs: Some(vec![FilterInput {
         kind: InputKind::Stream,
@@ -53,7 +53,7 @@ pub fn create_graph(
     });
     filters.push(Filter {
       name: "select".to_string(),
-      label: Some(format!("select_filter{}", i)),
+      label: Some(format!("select_filter{i}")),
       parameters: select_params,
       inputs: None,
       outputs: Some(vec![FilterOutput {

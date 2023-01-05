@@ -220,7 +220,7 @@ impl FormatContext {
 
   pub fn next_packet(&mut self) -> Result<Packet, String> {
     if !self.frames.is_empty() {
-      if self.frame_index >= self.frames.len() as usize {
+      if self.frame_index >= self.frames.len() {
         return Err("End of data stream".to_string());
       }
       let frame = &self.frames[self.frame_index];
