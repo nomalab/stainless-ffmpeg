@@ -71,9 +71,7 @@ impl Order {
     self.build_graph()?;
     warn!("{}", self.filter_graph);
 
-    if let Err(msg) = self.filter_graph.validate() {
-      return Err(msg);
-    }
+    self.filter_graph.validate()?;
     Ok(())
   }
 

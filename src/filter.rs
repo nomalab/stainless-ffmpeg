@@ -236,7 +236,7 @@ fn dump_options(filter: *mut AVFilterContext, class: *const AVClass, f: &mut fmt
 
   loop {
     next = dump_option(filter, class, next, f);
-    if next == None {
+    if next.is_none() {
       break;
     }
   }
