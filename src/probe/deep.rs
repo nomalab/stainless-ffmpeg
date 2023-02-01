@@ -51,7 +51,7 @@ pub struct CropResult {
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct SceneResult {
-  pub frame: i64,
+  pub frame_index: i64,
   pub score: i32,
   pub scene_number: u32,
 }

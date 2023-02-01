@@ -20,8 +20,8 @@ pub fn create_graph(
   let mut inputs = vec![];
   let mut outputs = vec![];
   for i in video_indexes {
-    let input_identifier = format!("video_input_{}", i);
-    let output_identifier = format!("video_output_{}", i);
+    let input_identifier = format!("video_input_{i}");
+    let output_identifier = format!("video_output_{i}");
 
     let input_streams = vec![Stream {
       index: i,
@@ -45,7 +45,7 @@ pub fn create_graph(
 
     filters.push(Filter {
       name: "blackdetect".to_string(),
-      label: Some(format!("blackdetect_filter{}", i)),
+      label: Some(format!("blackdetect_filter{i}")),
       parameters: blackdetect_params.clone(),
       inputs: Some(vec![FilterInput {
         kind: InputKind::Stream,

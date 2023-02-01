@@ -12,19 +12,20 @@ use std::collections::HashMap;
 pub fn create_graph<S: ::std::hash::BuildHasher>(
   filename: &str,
   video_indexes: Vec<u32>,
-  _params: &HashMap<String, CheckParameterValue, S>,
+  params: &HashMap<String, CheckParameterValue, S>,
 ) -> Result<Order, String> {
   let mut filters = vec![];
   let mut inputs = vec![];
   let mut outputs = vec![];
 
   for i in video_indexes {
-    let input_identifier = format!("video_input_{}", i);
-    let output_identifier = format!("video_output_{}", i);
+    let input_identifier = format!("video_input_{i}");
+    let output_identifier = format!("video_output_{i}");
 
     let mut scdet_params: HashMap<String, ParameterValue> = HashMap::new();
-    let threshold = 10;
-    scdet_params.insert("threshold".to_string(), ParameterValue::Int64(threshold));
+    if let Some(th) = params.get("threshold").and_then(|threshold| threshold.th) {
+      scdet_params.insert("threshold".to_string(), ParameterValue::Float(th));
+    }
 
     let input_streams = vec![Stream {
       index: i,
@@ -33,7 +34,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
 
     filters.push(Filter {
       name: "scdet".to_string(),
-      label: Some(format!("scdet_filter{}", i)),
+      label: Some(format!("scdet_filter{i}")),
       parameters: scdet_params,
       inputs: Some(vec![FilterInput {
         kind: InputKind::Stream,
@@ -77,9 +78,9 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
-      let mut frame_rate = 0.0;
+      let mut frame_rate = 1.0;
       let mut time_base = 1.0;
-      let mut i = 0;
+      let mut scene_count = 0;
       let mut context = FormatContext::new(filename).unwrap();
       if let Err(msg) = context.open_input() {
         context.close_input();
@@ -100,29 +101,30 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
           if let Some(stream_id) = entry_map.get("stream_id") {
             let index: i32 = stream_id.parse().unwrap();
             let mut scene = SceneResult {
-              frame: 0,
+              frame_index: 0,
               score: 0,
               scene_number: 0,
             };
             let mut false_scene = FalseSceneResult { frame: 0 };
 
             if let Some(value) = entry_map.get("lavfi.scd.time") {
-              scene.frame = (value.parse::<f32>().unwrap() * time_base / 25.0 * frame_rate) as i64;
+              scene.frame_index =
+                (value.parse::<f32>().unwrap() * time_base / 25.0 * frame_rate) as i64;
               if let Some(value) = entry_map.get("lavfi.scd.score") {
                 scene.score = (value.parse::<f32>().unwrap()) as i32;
               }
 
-              if let Some(last_detect) = streams[(index) as usize].detected_scene.last_mut() {
-                if last_detect.frame == (scene.frame - 1) {
-                  false_scene.frame = scene.frame;
+              if let Some(last_detect) = streams[(index) as usize].detected_scene.last() {
+                if scene.frame_index - last_detect.frame_index <= 1 {
+                  false_scene.frame = scene.frame_index;
                   streams[(index) as usize]
                     .detected_false_scene
                     .push(false_scene);
                 }
               }
 
-              i += 1;
-              scene.scene_number = i;
+              scene_count += 1;
+              scene.scene_number = scene_count;
               streams[(index) as usize].detected_scene.push(scene);
             }
           }

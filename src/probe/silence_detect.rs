@@ -18,8 +18,8 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
   let mut inputs = vec![];
   let mut outputs = vec![];
   for i in audio_indexes {
-    let input_identifier = format!("audio_input_{}", i);
-    let output_identifier = format!("audio_output_{}", i);
+    let input_identifier = format!("audio_input_{i}");
+    let output_identifier = format!("audio_output_{i}");
 
     let input_streams = vec![Stream {
       index: i,
@@ -41,7 +41,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
 
     filters.push(Filter {
       name: "silencedetect".to_string(),
-      label: Some(format!("silencedetect_filter{}", i)),
+      label: Some(format!("silencedetect_filter{i}")),
       parameters: silencedetect_params.clone(),
       inputs: Some(vec![FilterInput {
         kind: InputKind::Stream,
@@ -51,7 +51,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
     });
     filters.push(Filter {
       name: "aformat".to_string(),
-      label: Some(format!("aformat_filter{}", i)),
+      label: Some(format!("aformat_filter{i}")),
       parameters: aformat_params.clone(),
       inputs: None,
       outputs: Some(vec![FilterOutput {

@@ -10,15 +10,15 @@ fn main() {
   if let Some(path) = env::args().last() {
     let mut probe = DeepProbe::new(&path);
     let duration_params = CheckParameterValue {
-      min: Some(100),
-      max: None,
+      min: Some(40),
+      max: Some(20000),
       num: None,
       den: None,
       th: None,
     };
     let black_duration_params = CheckParameterValue {
-      min: Some(100),
-      max: None,
+      min: Some(40),
+      max: Some(20000),
       num: None,
       den: None,
       th: None,
@@ -45,7 +45,7 @@ fn main() {
       th: None,
     };
     let black_and_silence_check = CheckParameterValue {
-      min: Some(1000),
+      min: Some(40),
       max: None,
       num: None,
       den: None,
@@ -56,7 +56,7 @@ fn main() {
       max: None,
       num: None,
       den: None,
-      th: None,
+      th: Some(10.0),
     };
 
     let mut silence_params = HashMap::new();
@@ -70,7 +70,7 @@ fn main() {
     black_params.insert("pixel".to_string(), black_pixel_params);
     select_params.insert("spot_check".to_string(), spot_check);
     black_and_silence_params.insert("duration".to_string(), black_and_silence_check);
-    scene_params.insert("key".to_string(), scene_check);
+    scene_params.insert("threshold".to_string(), scene_check);
     let check = DeepProbeCheck {
       silence_detect: Some(silence_params),
       black_detect: Some(black_params),
