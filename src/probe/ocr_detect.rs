@@ -24,10 +24,8 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
 
     let ocrdetect_params: HashMap<String, ParameterValue> = HashMap::new();
     let mut scdet_params: HashMap<String, ParameterValue> = HashMap::new();
-    if let Some(threshold) = params.get("threshold") {
-      if let Some(th) = threshold.th {
-        scdet_params.insert("threshold".to_string(), ParameterValue::Float(th));
-      }
+    if let Some(th) = params.get("threshold").and_then(|threshold| threshold.th) {
+      scdet_params.insert("threshold".to_string(), ParameterValue::Float(th));
     }
     scdet_params.insert("sc_pass".to_string(), ParameterValue::Int64(1));
 
