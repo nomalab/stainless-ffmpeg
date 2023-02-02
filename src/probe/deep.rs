@@ -2,6 +2,7 @@ use crate::format_context::FormatContext;
 use crate::probe::black_and_silence::detect_black_and_silence;
 use crate::probe::black_detect::detect_black_frames;
 use crate::probe::crop_detect::detect_black_borders;
+use crate::probe::ocr_detect::detect_ocr;
 use crate::probe::scene_detect::detect_scene;
 use crate::probe::silence_detect::detect_silence;
 use crate::stream::Stream;
@@ -62,6 +63,14 @@ pub struct FalseSceneResult {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct OcrResult {
+  pub frame_start: u64,
+  pub frame_end: u64,
+  pub text: String,
+  pub word_confidence: String,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct StreamProbeResult {
   stream_index: usize,
   count_packets: usize,
@@ -84,6 +93,8 @@ pub struct StreamProbeResult {
   pub detected_scene: Vec<SceneResult>,
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub detected_false_scene: Vec<FalseSceneResult>,
+  #[serde(skip_serializing_if = "Vec::is_empty")]
+  pub detected_ocr: Vec<OcrResult>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_bitrate: Option<i64>,
   #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -117,6 +128,7 @@ pub struct DeepProbeCheck {
   pub black_and_silence_detect: Option<HashMap<String, CheckParameterValue>>,
   pub crop_detect: Option<HashMap<String, CheckParameterValue>>,
   pub scene_detect: Option<HashMap<String, CheckParameterValue>>,
+  pub ocr_detect: Option<HashMap<String, CheckParameterValue>>,
 }
 
 impl fmt::Display for DeepProbeResult {
@@ -168,6 +180,11 @@ impl fmt::Display for DeepProbeResult {
       writeln!(
         f,
         "{:30} : {:?}",
+        "Media offline detection", stream.detected_ocr
+      )?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
         "Bitrate detection", stream.detected_bitrate
       )?;
     }
@@ -194,6 +211,7 @@ impl StreamProbeResult {
       detected_crop: vec![],
       detected_scene: vec![],
       detected_false_scene: vec![],
+      detected_ocr: vec![],
       detected_bitrate: None,
     }
   }
@@ -313,8 +331,16 @@ impl DeepProbe {
       detect_scene(
         &self.filename,
         &mut streams,
-        video_indexes,
+        video_indexes.clone(),
         scene_parameters,
+      );
+    }
+    if let Some(ocr_parameters) = check.ocr_detect {
+      detect_ocr(
+        &self.filename,
+        &mut streams,
+        video_indexes.clone(),
+        ocr_parameters,
       );
     }
 

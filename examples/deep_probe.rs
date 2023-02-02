@@ -58,12 +58,20 @@ fn main() {
       den: None,
       th: Some(10.0),
     };
+    let ocr_check = CheckParameterValue {
+      min: None,
+      max: None,
+      num: None,
+      den: None,
+      th: Some(14.0),
+    };
 
     let mut silence_params = HashMap::new();
     let mut black_params = HashMap::new();
     let mut select_params = HashMap::new();
     let mut black_and_silence_params = HashMap::new();
     let mut scene_params = HashMap::new();
+    let mut ocr_params = HashMap::new();
     silence_params.insert("duration".to_string(), duration_params);
     black_params.insert("duration".to_string(), black_duration_params);
     black_params.insert("picture".to_string(), black_picture_params);
@@ -71,12 +79,14 @@ fn main() {
     select_params.insert("spot_check".to_string(), spot_check);
     black_and_silence_params.insert("duration".to_string(), black_and_silence_check);
     scene_params.insert("threshold".to_string(), scene_check);
+    ocr_params.insert("threshold".to_string(), ocr_check);
     let check = DeepProbeCheck {
       silence_detect: Some(silence_params),
       black_detect: Some(black_params),
       crop_detect: Some(select_params),
       black_and_silence_detect: Some(black_and_silence_params),
       scene_detect: Some(scene_params),
+      ocr_detect: Some(ocr_params),
     };
     probe.process(LevelFilter::Off, check).unwrap();
     let result = serde_json::to_string(&probe).unwrap();

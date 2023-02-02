@@ -2,6 +2,7 @@ mod black_and_silence;
 mod black_detect;
 mod crop_detect;
 pub mod deep;
+mod ocr_detect;
 mod scene_detect;
 mod silence_detect;
 mod simple;
