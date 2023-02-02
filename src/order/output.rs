@@ -40,7 +40,7 @@ impl TryFrom<i32> for SampleFormat {
       7 => Ok(SampleFormat::Signed32Planar),
       8 => Ok(SampleFormat::FloatPlanar),
       9 => Ok(SampleFormat::DoublePlanar),
-      _ => Err(format!("'{}' is not a valid value for SampleFormat", value)),
+      _ => Err(format!("'{value}' is not a valid value for SampleFormat")),
     }
   }
 }
@@ -59,7 +59,7 @@ impl FromStr for SampleFormat {
       "floatp" => Ok(SampleFormat::FloatPlanar),
       "double" => Ok(SampleFormat::Double),
       "doublep" => Ok(SampleFormat::DoublePlanar),
-      _ => Err(format!("'{}' is not a valid value for SampleFormat", s)),
+      _ => Err(format!("'{s}' is not a valid value for SampleFormat")),
     }
   }
 }
@@ -104,7 +104,7 @@ impl std::str::FromStr for PixelFormat {
       "rgb24" => Ok(PixelFormat::Rgb24),
       "rgb48be" => Ok(PixelFormat::Rgb48be),
       "rgb48le" => Ok(PixelFormat::Rgb48le),
-      _ => Err(format!("'{}' is not a valid value for PixelFormat", s)),
+      _ => Err(format!("'{s}' is not a valid value for PixelFormat")),
     }
   }
 }
@@ -153,7 +153,7 @@ impl std::str::FromStr for Colorspace {
       "bt709" => Ok(Colorspace::Bt709),
       "bt2020_ncl" => Ok(Colorspace::Bt2020Ncl),
       "bt2020_cl" => Ok(Colorspace::Bt2020Cl),
-      _ => Err(format!("'{}' is not a valid value for Colorspace", s)),
+      _ => Err(format!("'{s}' is not a valid value for Colorspace")),
     }
   }
 }
@@ -187,7 +187,7 @@ impl std::str::FromStr for ColorRange {
     match s {
       "head" => Ok(ColorRange::Head),
       "full" => Ok(ColorRange::Full),
-      _ => Err(format!("'{}' is not a valid value for ColorRange", s)),
+      _ => Err(format!("'{s}' is not a valid value for ColorRange")),
     }
   }
 }
@@ -218,7 +218,7 @@ impl std::str::FromStr for ChannelLayout {
       "mono" => Ok(ChannelLayout::Mono),
       "stereo" => Ok(ChannelLayout::Stereo),
       "5.1" => Ok(ChannelLayout::Multi5_1),
-      _ => Err(format!("'{}' is not a valid value for ChannelLayout", s)),
+      _ => Err(format!("'{s}' is not a valid value for ChannelLayout")),
     }
   }
 }

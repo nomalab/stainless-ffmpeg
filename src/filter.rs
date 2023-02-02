@@ -126,7 +126,7 @@ fn dump_option(
           AV_OPT_SEARCH_CHILDREN,
           value_ptr as *mut _,
         );
-        format!("{}", value)
+        format!("{value}")
       }
       AV_OPT_TYPE_INT64 => {
         let value = 0i64;
@@ -137,7 +137,7 @@ fn dump_option(
           AV_OPT_SEARCH_CHILDREN,
           value_ptr as *mut _,
         );
-        format!("{}", value)
+        format!("{value}")
       }
       AV_OPT_TYPE_DOUBLE => {
         let value = 0f64;
@@ -148,7 +148,7 @@ fn dump_option(
           AV_OPT_SEARCH_CHILDREN,
           value_ptr as *mut _,
         );
-        format!("{}", value)
+        format!("{value}")
       }
       AV_OPT_TYPE_RATIONAL => {
         let rational = AVRational { num: 0, den: 0 };
@@ -200,7 +200,7 @@ fn dump_option(
           height_ptr as *mut _,
         );
 
-        format!("{}x{}", width, height)
+        format!("{width}x{height}")
       }
       _ => {
         // println!("{:?} {:?}", option_name, (*option).type_ );
@@ -216,8 +216,7 @@ fn dump_option(
 
     let ret = writeln!(
       f,
-      " | {} = {}{} {} {}",
-      option_name, option_value, option_unit, min_max, option_help
+      " | {option_name} = {option_value}{option_unit} {min_max} {option_help}"
     );
 
     if ret.is_err() {
@@ -236,7 +235,7 @@ fn dump_options(filter: *mut AVFilterContext, class: *const AVClass, f: &mut fmt
 
   loop {
     next = dump_option(filter, class, next, f);
-    if next == None {
+    if next.is_none() {
       break;
     }
   }
@@ -252,7 +251,7 @@ fn dump_link(
   unsafe {
     let input_name = tools::to_string(pad_name);
     if link.is_null() {
-      writeln!(f, "{} {}: not connected", mode, input_name)?;
+      writeln!(f, "{mode} {input_name}: not connected")?;
 
       return Ok(());
     }
@@ -280,7 +279,7 @@ fn dump_link(
     let pad_type = avfilter_pad_get_type((*link).srcpad, 0);
 
     let str_pad = tools::to_string(pad);
-    writeln!(f, "[{} | {:?}]", str_pad, pad_type)?;
+    writeln!(f, "[{str_pad} | {pad_type:?}]")?;
   }
   Ok(())
 }
@@ -292,7 +291,7 @@ impl fmt::Display for Filter {
       let filter_label = self.get_label();
 
       let filter_name = tools::to_string((*(*filter).filter).name);
-      writeln!(f, "{} ({})", filter_name, filter_label)?;
+      writeln!(f, "{filter_name} ({filter_label})")?;
 
       dump_options(filter, (*filter).av_class, f);
       if !(*(*filter).filter).priv_class.is_null() {

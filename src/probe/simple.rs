@@ -83,7 +83,7 @@ impl fmt::Display for Format {
     writeln!(f, "{:30} : {}", "Number of Programs", self.program_count)?;
 
     for (key, value) in &self.metadata {
-      writeln!(f, "{:30} : {}", key, value)?;
+      writeln!(f, "{key:30} : {value}")?;
     }
 
     for stream in &self.streams {
@@ -128,7 +128,7 @@ impl fmt::Display for Format {
       }
 
       for (key, value) in &stream.stream_metadata {
-        writeln!(f, "{:30} : {}", key, value)?;
+        writeln!(f, "{key:30} : {value}")?;
       }
     }
     Ok(())

@@ -71,9 +71,7 @@ impl Order {
     self.build_graph()?;
     warn!("{}", self.filter_graph);
 
-    if let Err(msg) = self.filter_graph.validate() {
-      return Err(msg);
-    }
+    self.filter_graph.validate()?;
     Ok(())
   }
 
@@ -270,8 +268,7 @@ impl Order {
                   .connect_input(label, decoder_stream_index, &filter, index as u32)
               {
                 return Err(format!(
-                  "unable to connect input stream {} ({}): {}",
-                  label, decoder_stream_index, msg
+                  "unable to connect input stream {label} ({decoder_stream_index}): {msg}"
                 ));
               }
             }
@@ -283,10 +280,10 @@ impl Order {
         }
       } else if let Some(last_filter) = filters.last() {
         if let Err(msg) = self.filter_graph.connect(last_filter, 0, &filter, 0) {
-          return Err(format!("unable to auto-connect : {}", msg));
+          return Err(format!("unable to auto-connect : {msg}"));
         }
       } else if let Err(msg) = self.filter_graph.connect_input("", 0, &filter, 0) {
-        return Err(format!("unable to auto-connect with input: {}", msg));
+        return Err(format!("unable to auto-connect with input: {msg}"));
       }
 
       if let Some(ref outputs) = filter_description.outputs {
