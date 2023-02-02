@@ -3,6 +3,7 @@ use crate::probe::black_and_silence::detect_black_and_silence;
 use crate::probe::black_detect::detect_black_frames;
 use crate::probe::crop_detect::detect_black_borders;
 use crate::probe::ocr_detect::detect_ocr;
+use crate::probe::scene_detect::detect_scene;
 use crate::probe::silence_detect::detect_silence;
 use crate::stream::Stream;
 use ffmpeg_sys_next::*;
@@ -50,6 +51,18 @@ pub struct CropResult {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct SceneResult {
+  pub frame_index: i64,
+  pub score: i32,
+  pub scene_number: u32,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct FalseSceneResult {
+  pub frame: i64,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct OcrResult {
   pub frame_start: u64,
   pub frame_end: u64,
@@ -76,6 +89,10 @@ pub struct StreamProbeResult {
   pub detected_black: Vec<BlackResult>,
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub detected_crop: Vec<CropResult>,
+  #[serde(skip_serializing_if = "Vec::is_empty")]
+  pub detected_scene: Vec<SceneResult>,
+  #[serde(skip_serializing_if = "Vec::is_empty")]
+  pub detected_false_scene: Vec<FalseSceneResult>,
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub detected_ocr: Vec<OcrResult>,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -110,6 +127,7 @@ pub struct DeepProbeCheck {
   pub black_detect: Option<HashMap<String, CheckParameterValue>>,
   pub black_and_silence_detect: Option<HashMap<String, CheckParameterValue>>,
   pub crop_detect: Option<HashMap<String, CheckParameterValue>>,
+  pub scene_detect: Option<HashMap<String, CheckParameterValue>>,
   pub ocr_detect: Option<HashMap<String, CheckParameterValue>>,
 }
 
@@ -153,6 +171,12 @@ impl fmt::Display for DeepProbeResult {
         "Black and silence detection", stream.black_and_silence
       )?;
       writeln!(f, "{:30} : {:?}", "Crop detection", stream.detected_crop)?;
+      writeln!(f, "{:30} : {:?}", "Scene detection", stream.detected_scene)?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
+        "False scene detection", stream.detected_false_scene
+      )?;
       writeln!(
         f,
         "{:30} : {:?}",
@@ -185,6 +209,8 @@ impl StreamProbeResult {
       detected_black: vec![],
       black_and_silence: vec![],
       detected_crop: vec![],
+      detected_scene: vec![],
+      detected_false_scene: vec![],
       detected_ocr: vec![],
       detected_bitrate: None,
     }
@@ -301,6 +327,14 @@ impl DeepProbe {
       );
     }
 
+    if let Some(scene_parameters) = check.scene_detect {
+      detect_scene(
+        &self.filename,
+        &mut streams,
+        video_indexes.clone(),
+        scene_parameters,
+      );
+    }
     if let Some(ocr_parameters) = check.ocr_detect {
       detect_ocr(
         &self.filename,
