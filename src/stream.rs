@@ -273,6 +273,7 @@ impl Stream {
     unsafe { (*(*self.stream).codecpar).channels }
   }
 
+  #[cfg(any(ffmpeg_4_4, ffmpeg_5_0, ffmpeg_5_1))]
   pub fn get_timecode(&self) -> Option<String> {
     unsafe {
       let timecode_side_data = av_stream_get_side_data(
@@ -287,6 +288,20 @@ impl Stream {
       }
       av_timecode_make_mpeg_tc_string(timecode, timecode_side_data as u32);
       Some(timecode.to_string())
+    }
+  }
+
+  #[cfg(any(ffmpeg_4_0, ffmpeg_4_1, ffmpeg_4_2, ffmpeg_4_3))]
+  pub fn get_timecode(&self) -> Option<String> {
+    unsafe {
+      let tc = &mut 0;
+      let timecode = (*(*self.stream).codec).timecode_frame_start;
+      if timecode < 0 {
+        return None;
+      }
+
+      av_timecode_make_mpeg_tc_string(tc, timecode as u32);
+      Some(tc.to_string())
     }
   }
 
