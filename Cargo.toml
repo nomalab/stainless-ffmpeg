@@ -25,3 +25,6 @@ rand = "0.8"
 cpal = "0.13"
 env_logger = "^0.9"
 ringbuf = "0.2.3"
+
+[build-dependencies]
+ffmpeg-sys-next = "5.0.1"
