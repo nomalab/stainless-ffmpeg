@@ -48,11 +48,10 @@ fn main() {
 
   if let Some(ffmpeg_version) = ffmpeg_version {
     // println!("cargo:warning={}", ffmpeg_version);
-    println!("cargo:rustc-cfg={}", ffmpeg_version);
+    println!("cargo:rustc-cfg={ffmpeg_version}");
   } else {
     panic!(
-      "Cannot define ffmpeg version from libavcodec version: {}.{}.{}",
-      avcodec_version_major, avcodec_version_minor, avcodec_version_micro
+      "Cannot define ffmpeg version from libavcodec version: {avcodec_version_major}.{avcodec_version_minor}.{avcodec_version_micro}"
     )
   }
 }
