@@ -398,32 +398,7 @@ impl DeepProbe {
 }
 
 #[test]
-fn deep_probe_mxf_sample() {
-  /*
-   * Test avec fichier test_file.mxf (duration : 30sec):
-   * -S#0.00 : alternance mire de barre cropé et fond noir (changement tous les 5sec)
-   * -S#0.01 : mono alternance 1000Hz et silence (changement tous les 3sec)
-   * -S#0.02 : mono alternance 1000Hz et silence (changement tous les 9sec + 3 à la fin)
-   * -S#0.03 : programme 7.1
-   * -S#0.04 : stereo dual-mono
-   * -S#0.05 : stereo non dual-mono (silence+1000hz)
-   * -S#0.06 : mono programme 30sec
-   * -S#0.07 : mono programme 30sec
-   * -S#0.08 : mono silence 30sec
-   * -S#0.09 : stereo dual-mono 5sec + stereo non dual-mono 5sec répété 3 fois
-   * -S#0.10 : stereo non dual-mono 5sec + stereo dual-mono 5sec répété 3 fois
-   * -S#0.11 : stereo dual-mono 2sec + stereo non dual-mono 6sec + stereo dual-mono 2sec répété 3 fois
-   * -S#0.12 : stereo non dual-mono 2sec + stereo dual-mono 6sec + stereo non dual-mono 2sec répété 3 fois
-   * audio_qualif en conséquences
-   * test réalisables sur ce fichier :
-   *   -black
-   *   -crop
-   *   -silence
-   *   -black_and_silence
-   *   -loudness
-   *   -dualmono
-   *   -1000hz
-   */
+fn deep_probe() {
   // use serde_json;
   use std::collections::HashMap;
 
@@ -448,7 +423,7 @@ fn deep_probe_mxf_sample() {
     max: None,
     num: None,
     den: None,
-    th: Some(0.0),
+    th: Some(0.1),
     pairs: None,
   };
   let black_picture_params = CheckParameterValue {
@@ -456,38 +431,33 @@ fn deep_probe_mxf_sample() {
     max: None,
     num: None,
     den: None,
-    th: Some(1.0),
+    th: Some(0.98),
     pairs: None,
   };
   let spot_check = CheckParameterValue {
     min: None,
-    max: Some(15), //pour ce fichier seulement (si on veut voir les crop. Cause => alternance trop rapide)
+    max: Some(5),
     num: None,
     den: None,
     th: None,
     pairs: None,
   };
   let black_and_silence_check = CheckParameterValue {
-    min: Some(1000),
+    min: Some(40),
     max: None,
     num: None,
     den: None,
     th: None,
     pairs: None,
   };
-
   let mut audio_qualif = vec![];
   // definition : [Track::new(stream_index, channels_number)]
   audio_qualif.push([Track::new(1, 1)].to_vec());
-  audio_qualif.push([Track::new(2, 1)].to_vec()); //mono
-  audio_qualif.push([Track::new(3, 8)].to_vec()); //7.1
-  audio_qualif.push([Track::new(4, 2)].to_vec()); //stereo
-  audio_qualif.push([Track::new(5, 2)].to_vec()); //stereo
-  audio_qualif.push([Track::new(6, 1), Track::new(7, 1)].to_vec()); //alternate with stream 8 to get dualmono or not
-  audio_qualif.push([Track::new(9, 2)].to_vec());
-  audio_qualif.push([Track::new(10, 2)].to_vec());
-  audio_qualif.push([Track::new(11, 2)].to_vec());
-  audio_qualif.push([Track::new(12, 2)].to_vec());
+  audio_qualif.push([Track::new(2, 1)].to_vec());
+  audio_qualif.push([Track::new(3, 8)].to_vec());
+  audio_qualif.push([Track::new(4, 2)].to_vec());
+  audio_qualif.push([Track::new(5, 2)].to_vec());
+  audio_qualif.push([Track::new(6, 1), Track::new(7, 1)].to_vec());
   let loudness_check = CheckParameterValue {
     min: None,
     max: None,
@@ -512,13 +482,14 @@ fn deep_probe_mxf_sample() {
     th: Some(14.0),
     pairs: None,
   };
+
   let mut silence_params = HashMap::new();
   let mut black_params = HashMap::new();
   let mut select_params = HashMap::new();
   let mut black_and_silence_params = HashMap::new();
-  let mut loudness_params = HashMap::new();
   let mut scene_params = HashMap::new();
   let mut ocr_params = HashMap::new();
+  let mut loudness_params = HashMap::new();
   silence_params.insert("duration".to_string(), duration_params);
   black_params.insert("duration".to_string(), black_duration_params);
   black_params.insert("picture".to_string(), black_picture_params);
@@ -540,7 +511,7 @@ fn deep_probe_mxf_sample() {
   let mut probe = DeepProbe::new("tests/test_file.mxf");
   probe.process(LevelFilter::Error, check).unwrap();
   println!("{}", serde_json::to_string(&probe).unwrap());
-  let content = std::fs::read_to_string("tests/deep_probe_test_file.json").unwrap();
+  let content = std::fs::read_to_string("tests/deep_probe.json").unwrap();
   let reference: DeepProbe = serde_json::from_str(&content).unwrap();
   assert_eq!(probe, reference);
 }

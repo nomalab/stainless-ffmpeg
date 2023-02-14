@@ -30,8 +30,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
           let mut amerge_input = vec![];
           let mut input_streams_vec = vec![];
           let mut lavfi_keys = vec!["lavfi.r128.I".to_string(), "lavfi.r128.LRA".to_string()];
-          let output_label = format!("output_label_{:?}", iter);
-          let channel;
+          let output_label = format!("output_label_{iter:?}");
 
           for track in pair {
             let input_label = format!("input_label_{}", track.index);
@@ -45,13 +44,13 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
             });
           }
 
-          if pair.len() == 1 {
-            channel = pair[0].channel;
+          let channel: u8 = if pair.len() == 1 {
+            pair[0].channel
           } else {
-            channel = pair.len() as u8;
-          }
+            pair.len() as u8
+          };
           for ch in 0..channel {
-            let key = format!("lavfi.r128.true_peaks_ch{}", ch);
+            let key = format!("lavfi.r128.true_peaks_ch{ch}");
             if !lavfi_keys.contains(&key) {
               lavfi_keys.push(key);
             }
@@ -77,21 +76,21 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
           );
           filters.push(Filter {
             name: "amerge".to_string(),
-            label: Some(format!("amerge_filter_{:?}", iter)),
+            label: Some(format!("amerge_filter_{iter:?}")),
             parameters: amerge_params,
             inputs: Some(amerge_input),
             outputs: None,
           });
           filters.push(Filter {
             name: "ebur128".to_string(),
-            label: Some(format!("loudness_filter_{:?}", iter)),
+            label: Some(format!("loudness_filter_{iter:?}")),
             parameters: loudnessdetect_params.clone(),
             inputs: None,
             outputs: None,
           });
           filters.push(Filter {
             name: "aformat".to_string(),
-            label: Some(format!("aformat_filter_{:?}", iter)),
+            label: Some(format!("aformat_filter_{iter:?}")),
             parameters: HashMap::new(),
             inputs: None,
             outputs: Some(vec![FilterOutput {
@@ -142,14 +141,14 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
                 let mut channel_end = 0;
 
                 if let Some(value) = entry_map.get("lavfi.r128.I") {
-                  let x = (value.parse::<f64>().unwrap()) as f64;
+                  let x = value.parse::<f64>().unwrap();
                   loudness.integrated = (x * 100.0).round() / 100.0;
                   if loudness.integrated == -70.0 {
                     loudness.integrated = -99.0;
                   }
                 }
                 if let Some(value) = entry_map.get("lavfi.r128.LRA") {
-                  let y = (value.parse::<f64>().unwrap()) as f64;
+                  let y = value.parse::<f64>().unwrap();
                   loudness.range = (y * 100.0).round() / 100.0;
                 }
 
@@ -174,9 +173,9 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
                   None => warn!("No input message for the loudness analysis (audio qualification)"),
                 }
                 for i in channel_start..channel_end {
-                  let str_tpk_key = format!("lavfi.r128.true_peaks_ch{}", i);
+                  let str_tpk_key = format!("lavfi.r128.true_peaks_ch{i}");
                   if let Some(value) = entry_map.get(&str_tpk_key) {
-                    let energy = value.parse::<f64>().unwrap() as f64;
+                    let energy = value.parse::<f64>().unwrap();
                     unsafe {
                       let mut tpk = 20.0 * log10(energy);
                       tpk = (tpk * 100.0).round() / 100.0;

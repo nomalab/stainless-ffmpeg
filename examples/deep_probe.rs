@@ -30,7 +30,7 @@ fn main() {
       max: None,
       num: None,
       den: None,
-      th: Some(0.0),
+      th: Some(0.1),
       pairs: None,
     };
     let black_picture_params = CheckParameterValue {
@@ -38,7 +38,7 @@ fn main() {
       max: None,
       num: None,
       den: None,
-      th: Some(1.0),
+      th: Some(0.98),
       pairs: None,
     };
     let spot_check = CheckParameterValue {
@@ -59,10 +59,13 @@ fn main() {
     };
     let mut audio_qualif = vec![];
     // definition : [Track::new(stream_index, channels_number)]
-    audio_qualif.push([Track::new(1, 1), Track::new(2, 1)].to_vec()); // is stereo to merge.
-    audio_qualif.push([Track::new(3, 1), Track::new(4, 1)].to_vec()); // is stereo to merge.
-    audio_qualif.push([Track::new(5, 1)].to_vec()); // is stereo to merge.
-                                                    // This audio_qualif needs the stream to have at least 12 audio streams
+    // change this qualif based on the audio streams
+    audio_qualif.push([Track::new(1, 1)].to_vec());
+    audio_qualif.push([Track::new(2, 1)].to_vec());
+    audio_qualif.push([Track::new(3, 8)].to_vec());
+    audio_qualif.push([Track::new(4, 2)].to_vec());
+    audio_qualif.push([Track::new(5, 2)].to_vec());
+    audio_qualif.push([Track::new(6, 1), Track::new(7, 1)].to_vec());
     let loudness_check = CheckParameterValue {
       min: None,
       max: None,

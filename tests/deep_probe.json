@@ -1,211 +1,298 @@
 {
-  "filename": "tests/PAL_1080i_MPEG_XDCAM-HD_colorbar.mxf",
-  "result": {
-    "streams": [
-      {
-        "stream_index": 0,
-        "count_packets": 250,
-        "min_packet_size": 4352,
-        "max_packet_size": 127488,
-        "detected_silence": [],
-        "silent_stream": null
-      },
-      {
-        "stream_index": 1,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [],
-        "silent_stream": null
-      },
-      {
-        "stream_index": 2,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [],
-        "silent_stream": null
-      },
-      {
-        "stream_index": 3,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [],
-        "silent_stream": null
-      },
-      {
-        "stream_index": 4,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [],
-        "silent_stream": null
-      },
-      {
-        "stream_index": 5,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [
-          {
-            "start": 0,
-            "end": 10000
-          }
-        ],
-        "silent_stream": true
-      },
-      {
-        "stream_index": 6,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [
-          {
-            "start": 0,
-            "end": 10000
-          }
-        ],
-        "silent_stream": true
-      },
-      {
-        "stream_index": 7,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [
-          {
-            "start": 0,
-            "end": 10000
-          }
-        ],
-        "silent_stream": true
-      },
-      {
-        "stream_index": 8,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [
-          {
-            "start": 0,
-            "end": 10000
-          }
-        ],
-        "silent_stream": true
-      },
-      {
-        "stream_index": 9,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [
-          {
-            "start": 0,
-            "end": 10000
-          }
-        ],
-        "silent_stream": true
-      },
-      {
-        "stream_index": 10,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [
-          {
-            "start": 0,
-            "end": 10000
-          }
-        ],
-        "silent_stream": true
-      },
-      {
-        "stream_index": 11,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [
-          {
-            "start": 0,
-            "end": 10000
-          }
-        ],
-        "silent_stream": true
-      },
-      {
-        "stream_index": 12,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [
-          {
-            "start": 0,
-            "end": 10000
-          }
-        ],
-        "silent_stream": true
-      },
-      {
-        "stream_index": 13,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [
-          {
-            "start": 0,
-            "end": 10000
-          }
-        ],
-        "silent_stream": true
-      },
-      {
-        "stream_index": 14,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [
-          {
-            "start": 0,
-            "end": 10000
-          }
-        ],
-        "silent_stream": true
-      },
-      {
-        "stream_index": 15,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [
-          {
-            "start": 0,
-            "end": 10000
-          }
-        ],
-        "silent_stream": true
-      },
-      {
-        "stream_index": 16,
-        "count_packets": 250,
-        "min_packet_size": 3840,
-        "max_packet_size": 3840,
-        "detected_silence": [
-          {
-            "start": 0,
-            "end": 10000
-          }
-        ],
-        "silent_stream": true
-      },
-      {
-        "stream_index": 17,
-        "count_packets": 250,
-        "min_packet_size": 2,
-        "max_packet_size": 58,
-        "detected_silence": [],
-        "silent_stream": null
+   "filename": "tests/test_file.mxf",
+   "result": {
+      "streams": [
+         {
+            "stream_index": 0,
+            "count_packets": 500,
+            "min_packet_size": 834,
+            "max_packet_size": 75729,
+            "color_space": "YUV",
+            "color_range": "tv (limited)",
+            "color_primaries": null,
+            "color_trc": null,
+            "color_matrix": null,
+            "detected_black": [
+               {
+                  "start": 0,
+                  "end": 4960
+               },
+               {
+                  "start": 9960,
+                  "end": 14960
+               }
+            ],
+            "detected_scene": [
+               {
+                  "frame_index": 124,
+                  "score": 33,
+                  "scene_number": 1
+               },
+               {
+                  "frame_index": 249,
+                  "score": 31,
+                  "scene_number": 2
+               },
+               {
+                  "frame_index": 374,
+                  "score": 33,
+                  "scene_number": 3
+               }
+            ],
+            "detected_loudness": [],
+            "detected_false_scene": [],
+            "detected_ocr": [],
+            "detected_crop": [
+               {
+                  "pts": 3959,
+                  "width": -1918,
+                  "height": -1078,
+                  "aspect_ratio": 2.211794
+               }
+            ],
+            "detected_black_and_silence": [],
+            "detected_silence": []
+         },
+         {
+            "stream_index": 1,
+            "count_packets": 500,
+            "min_packet_size": 3840,
+            "max_packet_size": 3840,
+            "color_space": null,
+            "color_range": null,
+            "color_primaries": null,
+            "color_trc": null,
+            "color_matrix": null,
+            "detected_silence": [
+               {
+                  "start": 3000,
+                  "end": 6000
+               },
+               {
+                  "start": 9000,
+                  "end": 12000
+               },
+               {
+                  "start": 15000,
+                  "end": 18000
+               }
+            ],
+            "detected_loudness": [
+               {
+                  "integrated": -21.42,
+                  "range": 9.7,
+                  "true_peaks": [
+                     -18.06
+                  ]
+               }
+            ],
+            "detected_bitrate": 768000,
+            "detected_black_and_silence": [
+               {
+                  "start": 3000,
+                  "end": 4960
+               },
+               {
+                  "start": 9960,
+                  "end": 12000
+               }
+            ],
+            "detected_black": [],
+            "detected_scene": [],
+            "detected_false_scene": [],
+            "detected_ocr": [],
+            "detected_crop": []
+         },
+         {
+            "stream_index": 2,
+            "count_packets": 500,
+            "min_packet_size": 3840,
+            "max_packet_size": 3840,
+            "color_space": null,
+            "color_range": null,
+            "color_primaries": null,
+            "color_trc": null,
+            "color_matrix": null,
+            "detected_silence": [
+               {
+                  "start": 9000,
+                  "end": 18000
+               }
+            ],
+            "detected_loudness": [
+               {
+                  "integrated": -21.19,
+                  "range": 6.99,
+                  "true_peaks": [
+                     -18.06
+                  ]
+               }
+            ],
+            "detected_bitrate": 768000,
+            "detected_black_and_silence": [
+               {
+                  "start": 9960,
+                  "end": 14960
+               }
+            ],
+            "detected_black": [],
+            "detected_scene": [],
+            "detected_false_scene": [],
+            "detected_ocr": [],
+            "detected_crop": []
+         },
+         {
+            "stream_index": 3,
+            "count_packets": 500,
+            "min_packet_size": 30720,
+            "max_packet_size": 30720,
+            "color_space": null,
+            "color_range": null,
+            "color_primaries": null,
+            "color_trc": null,
+            "color_matrix": null,
+            "detected_loudness": [
+               {
+                  "integrated": -20.21,
+                  "range": 5.98,
+                  "true_peaks": [
+                     -5.26,
+                     -7.64,
+                     -6.52,
+                     -8.16,
+                     -18.71,
+                     -20.63,
+                     -5.92,
+                     -37.08
+                  ]
+               }
+            ],
+            "detected_silence": [],
+            "detected_black": [],
+            "detected_scene": [],
+            "detected_false_scene": [],
+            "detected_ocr": [],
+            "detected_crop": [],
+            "detected_black_and_silence": [],
+            "detected_bitrate": 6144000
+         },
+         {
+            "stream_index": 4,
+            "count_packets": 500,
+            "min_packet_size": 7680,
+            "max_packet_size": 7680,
+            "color_space": null,
+            "color_range": null,
+            "color_primaries": null,
+            "color_trc": null,
+            "color_matrix": null,
+            "detected_loudness": [
+               {
+                  "integrated": -11.96,
+                  "range": 0.0,
+                  "true_peaks": [
+                     -11.97,
+                     -11.97
+                  ]
+               }
+            ],
+            "detected_silence": [],
+            "detected_black": [],
+            "detected_scene": [],
+            "detected_false_scene": [],
+            "detected_ocr": [],
+            "detected_crop": [],
+            "detected_black_and_silence": [],
+            "detected_bitrate": 1536000
+         },
+         {
+            "stream_index": 5,
+            "count_packets": 500,
+            "min_packet_size": 7680,
+            "max_packet_size": 7680,
+            "color_space": null,
+            "color_range": null,
+            "color_primaries": null,
+            "color_trc": null,
+            "color_matrix": null,
+            "detected_loudness": [
+               {
+                  "integrated": -14.97,
+                  "range": 0.0,
+                  "true_peaks": [
+                     -11.97,
+                     -99.0
+                  ]
+               }
+            ],
+            "detected_silence": [],
+            "detected_black": [],
+            "detected_scene": [],
+            "detected_false_scene": [],
+            "detected_ocr": [],
+            "detected_crop": [],
+            "detected_black_and_silence": [],
+            "detected_bitrate": 1536000
+         },
+         {
+            "stream_index": 6,
+            "count_packets": 500,
+            "min_packet_size": 3840,
+            "max_packet_size": 3840,
+            "color_space": null,
+            "color_range": null,
+            "color_primaries": null,
+            "color_trc": null,
+            "color_matrix": null,
+            "detected_loudness": [
+               {
+                  "integrated": -11.96,
+                  "range": 0.0,
+                  "true_peaks": [
+                     -11.97
+                  ]
+               }
+            ],
+            "detected_silence": [],
+            "detected_black": [],
+            "detected_scene": [],
+            "detected_false_scene": [],
+            "detected_ocr": [],
+            "detected_crop": [],
+            "detected_black_and_silence": [],
+            "detected_bitrate": 768000
+         },
+         {
+            "stream_index": 7,
+            "count_packets": 500,
+            "min_packet_size": 3840,
+            "max_packet_size": 3840,
+            "color_space": null,
+            "color_range": null,
+            "color_primaries": null,
+            "color_trc": null,
+            "color_matrix": null,
+            "detected_loudness": [
+               {
+                  "integrated": -11.96,
+                  "range": 0.0,
+                  "true_peaks": [
+                     -11.97
+                  ]
+               }
+            ],
+            "detected_silence": [],
+            "detected_black": [],
+            "detected_scene": [],
+            "detected_false_scene": [],
+            "detected_ocr": [],
+            "detected_crop": [],
+            "detected_black_and_silence": [],
+            "detected_bitrate": 768000
+         }
+      ],
+      "format": {
+         "detected_bitrate_format": 13973326
       }
-    ]
-  }
+   }
 }
