@@ -37,15 +37,17 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install FFmpeg and libs
+      - name: Install libs
         run: >-
           sudo apt-get update &&
-          sudo add-apt-repository ppa:savoury1/ffmpeg5 &&
-          sudo add-apt-repository ppa:savoury1/ffmpeg4 &&
-          sudo apt-get update &&
-          sudo apt-get install ffmpeg libasound2-dev libavcodec-dev
+          sudo apt-get install libasound2-dev libavcodec-dev
           libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev
           libpostproc-dev libswscale-dev -y
+
+      - name: Setup FFmpeg
+        uses: Iamshankhadeep/setup-ffmpeg@v1.2
+        with:
+          version: "5.0"
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -83,13 +85,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install FFmpeg and libs
+      - name: Install libs
         run: >-
           sudo apt-get update &&
-          sudo add-apt-repository ppa:savoury1/ffmpeg5 &&
-          sudo add-apt-repository ppa:savoury1/ffmpeg4 &&
-          sudo apt-get update &&
-          sudo apt-get install ffmpeg libasound2-dev libavcodec-dev
+          sudo apt-get install libasound2-dev libavcodec-dev
           libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev
           libpostproc-dev libswscale-dev -y
 
@@ -110,20 +109,17 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install dependencies (Ubuntu)
-        run: |-
-          sudo apt-get update
-          sudo apt-get install -y libssl-dev
-
-      - name: Install FFmpeg and libs
+      - name: Install libs
         run: >-
           sudo apt-get update &&
-          sudo add-apt-repository ppa:savoury1/ffmpeg5 &&
-          sudo add-apt-repository ppa:savoury1/ffmpeg4 &&
-          sudo apt-get update &&
-          sudo apt-get install ffmpeg libasound2-dev libavcodec-dev
+          sudo apt-get install libasound2-dev libavcodec-dev
           libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev
           libpostproc-dev libswscale-dev -y
+
+      - name: Setup FFmpeg
+        uses: Iamshankhadeep/setup-ffmpeg@v1.2
+        with:
+          version: "5.0"
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
