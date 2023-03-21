@@ -2,6 +2,7 @@ use crate::format_context::FormatContext;
 use crate::probe::black_and_silence::detect_black_and_silence;
 use crate::probe::black_detect::detect_black_frames;
 use crate::probe::crop_detect::detect_black_borders;
+use crate::probe::dualmono_detect::detect_dualmono;
 use crate::probe::loudness_detect::detect_loudness;
 use crate::probe::ocr_detect::detect_ocr;
 use crate::probe::scene_detect::detect_scene;
@@ -79,6 +80,12 @@ pub struct LoudnessResult {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct DualMonoResult {
+  pub start: i64,
+  pub end: i64,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct StreamProbeResult {
   stream_index: usize,
   count_packets: usize,
@@ -103,7 +110,10 @@ pub struct StreamProbeResult {
   pub detected_false_scene: Vec<FalseSceneResult>,
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub detected_ocr: Vec<OcrResult>,
+  #[serde(skip_serializing_if = "Vec::is_empty")]
   pub detected_loudness: Vec<LoudnessResult>,
+  #[serde(skip_serializing_if = "Vec::is_empty")]
+  pub detected_dualmono: Vec<DualMonoResult>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_bitrate: Option<i64>,
   #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -147,6 +157,7 @@ pub struct DeepProbeCheck {
   pub scene_detect: Option<HashMap<String, CheckParameterValue>>,
   pub ocr_detect: Option<HashMap<String, CheckParameterValue>>,
   pub loudness_detect: Option<HashMap<String, CheckParameterValue>>,
+  pub dualmono_detect: Option<HashMap<String, CheckParameterValue>>,
 }
 
 impl fmt::Display for DeepProbeResult {
@@ -208,6 +219,11 @@ impl fmt::Display for DeepProbeResult {
       writeln!(
         f,
         "{:30} : {:?}",
+        "DualMono detection", stream.detected_dualmono,
+      )?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
         "Bitrate detection", stream.detected_bitrate
       )?;
     }
@@ -236,6 +252,7 @@ impl StreamProbeResult {
       detected_false_scene: vec![],
       detected_ocr: vec![],
       detected_loudness: vec![],
+      detected_dualmono: vec![],
       detected_bitrate: None,
     }
   }
@@ -387,6 +404,10 @@ impl DeepProbe {
       detect_loudness(&self.filename, &mut streams, loudness_parameters);
     }
 
+    if let Some(dualmono_parameters) = check.dualmono_detect {
+      detect_dualmono(&self.filename, &mut streams, dualmono_parameters);
+    }
+
     let mut format = FormatProbeResult::new();
     format.detected_bitrate_format = context.get_bit_rate();
 
@@ -457,8 +478,24 @@ fn deep_probe() {
   audio_qualif.push([Track::new(3, 8)].to_vec());
   audio_qualif.push([Track::new(4, 2)].to_vec());
   audio_qualif.push([Track::new(5, 2)].to_vec());
-  audio_qualif.push([Track::new(6, 1), Track::new(7, 1)].to_vec());
+  audio_qualif.push([Track::new(6, 1), Track::new(7, 1)].to_vec()); //dualmono
   let loudness_check = CheckParameterValue {
+    min: None,
+    max: None,
+    num: None,
+    den: None,
+    th: None,
+    pairs: Some(audio_qualif.clone()),
+  };
+  let dualmono_duration_check = CheckParameterValue {
+    min: Some(100),
+    max: None,
+    num: None,
+    den: None,
+    th: None,
+    pairs: None,
+  };
+  let dualmono_qualif_check = CheckParameterValue {
     min: None,
     max: None,
     num: None,
@@ -490,12 +527,15 @@ fn deep_probe() {
   let mut scene_params = HashMap::new();
   let mut ocr_params = HashMap::new();
   let mut loudness_params = HashMap::new();
+  let mut dualmono_params = HashMap::new();
   silence_params.insert("duration".to_string(), duration_params);
   black_params.insert("duration".to_string(), black_duration_params);
   black_params.insert("picture".to_string(), black_picture_params);
   black_params.insert("pixel".to_string(), black_pixel_params);
   select_params.insert("spot_check".to_string(), spot_check);
   loudness_params.insert("pairing_list".to_string(), loudness_check);
+  dualmono_params.insert("duration".to_string(), dualmono_duration_check.clone());
+  dualmono_params.insert("pairing_list".to_string(), dualmono_qualif_check.clone());
   black_and_silence_params.insert("duration".to_string(), black_and_silence_check);
   scene_params.insert("threshold".to_string(), scene_check);
   ocr_params.insert("threshold".to_string(), ocr_check);
@@ -507,6 +547,7 @@ fn deep_probe() {
     scene_detect: Some(scene_params),
     ocr_detect: Some(ocr_params),
     loudness_detect: Some(loudness_params),
+    dualmono_detect: Some(dualmono_params),
   };
   let mut probe = DeepProbe::new("tests/test_file.mxf");
   probe.process(LevelFilter::Error, check).unwrap();

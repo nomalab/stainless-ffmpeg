@@ -40,6 +40,7 @@
                }
             ],
             "detected_loudness": [],
+            "detected_dualmono": [],
             "detected_false_scene": [],
             "detected_ocr": [],
             "detected_crop": [
@@ -86,6 +87,7 @@
                   ]
                }
             ],
+            "detected_dualmono": [],
             "detected_bitrate": 768000,
             "detected_black_and_silence": [
                {
@@ -128,6 +130,7 @@
                   ]
                }
             ],
+            "detected_dualmono": [],
             "detected_bitrate": 768000,
             "detected_black_and_silence": [
                {
@@ -167,6 +170,7 @@
                   ]
                }
             ],
+            "detected_dualmono": [],
             "detected_silence": [],
             "detected_black": [],
             "detected_scene": [],
@@ -194,6 +198,12 @@
                      -11.97,
                      -11.97
                   ]
+               }
+            ],
+            "detected_dualmono": [
+               {
+                  "start": 0,
+                  "end": 20000
                }
             ],
             "detected_silence": [],
@@ -225,6 +235,7 @@
                   ]
                }
             ],
+            "detected_dualmono": [],
             "detected_silence": [],
             "detected_black": [],
             "detected_scene": [],
@@ -253,6 +264,12 @@
                   ]
                }
             ],
+            "detected_dualmono": [
+               {
+                  "start": 0,
+                  "end": 20000
+               }
+            ],
             "detected_silence": [],
             "detected_black": [],
             "detected_scene": [],
@@ -279,6 +296,12 @@
                   "true_peaks": [
                      -11.97
                   ]
+               }
+            ],
+            "detected_dualmono": [
+               {
+                  "start": 0,
+                  "end": 20000
                }
             ],
             "detected_silence": [],
