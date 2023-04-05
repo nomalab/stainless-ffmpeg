@@ -65,8 +65,24 @@ fn main() {
     audio_qualif.push([Track::new(3, 8)].to_vec());
     audio_qualif.push([Track::new(4, 2)].to_vec());
     audio_qualif.push([Track::new(5, 2)].to_vec());
-    audio_qualif.push([Track::new(6, 1), Track::new(7, 1)].to_vec());
+    audio_qualif.push([Track::new(6, 1), Track::new(7, 1)].to_vec()); //dualmono
     let loudness_check = CheckParameterValue {
+      min: None,
+      max: None,
+      num: None,
+      den: None,
+      th: None,
+      pairs: Some(audio_qualif.clone()),
+    };
+    let dualmono_duration_check = CheckParameterValue {
+      min: Some(100),
+      max: None,
+      num: None,
+      den: None,
+      th: None,
+      pairs: None,
+    };
+    let dualmono_qualif_check = CheckParameterValue {
       min: None,
       max: None,
       num: None,
@@ -98,12 +114,15 @@ fn main() {
     let mut scene_params = HashMap::new();
     let mut ocr_params = HashMap::new();
     let mut loudness_params = HashMap::new();
+    let mut dualmono_params = HashMap::new();
     silence_params.insert("duration".to_string(), duration_params);
     black_params.insert("duration".to_string(), black_duration_params);
     black_params.insert("picture".to_string(), black_picture_params);
     black_params.insert("pixel".to_string(), black_pixel_params);
     select_params.insert("spot_check".to_string(), spot_check);
     loudness_params.insert("pairing_list".to_string(), loudness_check);
+    dualmono_params.insert("duration".to_string(), dualmono_duration_check.clone());
+    dualmono_params.insert("pairing_list".to_string(), dualmono_qualif_check.clone());
     black_and_silence_params.insert("duration".to_string(), black_and_silence_check);
     scene_params.insert("threshold".to_string(), scene_check);
     ocr_params.insert("threshold".to_string(), ocr_check);
@@ -115,6 +134,7 @@ fn main() {
       scene_detect: Some(scene_params),
       ocr_detect: Some(ocr_params),
       loudness_detect: Some(loudness_params),
+      dualmono_detect: Some(dualmono_params),
     };
     probe.process(LevelFilter::Off, check).unwrap();
     let result = serde_json::to_string(&probe).unwrap();
