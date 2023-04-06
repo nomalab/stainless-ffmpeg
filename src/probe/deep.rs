@@ -541,6 +541,14 @@ fn deep_probe() {
     th: Some(14.0),
     pairs: None,
   };
+  let sine_check = CheckParameterValue {
+    min: Some(40),
+    max: None,
+    num: None,
+    den: None,
+    th: None,
+    pairs: None,
+  };
 
   let mut silence_params = HashMap::new();
   let mut black_params = HashMap::new();
@@ -550,6 +558,7 @@ fn deep_probe() {
   let mut ocr_params = HashMap::new();
   let mut loudness_params = HashMap::new();
   let mut dualmono_params = HashMap::new();
+  let mut sine_params = HashMap::new();
   silence_params.insert("duration".to_string(), duration_params);
   black_params.insert("duration".to_string(), black_duration_params);
   black_params.insert("picture".to_string(), black_picture_params);
@@ -561,6 +570,7 @@ fn deep_probe() {
   black_and_silence_params.insert("duration".to_string(), black_and_silence_check);
   scene_params.insert("threshold".to_string(), scene_check);
   ocr_params.insert("threshold".to_string(), ocr_check);
+  sine_params.insert("duration".to_string(), sine_check);
   let check = DeepProbeCheck {
     silence_detect: Some(silence_params),
     black_detect: Some(black_params),
@@ -570,6 +580,7 @@ fn deep_probe() {
     ocr_detect: Some(ocr_params),
     loudness_detect: Some(loudness_params),
     dualmono_detect: Some(dualmono_params),
+    sine_detect: Some(sine_params),
   };
   let mut probe = DeepProbe::new("tests/test_file.mxf");
   probe.process(LevelFilter::Error, check).unwrap();

@@ -123,6 +123,7 @@ fn main() {
     let mut ocr_params = HashMap::new();
     let mut loudness_params = HashMap::new();
     let mut dualmono_params = HashMap::new();
+    let mut sine_params = HashMap::new();
     silence_params.insert("duration".to_string(), duration_params);
     black_params.insert("duration".to_string(), black_duration_params);
     black_params.insert("picture".to_string(), black_picture_params);
