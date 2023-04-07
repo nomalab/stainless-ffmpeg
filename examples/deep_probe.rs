@@ -88,7 +88,7 @@ fn main() {
       num: None,
       den: None,
       th: None,
-      pairs: Some(audio_qualif),
+      pairs: Some(audio_qualif.clone()),
     };
     let scene_check = CheckParameterValue {
       min: None,
@@ -106,6 +106,22 @@ fn main() {
       th: Some(14.0),
       pairs: None,
     };
+    let sine_duration_check = CheckParameterValue {
+      min: Some(100),
+      max: None,
+      num: None,
+      den: None,
+      th: None,
+      pairs: None,
+    };
+    let sine_qualif_check = CheckParameterValue {
+      min: None,
+      max: None,
+      num: None,
+      den: None,
+      th: None,
+      pairs: Some(audio_qualif),
+    };
 
     let mut silence_params = HashMap::new();
     let mut black_params = HashMap::new();
@@ -115,6 +131,7 @@ fn main() {
     let mut ocr_params = HashMap::new();
     let mut loudness_params = HashMap::new();
     let mut dualmono_params = HashMap::new();
+    let mut sine_params = HashMap::new();
     silence_params.insert("duration".to_string(), duration_params);
     black_params.insert("duration".to_string(), black_duration_params);
     black_params.insert("picture".to_string(), black_picture_params);
@@ -126,6 +143,8 @@ fn main() {
     black_and_silence_params.insert("duration".to_string(), black_and_silence_check);
     scene_params.insert("threshold".to_string(), scene_check);
     ocr_params.insert("threshold".to_string(), ocr_check);
+    sine_params.insert("duration".to_string(), sine_duration_check);
+    sine_params.insert("pairing_list".to_string(), sine_qualif_check);
     let check = DeepProbeCheck {
       silence_detect: Some(silence_params),
       black_detect: Some(black_params),
@@ -135,6 +154,7 @@ fn main() {
       ocr_detect: Some(ocr_params),
       loudness_detect: Some(loudness_params),
       dualmono_detect: Some(dualmono_params),
+      sine_detect: Some(sine_params),
     };
     probe.process(LevelFilter::Off, check).unwrap();
     let result = serde_json::to_string(&probe).unwrap();
