@@ -8,6 +8,7 @@ mod ocr_detect;
 mod scene_detect;
 mod silence_detect;
 mod simple;
+mod sine_detect;
 
 pub use self::black_and_silence::*;
 pub use self::black_detect::*;
@@ -18,3 +19,4 @@ pub use self::loudness_detect::*;
 pub use self::scene_detect::*;
 pub use self::silence_detect::*;
 pub use self::simple::Probe;
+pub use self::sine_detect::*;

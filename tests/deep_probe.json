@@ -52,7 +52,8 @@
                }
             ],
             "detected_black_and_silence": [],
-            "detected_silence": []
+            "detected_silence": [],
+            "detected_sine": []
          },
          {
             "stream_index": 1,
@@ -99,6 +100,28 @@
                   "end": 12000
                }
             ],
+            "detected_sine": [
+               {
+                  "channel": 1,
+                  "end": 3000,
+                  "start": 0
+               },
+               {
+                  "channel": 1,
+                  "end": 9000,
+                  "start": 6000
+               },
+               {
+                  "channel": 1,
+                  "end": 15000,
+                  "start": 12000
+               },
+               {
+                  "channel": 1,
+                  "end": 20000,
+                  "start": 18000
+               }
+            ],
             "detected_black": [],
             "detected_scene": [],
             "detected_false_scene": [],
@@ -138,6 +161,18 @@
                   "end": 14960
                }
             ],
+            "detected_sine": [
+               {
+                  "channel": 1,
+                  "end": 9000,
+                  "start": 0
+               },
+               {
+                  "channel": 1,
+                  "end": 20000,
+                  "start": 18000
+               }
+            ],
             "detected_black": [],
             "detected_scene": [],
             "detected_false_scene": [],
@@ -172,6 +207,7 @@
             ],
             "detected_dualmono": [],
             "detected_silence": [],
+            "detected_sine": [],
             "detected_black": [],
             "detected_scene": [],
             "detected_false_scene": [],
@@ -207,6 +243,18 @@
                }
             ],
             "detected_silence": [],
+            "detected_sine": [
+               {
+                  "channel": 1,
+                  "end": 20000,
+                  "start": 0
+               },
+               {
+                  "channel": 2,
+                  "end": 20000,
+                  "start": 0
+               }
+            ],
             "detected_black": [],
             "detected_scene": [],
             "detected_false_scene": [],
@@ -237,6 +285,13 @@
             ],
             "detected_dualmono": [],
             "detected_silence": [],
+            "detected_sine": [
+               {
+                  "channel": 1,
+                  "end": 20000,
+                  "start": 0
+               }
+            ],
             "detected_black": [],
             "detected_scene": [],
             "detected_false_scene": [],
@@ -271,6 +326,13 @@
                }
             ],
             "detected_silence": [],
+            "detected_sine": [
+               {
+                  "channel": 1,
+                  "end": 20000,
+                  "start": 0
+               }
+            ],
             "detected_black": [],
             "detected_scene": [],
             "detected_false_scene": [],
@@ -305,6 +367,13 @@
                }
             ],
             "detected_silence": [],
+            "detected_sine": [
+               {
+                  "channel": 1,
+                  "end": 20000,
+                  "start": 0
+               }
+            ],
             "detected_black": [],
             "detected_scene": [],
             "detected_false_scene": [],
