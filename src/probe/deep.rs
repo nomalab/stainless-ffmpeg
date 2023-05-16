@@ -12,11 +12,13 @@ use crate::stream::Stream;
 use ffmpeg_sys_next::*;
 use log::LevelFilter;
 use std::{cmp, collections::HashMap, fmt};
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct DeepProbe {
   #[serde(skip_serializing)]
   filename: String,
+  id: Uuid,
   pub result: Option<DeepProbeResult>,
 }
 
@@ -299,9 +301,10 @@ impl Track {
 }
 
 impl DeepProbe {
-  pub fn new(filename: &str) -> Self {
+  pub fn new(filename: &str, id: Uuid) -> Self {
     DeepProbe {
       filename: filename.to_owned(),
+      id,
       result: None,
     }
   }
@@ -449,6 +452,7 @@ impl DeepProbe {
 fn deep_probe() {
   // use serde_json;
   use std::collections::HashMap;
+  use uuid::Uuid;
 
   let duration_params = CheckParameterValue {
     min: Some(40),
@@ -596,7 +600,8 @@ fn deep_probe() {
     dualmono_detect: Some(dualmono_params),
     sine_detect: Some(sine_params),
   };
-  let mut probe = DeepProbe::new("tests/test_file.mxf");
+  let id = Uuid::parse_str("ef7e3ad9-a08f-4cd0-9fec-3ac465bbdd85").unwrap();
+  let mut probe = DeepProbe::new("tests/test_file.mxf", id);
   probe.process(LevelFilter::Error, check).unwrap();
   println!("{}", serde_json::to_string(&probe).unwrap());
   let content = std::fs::read_to_string("tests/deep_probe.json").unwrap();

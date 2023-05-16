@@ -2,13 +2,15 @@ use env_logger::Builder;
 use log::LevelFilter;
 use stainless_ffmpeg::probe::*;
 use std::{collections::HashMap, env};
+use uuid::Uuid;
 
 fn main() {
   let mut builder = Builder::from_default_env();
   builder.init();
 
   if let Some(path) = env::args().last() {
-    let mut probe = DeepProbe::new(&path);
+    let id: Uuid = Uuid::new_v4();
+    let mut probe = DeepProbe::new(&path, id);
     let duration_params = CheckParameterValue {
       min: Some(40),
       max: Some(20000),
