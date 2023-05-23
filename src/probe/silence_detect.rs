@@ -122,6 +122,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
             let index: i32 = stream_id.parse().unwrap();
+            let detected_silence = streams[(index) as usize].detected_silence.as_mut().unwrap();
             let mut silence = SilenceResult {
               start: 0,
               end: duration,
@@ -129,17 +130,17 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
 
             if let Some(value) = entry_map.get("lavfi.silence_start") {
               silence.start = (value.parse::<f64>().unwrap() * 1000.0) as i64;
-              streams[(index) as usize].detected_silence.push(silence);
+              detected_silence.push(silence);
             }
             if let Some(value) = entry_map.get("lavfi.silence_end") {
-              if let Some(last_detect) = streams[(index) as usize].detected_silence.last_mut() {
+              if let Some(last_detect) = detected_silence.last_mut() {
                 last_detect.end = (value.parse::<f64>().unwrap() * 1000.0) as i64;
               }
             }
             if let Some(value) = entry_map.get("lavfi.silence_duration") {
               if let Some(max) = max_duration {
                 if (value.parse::<f64>().unwrap() * 1000.0) as u64 > max {
-                  streams[(index) as usize].detected_silence.pop();
+                  detected_silence.pop();
                 }
               }
             }
@@ -147,16 +148,17 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
         }
       }
       for index in 0..context.get_nb_streams() {
-        if streams[(index) as usize].detected_silence.len() == 1
-          && streams[(index) as usize].detected_silence[0].start == 0
-          && streams[(index) as usize].detected_silence[0].end == duration
+        let detected_silence = streams[(index) as usize].detected_silence.as_mut().unwrap();
+        if detected_silence.len() == 1
+          && detected_silence[0].start == 0
+          && detected_silence[0].end == duration
         {
           streams[(index) as usize].silent_stream = Some(true);
         }
         if let Some(max) = max_duration {
-          if let Some(last_detect) = streams[(index) as usize].detected_silence.last() {
+          if let Some(last_detect) = detected_silence.last() {
             if (last_detect.end - last_detect.start) > max as i64 {
-              streams[(index) as usize].detected_silence.pop();
+              detected_silence.pop();
             }
           }
         }

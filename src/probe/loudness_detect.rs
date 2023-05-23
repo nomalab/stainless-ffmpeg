@@ -132,6 +132,10 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
             if let Entry(entry_map) = result {
               if let Some(stream_id) = entry_map.get("stream_id") {
                 let index: i32 = stream_id.parse().unwrap();
+                let detected_loudness = streams[(index) as usize]
+                  .detected_loudness
+                  .as_mut()
+                  .unwrap();
                 let mut loudness = LoudnessResult {
                   range: -99.9,
                   integrated: -99.9,
@@ -186,8 +190,8 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
                     }
                   }
                 }
-                streams[(index) as usize].detected_loudness.drain(..);
-                streams[(index) as usize].detected_loudness.push(loudness);
+                detected_loudness.drain(..);
+                detected_loudness.push(loudness);
               }
             }
           }

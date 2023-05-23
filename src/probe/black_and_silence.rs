@@ -16,9 +16,13 @@ pub fn detect_black_and_silence(
   }
 
   for bl_index in video_indexes {
-    for bl_detect in streams[bl_index as usize].detected_black.clone() {
+    for bl_detect in streams[bl_index as usize].detected_black.as_mut().unwrap() {
       for si_index in audio_indexes.clone() {
-        for si_detect in streams[si_index as usize].detected_silence.clone() {
+        for si_detect in streams[si_index as usize]
+          .detected_silence
+          .as_mut()
+          .unwrap()
+        {
           if bl_detect.end <= si_detect.end {
             bas.end = bl_detect.end;
           } else {
@@ -30,19 +34,21 @@ pub fn detect_black_and_silence(
             bas.start = bl_detect.start;
           }
           if bas.start < bas.end {
-            let bas_duration = bas.end - bas.start;
-            streams[si_index as usize]
+            let bas_duration: i64 = bas.end - bas.start;
+            let detected_black_and_silence = streams[si_index as usize]
               .detected_black_and_silence
-              .push(bas.clone());
+              .as_mut()
+              .unwrap();
+            detected_black_and_silence.push(bas.clone());
 
             if let Some(min) = duration_min {
               if bas_duration < min as i64 {
-                streams[si_index as usize].detected_black_and_silence.pop();
+                detected_black_and_silence.pop();
               }
             }
             if let Some(max) = duration_max {
               if bas_duration > max as i64 {
-                streams[si_index as usize].detected_black_and_silence.pop();
+                detected_black_and_silence.pop();
               }
             }
           }

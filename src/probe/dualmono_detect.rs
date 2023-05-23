@@ -175,23 +175,27 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
             let index: i32 = stream_id.parse().unwrap();
+            let detected_dualmono = streams[(index) as usize]
+              .detected_dualmono
+              .as_mut()
+              .unwrap();
             let mut dualmono = DualMonoResult {
               start: 0,
               end: duration,
             };
             if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_start") {
               dualmono.start = (value.parse::<f64>().unwrap() * 1000.0) as i64;
-              streams[(index) as usize].detected_dualmono.push(dualmono);
+              detected_dualmono.push(dualmono);
             }
             if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_end") {
-              if let Some(last_detect) = streams[(index) as usize].detected_dualmono.last_mut() {
+              if let Some(last_detect) = detected_dualmono.last_mut() {
                 last_detect.end = (value.parse::<f64>().unwrap() * 1000.0) as i64;
               }
             }
             if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_duration") {
               if let Some(max) = max_duration {
                 if value.parse::<f64>().unwrap() * 1000.0 > max as f64 {
-                  streams[(index) as usize].detected_dualmono.pop();
+                  detected_dualmono.pop();
                 }
               }
             }
@@ -200,11 +204,15 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
       }
 
       for index in 0..context.get_nb_streams() {
-        if let Some(last_detect) = streams[(index) as usize].detected_dualmono.last() {
+        let detected_dualmono = streams[(index) as usize]
+          .detected_dualmono
+          .as_mut()
+          .unwrap();
+        if let Some(last_detect) = detected_dualmono.last() {
           let duration = last_detect.end - last_detect.start;
           if let Some(max) = max_duration {
             if duration > max as i64 {
-              streams[(index) as usize].detected_dualmono.pop();
+              detected_dualmono.pop();
             }
           }
         }

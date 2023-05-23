@@ -106,30 +106,30 @@ pub struct StreamProbeResult {
   pub color_primaries: Option<String>,
   pub color_trc: Option<String>,
   pub color_matrix: Option<String>,
-  #[serde(skip_serializing_if = "Vec::is_empty")]
-  pub detected_silence: Vec<SilenceResult>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_silence: Option<Vec<SilenceResult>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub silent_stream: Option<bool>,
-  #[serde(skip_serializing_if = "Vec::is_empty")]
-  pub detected_black: Vec<BlackResult>,
-  #[serde(skip_serializing_if = "Vec::is_empty")]
-  pub detected_crop: Vec<CropResult>,
-  #[serde(skip_serializing_if = "Vec::is_empty")]
-  pub detected_scene: Vec<SceneResult>,
-  #[serde(skip_serializing_if = "Vec::is_empty")]
-  pub detected_false_scene: Vec<FalseSceneResult>,
-  #[serde(skip_serializing_if = "Vec::is_empty")]
-  pub detected_ocr: Vec<OcrResult>,
-  #[serde(skip_serializing_if = "Vec::is_empty")]
-  pub detected_loudness: Vec<LoudnessResult>,
-  #[serde(skip_serializing_if = "Vec::is_empty")]
-  pub detected_dualmono: Vec<DualMonoResult>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_black: Option<Vec<BlackResult>>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_crop: Option<Vec<CropResult>>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_scene: Option<Vec<SceneResult>>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_false_scene: Option<Vec<FalseSceneResult>>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_ocr: Option<Vec<OcrResult>>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_loudness: Option<Vec<LoudnessResult>>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_dualmono: Option<Vec<DualMonoResult>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_bitrate: Option<i64>,
-  #[serde(skip_serializing_if = "Vec::is_empty")]
-  pub detected_black_and_silence: Vec<BlackAndSilenceResult>,
-  #[serde(skip_serializing_if = "Vec::is_empty")]
-  pub detected_sine: Vec<SineResult>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_black_and_silence: Option<Vec<BlackAndSilenceResult>>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_sine: Option<Vec<SineResult>>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
@@ -257,17 +257,17 @@ impl StreamProbeResult {
       color_matrix: None,
       min_packet_size: std::i32::MAX,
       max_packet_size: std::i32::MIN,
-      detected_silence: vec![],
+      detected_silence: Some(vec![]),
       silent_stream: None,
-      detected_black: vec![],
-      detected_black_and_silence: vec![],
-      detected_crop: vec![],
-      detected_scene: vec![],
-      detected_false_scene: vec![],
-      detected_ocr: vec![],
-      detected_loudness: vec![],
-      detected_dualmono: vec![],
-      detected_sine: vec![],
+      detected_black: Some(vec![]),
+      detected_black_and_silence: Some(vec![]),
+      detected_crop: Some(vec![]),
+      detected_scene: Some(vec![]),
+      detected_false_scene: Some(vec![]),
+      detected_ocr: Some(vec![]),
+      detected_loudness: Some(vec![]),
+      detected_dualmono: Some(vec![]),
+      detected_sine: Some(vec![]),
       detected_bitrate: None,
     }
   }
@@ -356,9 +356,10 @@ impl DeepProbe {
       }
     }
 
+    let indexes = context.get_nb_streams();
     let mut audio_indexes = vec![];
     let mut video_indexes = vec![];
-    for stream_index in 0..context.get_nb_streams() {
+    for stream_index in 0..indexes {
       if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
         video_indexes.push(stream_index);
       }
@@ -367,31 +368,45 @@ impl DeepProbe {
       }
     }
 
-    if let Some(silence_parameters) = check.silence_detect {
+    if let Some(silence_parameters) = check.silence_detect.clone() {
       detect_silence(
         &self.filename,
         &mut streams,
         audio_indexes.clone(),
         silence_parameters,
       );
+    } else {
+      for index in 0..indexes {
+        streams[(index) as usize].detected_silence = None;
+      }
     }
 
-    if let Some(black_parameters) = check.black_detect {
+    if let Some(black_parameters) = check.black_detect.clone() {
       detect_black_frames(
         &self.filename,
         &mut streams,
         video_indexes.clone(),
         black_parameters,
       );
+    } else {
+      for index in 0..indexes {
+        streams[(index) as usize].detected_black = None;
+      }
     }
 
     if let Some(black_and_silence_parameters) = check.black_and_silence_detect {
-      detect_black_and_silence(
-        &mut streams,
-        video_indexes.clone(),
-        audio_indexes.clone(),
-        black_and_silence_parameters,
-      );
+      if check.black_detect.is_some() && check.silence_detect.is_some() {
+        detect_black_and_silence(
+          &mut streams,
+          video_indexes.clone(),
+          audio_indexes.clone(),
+          black_and_silence_parameters,
+        );
+      }
+    } else {
+      for index in 0..indexes {
+        streams[(index) as usize].detected_black_and_silence = None;
+      }
     }
 
     if let Some(crop_parameters) = check.crop_detect {
@@ -401,6 +416,10 @@ impl DeepProbe {
         video_indexes.clone(),
         crop_parameters,
       );
+    } else {
+      for index in 0..indexes {
+        streams[(index) as usize].detected_crop = None;
+      }
     }
 
     if let Some(scene_parameters) = check.scene_detect {
@@ -410,7 +429,13 @@ impl DeepProbe {
         video_indexes.clone(),
         scene_parameters,
       );
+    } else {
+      for index in 0..indexes {
+        streams[(index) as usize].detected_scene = None;
+        streams[(index) as usize].detected_false_scene = None;
+      }
     }
+
     if let Some(ocr_parameters) = check.ocr_detect {
       detect_ocr(
         &self.filename,
@@ -418,6 +443,10 @@ impl DeepProbe {
         video_indexes.clone(),
         ocr_parameters,
       );
+    } else {
+      for index in 0..indexes {
+        streams[(index) as usize].detected_ocr = None;
+      }
     }
 
     for index in 0..context.get_nb_streams() {
@@ -428,14 +457,26 @@ impl DeepProbe {
 
     if let Some(loudness_parameters) = check.loudness_detect {
       detect_loudness(&self.filename, &mut streams, loudness_parameters);
+    } else {
+      for index in 0..indexes {
+        streams[(index) as usize].detected_loudness = None;
+      }
     }
 
     if let Some(dualmono_parameters) = check.dualmono_detect {
       detect_dualmono(&self.filename, &mut streams, dualmono_parameters);
+    } else {
+      for index in 0..indexes {
+        streams[(index) as usize].detected_dualmono = None;
+      }
     }
 
     if let Some(sine_parameters) = check.sine_detect {
       detect_sine(&self.filename, &mut streams, audio_indexes, sine_parameters);
+    } else {
+      for index in 0..indexes {
+        streams[(index) as usize].detected_sine = None;
+      }
     }
 
     let mut format = FormatProbeResult::new();
