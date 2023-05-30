@@ -356,10 +356,9 @@ impl DeepProbe {
       }
     }
 
-    let indexes = context.get_nb_streams();
     let mut audio_indexes = vec![];
     let mut video_indexes = vec![];
-    for stream_index in 0..indexes {
+    for stream_index in 0..context.get_nb_streams() {
       if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
         video_indexes.push(stream_index);
       }
@@ -375,10 +374,6 @@ impl DeepProbe {
         audio_indexes.clone(),
         silence_parameters,
       );
-    } else {
-      for index in 0..indexes {
-        streams[(index) as usize].detected_silence = None;
-      }
     }
 
     if let Some(black_parameters) = check.black_detect.clone() {
@@ -388,10 +383,6 @@ impl DeepProbe {
         video_indexes.clone(),
         black_parameters,
       );
-    } else {
-      for index in 0..indexes {
-        streams[(index) as usize].detected_black = None;
-      }
     }
 
     if let Some(black_and_silence_parameters) = check.black_and_silence_detect {
@@ -403,10 +394,6 @@ impl DeepProbe {
           black_and_silence_parameters,
         );
       }
-    } else {
-      for index in 0..indexes {
-        streams[(index) as usize].detected_black_and_silence = None;
-      }
     }
 
     if let Some(crop_parameters) = check.crop_detect {
@@ -416,10 +403,6 @@ impl DeepProbe {
         video_indexes.clone(),
         crop_parameters,
       );
-    } else {
-      for index in 0..indexes {
-        streams[(index) as usize].detected_crop = None;
-      }
     }
 
     if let Some(scene_parameters) = check.scene_detect {
@@ -429,11 +412,6 @@ impl DeepProbe {
         video_indexes.clone(),
         scene_parameters,
       );
-    } else {
-      for index in 0..indexes {
-        streams[(index) as usize].detected_scene = None;
-        streams[(index) as usize].detected_false_scene = None;
-      }
     }
 
     if let Some(ocr_parameters) = check.ocr_detect {
@@ -443,10 +421,6 @@ impl DeepProbe {
         video_indexes.clone(),
         ocr_parameters,
       );
-    } else {
-      for index in 0..indexes {
-        streams[(index) as usize].detected_ocr = None;
-      }
     }
 
     for index in 0..context.get_nb_streams() {
@@ -462,10 +436,6 @@ impl DeepProbe {
         audio_indexes.clone(),
         loudness_parameters,
       );
-    } else {
-      for index in 0..indexes {
-        streams[(index) as usize].detected_loudness = None;
-      }
     }
 
     if let Some(dualmono_parameters) = check.dualmono_detect {
@@ -475,18 +445,10 @@ impl DeepProbe {
         audio_indexes.clone(),
         dualmono_parameters,
       );
-    } else {
-      for index in 0..indexes {
-        streams[(index) as usize].detected_dualmono = None;
-      }
     }
 
     if let Some(sine_parameters) = check.sine_detect {
       detect_sine(&self.filename, &mut streams, audio_indexes, sine_parameters);
-    } else {
-      for index in 0..indexes {
-        streams[(index) as usize].detected_sine = None;
-      }
     }
 
     let mut format = FormatProbeResult::new();

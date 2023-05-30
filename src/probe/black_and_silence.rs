@@ -19,13 +19,9 @@ pub fn detect_black_and_silence(
   }
 
   for bl_index in video_indexes {
-    for bl_detect in streams[bl_index as usize].detected_black.as_mut().unwrap() {
+    for bl_detect in streams[bl_index as usize].detected_black.clone().unwrap() {
       for si_index in audio_indexes.clone() {
-        for si_detect in streams[si_index as usize]
-          .detected_silence
-          .as_mut()
-          .unwrap()
-        {
+        for si_detect in streams[si_index as usize].detected_silence.clone().unwrap() {
           if bl_detect.end <= si_detect.end {
             bas.end = bl_detect.end;
           } else {
