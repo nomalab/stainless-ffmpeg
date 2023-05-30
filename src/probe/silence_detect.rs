@@ -92,6 +92,9 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
     error!("{:?}", msg);
     return;
   }
+  for index in audio_indexes.clone() {
+    streams[index as usize].detected_silence = Some(vec![]);
+  }
 
   match order.process() {
     Ok(results) => {
@@ -109,8 +112,8 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
           if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
             let rational_frame_rate = stream.get_frame_rate();
             let frame_rate = rational_frame_rate.num as f64 / rational_frame_rate.den as f64;
-            duration =
-              (results.len() as f64 / audio_indexes.len() as f64 / frame_rate * 1000.0) as i64;
+            duration = (results.len() as f64 / audio_indexes.clone().len() as f64 / frame_rate
+              * 1000.0) as i64;
           }
         }
       }
@@ -122,6 +125,10 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
             let index: i32 = stream_id.parse().unwrap();
+            if streams[(index) as usize].detected_silence.is_none() {
+              error!("Error : unexpected detection on stream ${index}");
+              break;
+            }
             let detected_silence = streams[(index) as usize].detected_silence.as_mut().unwrap();
             let mut silence = SilenceResult {
               start: 0,
@@ -147,7 +154,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
           }
         }
       }
-      for index in 0..context.get_nb_streams() {
+      for index in audio_indexes {
         let detected_silence = streams[(index) as usize].detected_silence.as_mut().unwrap();
         if detected_silence.len() == 1
           && detected_silence[0].start == 0

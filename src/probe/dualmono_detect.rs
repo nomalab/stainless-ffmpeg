@@ -120,6 +120,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
 pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
   filename: &str,
   streams: &mut [StreamProbeResult],
+  audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
 ) {
   let mut order = create_graph(filename, &params).unwrap();
@@ -130,6 +131,9 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
     return;
+  }
+  for index in audio_indexes.clone() {
+    streams[index as usize].detected_dualmono = Some(vec![]);
   }
 
   match order.process() {
@@ -175,6 +179,10 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
             let index: i32 = stream_id.parse().unwrap();
+            if streams[(index) as usize].detected_dualmono.is_none() {
+              error!("Error : unexpected detection on stream ${index}");
+              break;
+            }
             let detected_dualmono = streams[(index) as usize]
               .detected_dualmono
               .as_mut()
@@ -203,7 +211,7 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
         }
       }
 
-      for index in 0..context.get_nb_streams() {
+      for index in audio_indexes {
         let detected_dualmono = streams[(index) as usize]
           .detected_dualmono
           .as_mut()

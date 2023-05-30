@@ -14,6 +14,9 @@ pub fn detect_black_and_silence(
     duration_max = duration.max;
     duration_min = duration.min;
   }
+  for index in audio_indexes.clone() {
+    streams[index as usize].detected_black_and_silence = Some(vec![]);
+  }
 
   for bl_index in video_indexes {
     for bl_detect in streams[bl_index as usize].detected_black.as_mut().unwrap() {

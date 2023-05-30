@@ -40,8 +40,6 @@
                   "scene_number": 3
                }
             ],
-            "detected_loudness": [],
-            "detected_dualmono": [],
             "detected_false_scene": [],
             "detected_ocr": [],
             "detected_crop": [
@@ -51,10 +49,7 @@
                   "height": -1078,
                   "aspect_ratio": 2.211794
                }
-            ],
-            "detected_black_and_silence": [],
-            "detected_silence": [],
-            "detected_sine": []
+            ]
          },
          {
             "stream_index": 1,
@@ -122,12 +117,7 @@
                   "end": 20000,
                   "start": 18000
                }
-            ],
-            "detected_black": [],
-            "detected_scene": [],
-            "detected_false_scene": [],
-            "detected_ocr": [],
-            "detected_crop": []
+            ]
          },
          {
             "stream_index": 2,
@@ -173,12 +163,7 @@
                   "end": 20000,
                   "start": 18000
                }
-            ],
-            "detected_black": [],
-            "detected_scene": [],
-            "detected_false_scene": [],
-            "detected_ocr": [],
-            "detected_crop": []
+            ]
          },
          {
             "stream_index": 3,
@@ -209,11 +194,6 @@
             "detected_dualmono": [],
             "detected_silence": [],
             "detected_sine": [],
-            "detected_black": [],
-            "detected_scene": [],
-            "detected_false_scene": [],
-            "detected_ocr": [],
-            "detected_crop": [],
             "detected_black_and_silence": [],
             "detected_bitrate": 6144000
          },
@@ -256,11 +236,6 @@
                   "start": 0
                }
             ],
-            "detected_black": [],
-            "detected_scene": [],
-            "detected_false_scene": [],
-            "detected_ocr": [],
-            "detected_crop": [],
             "detected_black_and_silence": [],
             "detected_bitrate": 1536000
          },
@@ -293,11 +268,6 @@
                   "start": 0
                }
             ],
-            "detected_black": [],
-            "detected_scene": [],
-            "detected_false_scene": [],
-            "detected_ocr": [],
-            "detected_crop": [],
             "detected_black_and_silence": [],
             "detected_bitrate": 1536000
          },
@@ -334,11 +304,6 @@
                   "start": 0
                }
             ],
-            "detected_black": [],
-            "detected_scene": [],
-            "detected_false_scene": [],
-            "detected_ocr": [],
-            "detected_crop": [],
             "detected_black_and_silence": [],
             "detected_bitrate": 768000
          },
@@ -375,11 +340,6 @@
                   "start": 0
                }
             ],
-            "detected_black": [],
-            "detected_scene": [],
-            "detected_false_scene": [],
-            "detected_ocr": [],
-            "detected_crop": [],
             "detected_black_and_silence": [],
             "detected_bitrate": 768000
          }

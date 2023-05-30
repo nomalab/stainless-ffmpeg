@@ -116,10 +116,13 @@ pub fn detect_black_borders(
       }
     }
   }
-  let mut order = create_graph(filename, video_indexes, params, nb_frames, limit).unwrap();
+  let mut order = create_graph(filename, video_indexes.clone(), params, nb_frames, limit).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
     return;
+  }
+  for index in video_indexes {
+    streams[index as usize].detected_crop = Some(vec![]);
   }
 
   match order.process() {
@@ -151,6 +154,10 @@ pub fn detect_black_borders(
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
             let index: i32 = stream_id.parse().unwrap();
+            if streams[(index) as usize].detected_crop.is_none() {
+              error!("Error : unexpected detection on stream ${index}");
+              break;
+            }
             let detected_crop = streams[(index) as usize].detected_crop.as_mut().unwrap();
             let mut crop = CropResult {
               width: metadata_width,

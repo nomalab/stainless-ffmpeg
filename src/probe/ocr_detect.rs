@@ -81,10 +81,13 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
 ) {
-  let mut order = create_graph(filename, video_indexes, &params).unwrap();
+  let mut order = create_graph(filename, video_indexes.clone(), &params).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
     return;
+  }
+  for index in video_indexes {
+    streams[index as usize].detected_ocr = Some(vec![]);
   }
 
   match order.process() {
@@ -119,6 +122,10 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
             let index: i32 = stream_id.parse().unwrap();
+            if streams[(index) as usize].detected_ocr.is_none() {
+              error!("Error : unexpected detection on stream ${index}");
+              break;
+            }
             let detected_ocr = streams[(index) as usize].detected_ocr.as_mut().unwrap();
             let mut ocr = OcrResult {
               frame_start: 0,

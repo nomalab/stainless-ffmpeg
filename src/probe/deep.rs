@@ -257,17 +257,17 @@ impl StreamProbeResult {
       color_matrix: None,
       min_packet_size: std::i32::MAX,
       max_packet_size: std::i32::MIN,
-      detected_silence: Some(vec![]),
+      detected_silence: None,
       silent_stream: None,
-      detected_black: Some(vec![]),
-      detected_black_and_silence: Some(vec![]),
-      detected_crop: Some(vec![]),
-      detected_scene: Some(vec![]),
-      detected_false_scene: Some(vec![]),
-      detected_ocr: Some(vec![]),
-      detected_loudness: Some(vec![]),
-      detected_dualmono: Some(vec![]),
-      detected_sine: Some(vec![]),
+      detected_black: None,
+      detected_black_and_silence: None,
+      detected_crop: None,
+      detected_scene: None,
+      detected_false_scene: None,
+      detected_ocr: None,
+      detected_loudness: None,
+      detected_dualmono: None,
+      detected_sine: None,
       detected_bitrate: None,
     }
   }
@@ -456,7 +456,12 @@ impl DeepProbe {
     }
 
     if let Some(loudness_parameters) = check.loudness_detect {
-      detect_loudness(&self.filename, &mut streams, loudness_parameters);
+      detect_loudness(
+        &self.filename,
+        &mut streams,
+        audio_indexes.clone(),
+        loudness_parameters,
+      );
     } else {
       for index in 0..indexes {
         streams[(index) as usize].detected_loudness = None;
@@ -464,7 +469,12 @@ impl DeepProbe {
     }
 
     if let Some(dualmono_parameters) = check.dualmono_detect {
-      detect_dualmono(&self.filename, &mut streams, dualmono_parameters);
+      detect_dualmono(
+        &self.filename,
+        &mut streams,
+        audio_indexes.clone(),
+        dualmono_parameters,
+      );
     } else {
       for index in 0..indexes {
         streams[(index) as usize].detected_dualmono = None;

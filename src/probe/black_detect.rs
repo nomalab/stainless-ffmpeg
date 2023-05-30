@@ -83,10 +83,13 @@ pub fn detect_black_frames(
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
 ) {
-  let mut order = create_graph(filename, video_indexes, params.clone()).unwrap();
+  let mut order = create_graph(filename, video_indexes.clone(), params.clone()).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
     return;
+  }
+  for index in video_indexes {
+    streams[index as usize].detected_black = Some(vec![]);
   }
 
   match order.process() {
@@ -127,6 +130,10 @@ pub fn detect_black_frames(
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
             let index: i32 = stream_id.parse().unwrap();
+            if streams[(index) as usize].detected_black.is_none() {
+              error!("Error : unexpected detection on stream ${index}");
+              break;
+            }
             let detected_black = streams[(index) as usize].detected_black.as_mut().unwrap();
             let mut black = BlackResult {
               start: 0,

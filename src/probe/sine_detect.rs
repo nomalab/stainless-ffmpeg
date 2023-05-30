@@ -101,6 +101,9 @@ pub fn detect_sine(
     error!("{:?}", msg);
     return;
   }
+  for index in audio_indexes.clone() {
+    streams[index as usize].detected_sine = Some(vec![]);
+  }
 
   match order.process() {
     Ok(results) => {
@@ -151,6 +154,10 @@ pub fn detect_sine(
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
             let index: u8 = stream_id.parse().unwrap();
+            if streams[(index) as usize].detected_sine.is_none() {
+              error!("Error : unexpected detection on stream ${index}");
+              break;
+            }
             let detected_sine = streams[index as usize].detected_sine.as_mut().unwrap();
 
             if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
