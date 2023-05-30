@@ -41,7 +41,6 @@
                }
             ],
             "detected_false_scene": [],
-            "detected_ocr": [],
             "detected_crop": [
                {
                   "pts": 3959,

@@ -646,7 +646,7 @@ fn deep_probe() {
     crop_detect: Some(select_params),
     black_and_silence_detect: Some(black_and_silence_params),
     scene_detect: Some(scene_params),
-    ocr_detect: Some(ocr_params),
+    ocr_detect: None,
     loudness_detect: Some(loudness_params),
     dualmono_detect: Some(dualmono_params),
     sine_detect: Some(sine_params),
