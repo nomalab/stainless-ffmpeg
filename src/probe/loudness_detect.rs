@@ -110,6 +110,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
 pub fn detect_loudness<S: ::std::hash::BuildHasher>(
   filename: &str,
   streams: &mut [StreamProbeResult],
+  audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
 ) {
   match create_graph(filename, &params) {
@@ -117,6 +118,9 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
       if let Err(msg) = order.setup() {
         error!("{:?}", msg);
         return;
+      }
+      for index in audio_indexes {
+        streams[index as usize].detected_loudness = Some(vec![]);
       }
       match order.process() {
         Ok(results) => {
@@ -132,6 +136,14 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
             if let Entry(entry_map) = result {
               if let Some(stream_id) = entry_map.get("stream_id") {
                 let index: i32 = stream_id.parse().unwrap();
+                if streams[(index) as usize].detected_loudness.is_none() {
+                  error!("Error : unexpected detection on stream ${index}");
+                  break;
+                }
+                let detected_loudness = streams[(index) as usize]
+                  .detected_loudness
+                  .as_mut()
+                  .unwrap();
                 let mut loudness = LoudnessResult {
                   range: -99.9,
                   integrated: -99.9,
@@ -186,8 +198,8 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
                     }
                   }
                 }
-                streams[(index) as usize].detected_loudness.drain(..);
-                streams[(index) as usize].detected_loudness.push(loudness);
+                detected_loudness.drain(..);
+                detected_loudness.push(loudness);
               }
             }
           }

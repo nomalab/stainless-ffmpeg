@@ -81,10 +81,13 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
 ) {
-  let mut order = create_graph(filename, video_indexes, &params).unwrap();
+  let mut order = create_graph(filename, video_indexes.clone(), &params).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
     return;
+  }
+  for index in video_indexes {
+    streams[index as usize].detected_ocr = Some(vec![]);
   }
 
   match order.process() {
@@ -119,6 +122,11 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
             let index: i32 = stream_id.parse().unwrap();
+            if streams[(index) as usize].detected_ocr.is_none() {
+              error!("Error : unexpected detection on stream ${index}");
+              break;
+            }
+            let detected_ocr = streams[(index) as usize].detected_ocr.as_mut().unwrap();
             let mut ocr = OcrResult {
               frame_start: 0,
               frame_end: nb_frames as u64,
@@ -127,7 +135,7 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
             };
 
             if media_offline_detected {
-              if let Some(last_detect) = streams[(index) as usize].detected_ocr.last_mut() {
+              if let Some(last_detect) = detected_ocr.last_mut() {
                 if let Some(value) = entry_map.get("lavfi.scd.time") {
                   last_detect.frame_end =
                     (value.parse::<f32>().unwrap() * time_base / 25.0 * frame_rate - 1.0) as u64;
@@ -147,7 +155,7 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
                   let mut word_conf = value.to_string().replace(char::is_whitespace, "%,");
                   word_conf.pop();
                   ocr.word_confidence = word_conf;
-                  streams[(index) as usize].detected_ocr.push(ocr);
+                  detected_ocr.push(ocr);
                 }
               }
             }

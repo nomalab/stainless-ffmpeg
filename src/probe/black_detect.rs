@@ -83,10 +83,13 @@ pub fn detect_black_frames(
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
 ) {
-  let mut order = create_graph(filename, video_indexes, params.clone()).unwrap();
+  let mut order = create_graph(filename, video_indexes.clone(), params.clone()).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
     return;
+  }
+  for index in video_indexes {
+    streams[index as usize].detected_black = Some(vec![]);
   }
 
   match order.process() {
@@ -127,6 +130,11 @@ pub fn detect_black_frames(
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
             let index: i32 = stream_id.parse().unwrap();
+            if streams[(index) as usize].detected_black.is_none() {
+              error!("Error : unexpected detection on stream ${index}");
+              break;
+            }
+            let detected_black = streams[(index) as usize].detected_black.as_mut().unwrap();
             let mut black = BlackResult {
               start: 0,
               end: duration,
@@ -136,21 +144,21 @@ pub fn detect_black_frames(
               black.start =
                 (value.parse::<f32>().unwrap() * time_base / frame_rate * 1000.0) as i64;
               black_duration = black.start;
-              streams[(index) as usize].detected_black.push(black);
+              detected_black.push(black);
             }
             if let Some(value) = entry_map.get("lavfi.black_end") {
-              if let Some(last_detect) = streams[(index) as usize].detected_black.last_mut() {
+              if let Some(last_detect) = detected_black.last_mut() {
                 last_detect.end =
                   (value.parse::<f32>().unwrap() * time_base / frame_rate * 1000.0) as i64;
                 black_duration = last_detect.end - black_duration;
                 if let Some(max) = max_duration {
                   if black_duration > max as i64 {
-                    streams[(index) as usize].detected_black.pop();
+                    detected_black.pop();
                   }
                 }
                 if let Some(min) = min_duration {
                   if black_duration < min as i64 {
-                    streams[(index) as usize].detected_black.pop();
+                    detected_black.pop();
                   }
                 }
               }

@@ -68,10 +68,14 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
 ) {
-  let mut order = create_graph(filename, video_indexes, &params).unwrap();
+  let mut order = create_graph(filename, video_indexes.clone(), &params).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
     return;
+  }
+  for index in video_indexes {
+    streams[index as usize].detected_scene = Some(vec![]);
+    streams[index as usize].detected_false_scene = Some(vec![]);
   }
 
   match order.process() {
@@ -100,6 +104,15 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
             let index: i32 = stream_id.parse().unwrap();
+            if streams[(index) as usize].detected_scene.is_none() {
+              error!("Error : unexpected detection on stream ${index}");
+              break;
+            }
+            let detected_scene = streams[(index) as usize].detected_scene.as_mut().unwrap();
+            let detected_false_scene = streams[(index) as usize]
+              .detected_false_scene
+              .as_mut()
+              .unwrap();
             let mut scene = SceneResult {
               frame_index: 0,
               score: 0,
@@ -114,18 +127,16 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
                 scene.score = (value.parse::<f32>().unwrap()) as i32;
               }
 
-              if let Some(last_detect) = streams[(index) as usize].detected_scene.last() {
+              if let Some(last_detect) = detected_scene.last() {
                 if scene.frame_index - last_detect.frame_index <= 1 {
                   false_scene.frame = scene.frame_index;
-                  streams[(index) as usize]
-                    .detected_false_scene
-                    .push(false_scene);
+                  detected_false_scene.push(false_scene);
                 }
               }
 
               scene_count += 1;
               scene.scene_number = scene_count;
-              streams[(index) as usize].detected_scene.push(scene);
+              detected_scene.push(scene);
             }
           }
         }

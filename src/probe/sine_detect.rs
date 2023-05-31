@@ -101,6 +101,9 @@ pub fn detect_sine(
     error!("{:?}", msg);
     return;
   }
+  for index in audio_indexes.clone() {
+    streams[index as usize].detected_sine = Some(vec![]);
+  }
 
   match order.process() {
     Ok(results) => {
@@ -151,6 +154,11 @@ pub fn detect_sine(
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
             let index: u8 = stream_id.parse().unwrap();
+            if streams[(index) as usize].detected_sine.is_none() {
+              error!("Error : unexpected detection on stream ${index}");
+              break;
+            }
+            let detected_sine = streams[index as usize].detected_sine.as_mut().unwrap();
 
             if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
               if let AVMediaType::AVMEDIA_TYPE_AUDIO = context.get_stream_type(index as isize) {
@@ -208,17 +216,17 @@ pub fn detect_sine(
                         //check if sine is a 1000Hz => push and reset
                         if let Some(zero_crossing) = zero_cross.get(&audio_stream_key.clone()) {
                           if ((zero_crossing) / (sine.end - sine.start) as f64) == 2.0 {
-                            streams[index as usize].detected_sine.push(sine);
+                            detected_sine.push(sine);
                             last_starts.insert(audio_stream_key.clone(), None);
                             zero_cross.insert(audio_stream_key.clone(), 0.0);
                             if let Some(max) = max_duration {
                               if (sine.end - sine.start) > max as i64 {
-                                streams[index as usize].detected_sine.pop();
+                                detected_sine.pop();
                               }
                             }
                             if let Some(min) = min_duration {
                               if (sine.end - sine.start) < min as i64 {
-                                streams[index as usize].detected_sine.pop();
+                                detected_sine.pop();
                               }
                             }
                           }
@@ -240,17 +248,17 @@ pub fn detect_sine(
                     //check if sine is a 1000Hz => push and reset
                     if let Some(zero_crossing) = zero_cross.get(&audio_stream_key) {
                       if (zero_crossing / (sine.end - sine.start) as f64) == 2.0 {
-                        streams[index as usize].detected_sine.push(sine);
+                        detected_sine.push(sine);
                         last_starts.insert(audio_stream_key.clone(), None);
                         zero_cross.insert(audio_stream_key.clone(), 0.0);
                         if let Some(max) = max_duration {
                           if (sine.end - sine.start) > max as i64 {
-                            streams[index as usize].detected_sine.pop();
+                            detected_sine.pop();
                           }
                         }
                         if let Some(min) = min_duration {
                           if (sine.end - sine.start) < min as i64 {
-                            streams[index as usize].detected_sine.pop();
+                            detected_sine.pop();
                           }
                         }
                       }
