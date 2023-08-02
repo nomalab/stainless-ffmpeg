@@ -97,9 +97,6 @@ pub fn detect_black_frames(
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
       let mut duration = 0;
-      let mut time_base = 1.0;
-      let mut frame_rate = 1.0;
-      let mut black_duration = 0;
       let mut max_duration = None;
       let mut min_duration = None;
       if let Some(duration) = params.get("duration") {
@@ -121,7 +118,6 @@ pub fn detect_black_frames(
             } else {
               duration = (results.len() as f32 / frame_rate * 1000.0) as i64;
             }
-            time_base = stream.get_time_base().to_float();
           }
         }
       }
@@ -141,15 +137,14 @@ pub fn detect_black_frames(
 
             if let Some(value) = entry_map.get("lavfi.black_start") {
               black.start =
-                (value.parse::<f32>().unwrap() * time_base / frame_rate * 1000.0) as i64;
-              black_duration = black.start;
+                (value.parse::<f32>().unwrap() * 1000.0).round() as i64;
               detected_black.push(black);
             }
             if let Some(value) = entry_map.get("lavfi.black_end") {
               if let Some(last_detect) = detected_black.last_mut() {
                 last_detect.end =
-                  (value.parse::<f32>().unwrap() * time_base / frame_rate * 1000.0) as i64;
-                black_duration = last_detect.end - black_duration;
+                  (value.parse::<f32>().unwrap() * 1000.0).round() as i64;
+                let black_duration = last_detect.end - last_detect.start;
                 if let Some(max) = max_duration {
                   if black_duration > max as i64 {
                     detected_black.pop();

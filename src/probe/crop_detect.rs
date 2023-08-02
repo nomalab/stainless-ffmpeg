@@ -188,7 +188,7 @@ pub fn detect_black_borders(
               if w_changed || h_changed {
                 crop.width = real_width;
                 crop.height = real_height;
-                crop.pts = (pts.parse::<f32>().unwrap() * time_base * 1000.0) as i64;
+                crop.pts = (pts.parse::<f32>().unwrap() * time_base * 1000.0).round() as i64;
                 let real_aspect =
                   (real_width * pict_size.num) as f32 / (real_height * pict_size.den) as f32;
                 crop.aspect_ratio = real_aspect;
