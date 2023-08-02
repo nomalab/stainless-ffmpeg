@@ -94,9 +94,8 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
       for index in 0..context.get_nb_streams() {
         if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
           if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-            let rational_frame_rate = stream.get_frame_rate();
-            frame_rate = rational_frame_rate.num as f32 / rational_frame_rate.den as f32;
-            time_base = stream.get_time_base();
+            frame_rate = stream.get_frame_rate().to_float();
+            time_base = stream.get_time_base().to_float();
           }
         }
       }

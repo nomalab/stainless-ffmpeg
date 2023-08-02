@@ -168,8 +168,7 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
       for index in 0..context.get_nb_streams() {
         if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
           if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-            let rational_frame_rate = stream.get_frame_rate();
-            let frame_rate = rational_frame_rate.num as f64 / rational_frame_rate.den as f64;
+            let frame_rate = stream.get_frame_rate().to_float() as f64;
             duration = (results.len() as f64 / audio_stream_qualif_number as f64 / frame_rate
               * 1000.0) as i64;
           }

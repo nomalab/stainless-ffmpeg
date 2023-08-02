@@ -115,14 +115,13 @@ pub fn detect_black_frames(
       for index in 0..context.get_nb_streams() {
         if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
           if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-            let rational_frame_rate = stream.get_frame_rate();
-            frame_rate = rational_frame_rate.num as f32 / rational_frame_rate.den as f32;
+            let frame_rate = stream.get_frame_rate().to_float();
             if let Some(stream_duration) = stream.get_duration() {
               duration = (stream_duration * 1000.0) as i64;
             } else {
               duration = (results.len() as f32 / frame_rate * 1000.0) as i64;
             }
-            time_base = stream.get_time_base();
+            time_base = stream.get_time_base().to_float();
           }
         }
       }

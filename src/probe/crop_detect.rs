@@ -141,7 +141,7 @@ pub fn detect_black_borders(
       for index in 0..context.get_nb_streams() {
         if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
           if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-            time_base = stream.get_time_base();
+            time_base = stream.get_time_base().to_float();
             metadata_width = stream.get_width();
             metadata_height = stream.get_height();
             pict_size = stream.get_picture_aspect_ratio();

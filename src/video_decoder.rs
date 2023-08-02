@@ -1,4 +1,4 @@
-use crate::{format_context::FormatContext, frame::Frame, packet::Packet, tools};
+use crate::{format_context::FormatContext, frame::Frame, packet::Packet, tools::{self, rational::Rational}};
 use ffmpeg_sys_next::*;
 use std::{ffi::CString, ptr::null_mut};
 
@@ -74,30 +74,30 @@ impl VideoDecoder {
     unsafe { (*self.codec_context).height }
   }
 
-  pub fn get_time_base(&self) -> (i32, i32) {
+  pub fn get_time_base(&self) -> Rational {
     unsafe {
-      (
-        (*self.codec_context).time_base.num,
-        (*self.codec_context).time_base.den,
-      )
+      Rational {
+        num: (*self.codec_context).time_base.num,
+        den: (*self.codec_context).time_base.den,
+      }
     }
   }
 
-  pub fn get_frame_rate(&self) -> (i32, i32) {
+  pub fn get_frame_rate(&self) -> Rational {
     unsafe {
-      (
-        (*self.codec_context).framerate.num,
-        (*self.codec_context).framerate.den,
-      )
+      Rational {
+        num: (*self.codec_context).framerate.num,
+        den: (*self.codec_context).framerate.den,
+      }
     }
   }
 
-  pub fn get_aspect_ratio(&self) -> (i32, i32) {
+  pub fn get_aspect_ratio(&self) -> Rational {
     unsafe {
-      (
-        (*self.codec_context).sample_aspect_ratio.num,
-        (*self.codec_context).sample_aspect_ratio.den,
-      )
+      Rational {
+        num: (*self.codec_context).sample_aspect_ratio.num,
+        den: (*self.codec_context).sample_aspect_ratio.den,
+      }
     }
   }
 
