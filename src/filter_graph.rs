@@ -1,6 +1,6 @@
 use crate::{
-  audio_decoder::AudioDecoder, filter::Filter, frame::Frame, order::*, tools,
-  video_decoder::VideoDecoder, stream::Stream,
+  audio_decoder::AudioDecoder, filter::Filter, frame::Frame, order::*, stream::Stream, tools,
+  video_decoder::VideoDecoder,
 };
 use ffmpeg_sys_next::*;
 use libc::c_void;

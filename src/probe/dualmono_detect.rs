@@ -44,11 +44,8 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
             let mut is_stereo = true;
 
             for track in pair {
-              if (pair.len() == 1 && track.channel == 2) || pair.len() == 2 && track.channel == 1 {
-                is_stereo = true;
-              } else {
-                is_stereo = false;
-              }
+              is_stereo =
+                (pair.len() == 1 && track.channel == 2) || pair.len() == 2 && track.channel == 1;
               let input_label = format!("audio_input_{}", track.index);
               amerge_input.push(FilterInput {
                 kind: InputKind::Stream,

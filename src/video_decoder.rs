@@ -1,4 +1,9 @@
-use crate::{format_context::FormatContext, frame::Frame, packet::Packet, tools::{self, rational::Rational}};
+use crate::{
+  format_context::FormatContext,
+  frame::Frame,
+  packet::Packet,
+  tools::{self, rational::Rational},
+};
 use ffmpeg_sys_next::*;
 use std::{ffi::CString, ptr::null_mut};
 

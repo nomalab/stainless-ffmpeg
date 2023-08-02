@@ -118,8 +118,7 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
             let mut false_scene = FalseSceneResult { frame: 0 };
 
             if let Some(value) = entry_map.get("lavfi.scd.time") {
-              scene.frame_index =
-                (value.parse::<f32>().unwrap() * frame_rate) as i64;
+              scene.frame_index = (value.parse::<f32>().unwrap() * frame_rate) as i64;
               if let Some(value) = entry_map.get("lavfi.scd.score") {
                 scene.score = (value.parse::<f32>().unwrap()) as i32;
               }

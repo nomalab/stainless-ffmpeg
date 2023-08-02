@@ -134,8 +134,7 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
             if media_offline_detected {
               if let Some(last_detect) = detected_ocr.last_mut() {
                 if let Some(value) = entry_map.get("lavfi.scd.time") {
-                  last_detect.frame_end =
-                    (value.parse::<f32>().unwrap() * frame_rate - 1.0) as u64;
+                  last_detect.frame_end = (value.parse::<f32>().unwrap() * frame_rate - 1.0) as u64;
                   media_offline_detected = false;
                 }
               }
@@ -145,8 +144,7 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
                 media_offline_detected = true;
                 ocr.text = value.to_string();
                 if let Some(value) = entry_map.get("lavfi.scd.time") {
-                  ocr.frame_start =
-                    (value.parse::<f32>().unwrap() * frame_rate) as u64;
+                  ocr.frame_start = (value.parse::<f32>().unwrap() * frame_rate) as u64;
                 }
                 if let Some(value) = entry_map.get("lavfi.ocr.confidence") {
                   let mut word_conf = value.to_string().replace(char::is_whitespace, "%,");

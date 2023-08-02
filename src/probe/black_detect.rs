@@ -136,14 +136,12 @@ pub fn detect_black_frames(
             };
 
             if let Some(value) = entry_map.get("lavfi.black_start") {
-              black.start =
-                (value.parse::<f32>().unwrap() * 1000.0).round() as i64;
+              black.start = (value.parse::<f32>().unwrap() * 1000.0).round() as i64;
               detected_black.push(black);
             }
             if let Some(value) = entry_map.get("lavfi.black_end") {
               if let Some(last_detect) = detected_black.last_mut() {
-                last_detect.end =
-                  (value.parse::<f32>().unwrap() * 1000.0).round() as i64;
+                last_detect.end = (value.parse::<f32>().unwrap() * 1000.0).round() as i64;
                 let black_duration = last_detect.end - last_detect.start;
                 if let Some(max) = max_duration {
                   if black_duration > max as i64 {
