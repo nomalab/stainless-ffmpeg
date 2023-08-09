@@ -166,7 +166,7 @@ pub fn detect_sine(
                   "s16" => i16::MAX as f64,
                   "s32" => i32::MAX as f64,
                   "s64" => i64::MAX as f64,
-                  _ => 1.0
+                  _ => 1.0,
                 };
               }
             }
@@ -209,7 +209,7 @@ pub fn detect_sine(
                 let crest_factor = value.parse::<f64>().unwrap() / range_value;
 
                 //sqrt(2) +/- 1e-3
-                if (2_f64.sqrt() - 1e-3_f64 .. 2_f64.sqrt() + 1e-3_f64).contains(&crest_factor) {
+                if (2_f64.sqrt() - 1e-3_f64..2_f64.sqrt() + 1e-3_f64).contains(&crest_factor) {
                   if last_start_opt.is_some() {
                     if let Some(last_start) = last_start_opt {
                       //check if audio ends => 1000Hz until the end
@@ -238,17 +238,17 @@ pub fn detect_sine(
                       }
                     }
                   } else {
-                    sine.start = ((frame - 1.0) * (time_base * 1000.0)) as i64;
+                    sine.start = ((frame - 1.0) * (time_base * 1000.0)).round() as i64;
                     last_starts.insert(audio_stream_key.clone(), Some(sine.start));
                   }
-                } else if (2_f64.sqrt() - 1e-3_f64 .. 2_f64.sqrt() + 1e-3_f64)
+                } else if (2_f64.sqrt() - 1e-3_f64..2_f64.sqrt() + 1e-3_f64)
                   .contains(last_crests.get(&audio_stream_key).unwrap_or(&0.0))
                   && last_start_opt.is_some()
                 {
                   if let Some(last_start) = last_start_opt {
                     sine.channel = channel;
                     sine.start = *last_start;
-                    sine.end = ((frame - 1.0) * (time_base * 1000.0)) as i64;
+                    sine.end = ((frame - 1.0) * (time_base * 1000.0)).round() as i64;
                     //check if sine is a 1000Hz => push and reset
                     if let Some(zero_crossing) = zero_cross.get(&audio_stream_key) {
                       if (zero_crossing / (sine.end - sine.start) as f64) == 2.0 {
