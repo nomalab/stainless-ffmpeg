@@ -100,7 +100,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
-      let mut duration = 0;
+      let mut end_from_duration = 0;
       let mut context = FormatContext::new(filename).unwrap();
       if let Err(msg) = context.open_input() {
         context.close_input();
@@ -111,8 +111,8 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
         if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
           if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
             let frame_rate = stream.get_frame_rate().to_float() as f64;
-            duration = (results.len() as f64 / audio_indexes.clone().len() as f64 / frame_rate
-              * 1000.0) as i64;
+            end_from_duration = (((results.len() as f64 / audio_indexes.clone().len() as f64) - 1.0) / frame_rate
+              * 1000.0).round() as i64;
           }
         }
       }
@@ -131,7 +131,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
             let detected_silence = streams[(index) as usize].detected_silence.as_mut().unwrap();
             let mut silence = SilenceResult {
               start: 0,
-              end: duration,
+              end: end_from_duration,
             };
 
             if let Some(value) = entry_map.get("lavfi.silence_start") {
@@ -157,7 +157,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
         let detected_silence = streams[(index) as usize].detected_silence.as_mut().unwrap();
         if detected_silence.len() == 1
           && detected_silence[0].start == 0
-          && detected_silence[0].end == duration
+          && detected_silence[0].end == end_from_duration
         {
           streams[(index) as usize].silent_stream = Some(true);
         }

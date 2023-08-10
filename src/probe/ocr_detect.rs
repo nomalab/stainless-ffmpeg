@@ -96,7 +96,7 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
       info!("-> {:?} frames processed", results.len());
       let mut frame_rate = 1.0;
       let mut media_offline_detected = false;
-      let mut nb_frames = 0;
+      let mut last_frame = 0;
       let mut context = FormatContext::new(filename).unwrap();
       if let Err(msg) = context.open_input() {
         context.close_input();
@@ -107,10 +107,10 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
         if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
           if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
             frame_rate = stream.get_frame_rate().to_float();
-            if let Some(frames_number) = stream.get_nb_frames() {
-              nb_frames = frames_number;
+            if let Some(nb_frames) = stream.get_nb_frames() {
+              last_frame = nb_frames - 1;
             } else {
-              nb_frames = results.len() as i64;
+              last_frame = results.len() as i64 - 1;
             }
           }
         }
@@ -126,7 +126,7 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
             let detected_ocr = streams[(index) as usize].detected_ocr.as_mut().unwrap();
             let mut ocr = OcrResult {
               frame_start: 0,
-              frame_end: nb_frames as u64,
+              frame_end: last_frame as u64,
               text: "".to_string(),
               word_confidence: "".to_string(),
             };

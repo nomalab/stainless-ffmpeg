@@ -109,14 +109,14 @@ pub fn detect_sine(
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
-      let mut duration = 0;
-      let mut time_base = 1.0;
+      let mut end_from_duration = 0;
+      let mut frame_rate = 1.0;
       let mut tracks: Vec<Vec<Track>> = Vec::new();
       let mut sine: SineResult = Default::default();
       let mut range_value: f64 = 1.0; //contains the range values to code a sample
       let mut last_starts: HashMap<Track, Option<i64>> = HashMap::new(); //contains the previous declared start
       let mut last_crests: HashMap<Track, f64> = HashMap::new(); //contains the crest factor from the previous frame
-      let mut frames: HashMap<Track, f32> = HashMap::new(); //contains the current frame number
+      let mut frames: HashMap<Track, f64> = HashMap::new(); //contains the current frame number
       let mut zero_cross: HashMap<Track, f64> = HashMap::new(); //contains the number of zero crossings
       let mut max_duration = None;
       let mut min_duration = None;
@@ -142,10 +142,9 @@ pub fn detect_sine(
       for index in 0..context.get_nb_streams() {
         if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
           if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-            let frame_rate = stream.get_frame_rate().to_float() as f64;
-            duration =
-              (results.len() as f64 / audio_indexes.len() as f64 / frame_rate * 1000.0) as i64;
-            time_base = stream.get_time_base().to_float();
+            frame_rate = stream.get_frame_rate().to_float() as f64;
+            end_from_duration =
+              (((results.len() as f64 / audio_indexes.len() as f64) - 1.0) / frame_rate * 1000.0).round() as i64;
           }
         }
       }
@@ -193,9 +192,8 @@ pub fn detect_sine(
               let audio_stream_key = Track::new(index, channel);
 
               //update frame count
-              let prev_frame = frames.get(&audio_stream_key).unwrap_or(&0.0);
-              frames.insert(audio_stream_key.clone(), prev_frame + 1.0);
-              let frame = frames.get(&audio_stream_key).unwrap();
+              let frame = *frames.get(&audio_stream_key).unwrap_or(&0.0);
+              frames.insert(audio_stream_key.clone(), frame + 1.0);
               let last_start_opt = last_starts.get(&audio_stream_key).unwrap_or(&None);
 
               //update signal zero crossing count
@@ -213,10 +211,10 @@ pub fn detect_sine(
                   if last_start_opt.is_some() {
                     if let Some(last_start) = last_start_opt {
                       //check if audio ends => 1000Hz until the end
-                      if (frame * (time_base * 1000.0)) as i64 == duration {
+                      if (frame / frame_rate * 1000.0).round() as i64 == end_from_duration {
                         sine.channel = channel;
                         sine.start = *last_start;
-                        sine.end = duration;
+                        sine.end = end_from_duration;
                         //check if sine is a 1000Hz => push and reset
                         if let Some(zero_crossing) = zero_cross.get(&audio_stream_key.clone()) {
                           if ((zero_crossing) / (sine.end - sine.start) as f64) == 2.0 {
@@ -238,7 +236,7 @@ pub fn detect_sine(
                       }
                     }
                   } else {
-                    sine.start = ((frame - 1.0) * (time_base * 1000.0)).round() as i64;
+                    sine.start = (frame / frame_rate * 1000.0).round() as i64;
                     last_starts.insert(audio_stream_key.clone(), Some(sine.start));
                   }
                 } else if (2_f64.sqrt() - 1e-3_f64..2_f64.sqrt() + 1e-3_f64)
@@ -248,7 +246,7 @@ pub fn detect_sine(
                   if let Some(last_start) = last_start_opt {
                     sine.channel = channel;
                     sine.start = *last_start;
-                    sine.end = ((frame - 1.0) * (time_base * 1000.0)).round() as i64;
+                    sine.end = ((frame - 1.0) / frame_rate * 1000.0).round() as i64;
                     //check if sine is a 1000Hz => push and reset
                     if let Some(zero_crossing) = zero_cross.get(&audio_stream_key) {
                       if (zero_crossing / (sine.end - sine.start) as f64) == 2.0 {

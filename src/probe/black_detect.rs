@@ -96,7 +96,7 @@ pub fn detect_black_frames(
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
-      let mut duration = 0;
+      let mut end_from_duration = 0;
       let mut max_duration = None;
       let mut min_duration = None;
       if let Some(duration) = params.get("duration") {
@@ -113,10 +113,11 @@ pub fn detect_black_frames(
         if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
           if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
             let frame_rate = stream.get_frame_rate().to_float();
+            let frame_duration = stream.get_frame_rate().invert().to_float();
             if let Some(stream_duration) = stream.get_duration() {
-              duration = (stream_duration * 1000.0) as i64;
+              end_from_duration = ((stream_duration - frame_duration) * 1000.0).round() as i64;
             } else {
-              duration = (results.len() as f32 / frame_rate * 1000.0) as i64;
+              end_from_duration = ((results.len() as f32 - 1.0) / frame_rate * 1000.0).round() as i64;
             }
           }
         }
@@ -132,7 +133,7 @@ pub fn detect_black_frames(
             let detected_black = streams[(index) as usize].detected_black.as_mut().unwrap();
             let mut black = BlackResult {
               start: 0,
-              end: duration,
+              end: end_from_duration,
             };
 
             if let Some(value) = entry_map.get("lavfi.black_start") {

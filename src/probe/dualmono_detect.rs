@@ -137,7 +137,7 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
-      let mut duration = 0;
+      let mut end_from_duration = 0;
 
       let mut audio_stream_qualif_number = 0;
       match params.get("pairing_list") {
@@ -166,8 +166,8 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
         if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
           if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
             let frame_rate = stream.get_frame_rate().to_float() as f64;
-            duration = (results.len() as f64 / audio_stream_qualif_number as f64 / frame_rate
-              * 1000.0) as i64;
+            end_from_duration = (((results.len() as f64 / audio_stream_qualif_number as f64) - 1.0) / frame_rate
+              * 1000.0).round() as i64;
           }
         }
       }
@@ -185,7 +185,7 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
               .unwrap();
             let mut dualmono = DualMonoResult {
               start: 0,
-              end: duration,
+              end: end_from_duration,
             };
             if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_start") {
               dualmono.start = (value.parse::<f64>().unwrap() * 1000.0).round() as i64;
