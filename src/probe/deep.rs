@@ -330,6 +330,7 @@ impl DeepProbe {
       return Ok(());
     }
 
+    let mut frame_duration = 0.0;
     let mut streams = vec![];
     streams.resize(context.get_nb_streams() as usize, StreamProbeResult::new());
     while let Ok(packet) = context.next_packet() {
@@ -351,6 +352,7 @@ impl DeepProbe {
             streams[stream_index].color_primaries = stream.get_color_primaries();
             streams[stream_index].color_trc = stream.get_color_trc();
             streams[stream_index].color_matrix = stream.get_color_matrix();
+            frame_duration = stream.get_frame_rate().invert().to_float();
           }
         }
       }
@@ -392,6 +394,7 @@ impl DeepProbe {
           video_indexes.clone(),
           audio_indexes.clone(),
           black_and_silence_parameters,
+          frame_duration
         );
       }
     }

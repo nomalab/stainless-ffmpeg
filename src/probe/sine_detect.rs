@@ -217,17 +217,18 @@ pub fn detect_sine(
                         sine.end = end_from_duration;
                         //check if sine is a 1000Hz => push and reset
                         if let Some(zero_crossing) = zero_cross.get(&audio_stream_key.clone()) {
-                          if ((zero_crossing) / (sine.end - sine.start) as f64) == 2.0 {
+                          let sine_duration = ((frame + 1.0) / frame_rate * 1000.0).round() as i64 - sine.start;
+                          if (zero_crossing / sine_duration as f64) == 2.0 {
                             detected_sine.push(sine);
                             last_starts.insert(audio_stream_key.clone(), None);
                             zero_cross.insert(audio_stream_key.clone(), 0.0);
                             if let Some(max) = max_duration {
-                              if (sine.end - sine.start) > max as i64 {
+                              if sine_duration > max as i64 {
                                 detected_sine.pop();
                               }
                             }
                             if let Some(min) = min_duration {
-                              if (sine.end - sine.start) < min as i64 {
+                              if sine_duration < min as i64 {
                                 detected_sine.pop();
                               }
                             }
@@ -248,18 +249,19 @@ pub fn detect_sine(
                     sine.start = *last_start;
                     sine.end = ((frame - 1.0) / frame_rate * 1000.0).round() as i64;
                     //check if sine is a 1000Hz => push and reset
+                    let sine_duration = (frame / frame_rate * 1000.0).round() as i64 - sine.start;
                     if let Some(zero_crossing) = zero_cross.get(&audio_stream_key) {
-                      if (zero_crossing / (sine.end - sine.start) as f64) == 2.0 {
+                      if (zero_crossing / sine_duration as f64) == 2.0 {
                         detected_sine.push(sine);
                         last_starts.insert(audio_stream_key.clone(), None);
                         zero_cross.insert(audio_stream_key.clone(), 0.0);
                         if let Some(max) = max_duration {
-                          if (sine.end - sine.start) > max as i64 {
+                          if sine_duration > max as i64 {
                             detected_sine.pop();
                           }
                         }
                         if let Some(min) = min_duration {
-                          if (sine.end - sine.start) < min as i64 {
+                          if sine_duration < min as i64 {
                             detected_sine.pop();
                           }
                         }
