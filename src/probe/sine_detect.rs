@@ -144,7 +144,8 @@ pub fn detect_sine(
           if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
             frame_rate = stream.get_frame_rate().to_float() as f64;
             end_from_duration =
-              (((results.len() as f64 / audio_indexes.len() as f64) - 1.0) / frame_rate * 1000.0).round() as i64;
+              (((results.len() as f64 / audio_indexes.len() as f64) - 1.0) / frame_rate * 1000.0)
+                .round() as i64;
           }
         }
       }
@@ -217,7 +218,8 @@ pub fn detect_sine(
                         sine.end = end_from_duration;
                         //check if sine is a 1000Hz => push and reset
                         if let Some(zero_crossing) = zero_cross.get(&audio_stream_key.clone()) {
-                          let sine_duration = ((frame + 1.0) / frame_rate * 1000.0).round() as i64 - sine.start;
+                          let sine_duration =
+                            ((frame + 1.0) / frame_rate * 1000.0).round() as i64 - sine.start;
                           if (zero_crossing / sine_duration as f64) == 2.0 {
                             detected_sine.push(sine);
                             last_starts.insert(audio_stream_key.clone(), None);

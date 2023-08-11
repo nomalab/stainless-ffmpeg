@@ -16,11 +16,11 @@
             "detected_black": [
                {
                   "start": 0,
-                  "end": 4960
+                  "end": 4920
                },
                {
                   "start": 9960,
-                  "end": 14960
+                  "end": 14920
                }
             ],
             "detected_scene": [
@@ -63,15 +63,15 @@
             "detected_silence": [
                {
                   "start": 3000,
-                  "end": 6000
+                  "end": 5960
                },
                {
                   "start": 9000,
-                  "end": 12000
+                  "end": 11960
                },
                {
                   "start": 15000,
-                  "end": 18000
+                  "end": 17960
                }
             ],
             "detected_loudness": [
@@ -88,32 +88,32 @@
             "detected_black_and_silence": [
                {
                   "start": 3000,
-                  "end": 4960
+                  "end": 4920
                },
                {
                   "start": 9960,
-                  "end": 12000
+                  "end": 11960
                }
             ],
             "detected_sine": [
                {
                   "channel": 1,
-                  "end": 3000,
+                  "end": 2960,
                   "start": 0
                },
                {
                   "channel": 1,
-                  "end": 9000,
+                  "end": 8960,
                   "start": 6000
                },
                {
                   "channel": 1,
-                  "end": 15000,
+                  "end": 14960,
                   "start": 12000
                },
                {
                   "channel": 1,
-                  "end": 20000,
+                  "end": 19960,
                   "start": 18000
                }
             ]
@@ -131,7 +131,7 @@
             "detected_silence": [
                {
                   "start": 9000,
-                  "end": 18000
+                  "end": 17960
                }
             ],
             "detected_loudness": [
@@ -148,18 +148,18 @@
             "detected_black_and_silence": [
                {
                   "start": 9960,
-                  "end": 14960
+                  "end": 14920
                }
             ],
             "detected_sine": [
                {
                   "channel": 1,
-                  "end": 9000,
+                  "end": 8960,
                   "start": 0
                },
                {
                   "channel": 1,
-                  "end": 20000,
+                  "end": 19960,
                   "start": 18000
                }
             ]
@@ -219,19 +219,19 @@
             "detected_dualmono": [
                {
                   "start": 0,
-                  "end": 20000
+                  "end": 19960
                }
             ],
             "detected_silence": [],
             "detected_sine": [
                {
                   "channel": 1,
-                  "end": 20000,
+                  "end": 19960,
                   "start": 0
                },
                {
                   "channel": 2,
-                  "end": 20000,
+                  "end": 19960,
                   "start": 0
                }
             ],
@@ -263,7 +263,7 @@
             "detected_sine": [
                {
                   "channel": 1,
-                  "end": 20000,
+                  "end": 19960,
                   "start": 0
                }
             ],
@@ -292,14 +292,14 @@
             "detected_dualmono": [
                {
                   "start": 0,
-                  "end": 20000
+                  "end": 19960
                }
             ],
             "detected_silence": [],
             "detected_sine": [
                {
                   "channel": 1,
-                  "end": 20000,
+                  "end": 19960,
                   "start": 0
                }
             ],
@@ -328,14 +328,14 @@
             "detected_dualmono": [
                {
                   "start": 0,
-                  "end": 20000
+                  "end": 19960
                }
             ],
             "detected_silence": [],
             "detected_sine": [
                {
                   "channel": 1,
-                  "end": 20000,
+                  "end": 19960,
                   "start": 0
                }
             ],

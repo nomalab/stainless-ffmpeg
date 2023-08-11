@@ -394,7 +394,7 @@ impl DeepProbe {
           video_indexes.clone(),
           audio_indexes.clone(),
           black_and_silence_parameters,
-          frame_duration
+          frame_duration,
         );
       }
     }
