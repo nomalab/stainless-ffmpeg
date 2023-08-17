@@ -44,11 +44,8 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
             let mut is_stereo = true;
 
             for track in pair {
-              if (pair.len() == 1 && track.channel == 2) || pair.len() == 2 && track.channel == 1 {
-                is_stereo = true;
-              } else {
-                is_stereo = false;
-              }
+              is_stereo =
+                (pair.len() == 1 && track.channel == 2) || pair.len() == 2 && track.channel == 1;
               let input_label = format!("audio_input_{}", track.index);
               amerge_input.push(FilterInput {
                 kind: InputKind::Stream,
@@ -168,8 +165,7 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
       for index in 0..context.get_nb_streams() {
         if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
           if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-            let rational_frame_rate = stream.get_frame_rate();
-            let frame_rate = rational_frame_rate.num as f64 / rational_frame_rate.den as f64;
+            let frame_rate = stream.get_frame_rate().to_float() as f64;
             duration = (results.len() as f64 / audio_stream_qualif_number as f64 / frame_rate
               * 1000.0) as i64;
           }

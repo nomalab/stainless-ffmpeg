@@ -83,7 +83,6 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
       let mut frame_rate = 1.0;
-      let mut time_base = 1.0;
       let mut scene_count = 0;
       let mut context = FormatContext::new(filename).unwrap();
       if let Err(msg) = context.open_input() {
@@ -94,9 +93,7 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
       for index in 0..context.get_nb_streams() {
         if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
           if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-            let rational_frame_rate = stream.get_frame_rate();
-            frame_rate = rational_frame_rate.num as f32 / rational_frame_rate.den as f32;
-            time_base = stream.get_time_base();
+            frame_rate = stream.get_frame_rate().to_float();
           }
         }
       }
@@ -121,8 +118,7 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
             let mut false_scene = FalseSceneResult { frame: 0 };
 
             if let Some(value) = entry_map.get("lavfi.scd.time") {
-              scene.frame_index =
-                (value.parse::<f32>().unwrap() * time_base / 25.0 * frame_rate) as i64;
+              scene.frame_index = (value.parse::<f32>().unwrap() * frame_rate) as i64;
               if let Some(value) = entry_map.get("lavfi.scd.score") {
                 scene.score = (value.parse::<f32>().unwrap()) as i32;
               }

@@ -141,7 +141,7 @@ pub fn detect_black_borders(
       for index in 0..context.get_nb_streams() {
         if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
           if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-            time_base = stream.get_time_base();
+            time_base = stream.get_time_base().to_float();
             metadata_width = stream.get_width();
             metadata_height = stream.get_height();
             pict_size = stream.get_picture_aspect_ratio();
@@ -188,7 +188,7 @@ pub fn detect_black_borders(
               if w_changed || h_changed {
                 crop.width = real_width;
                 crop.height = real_height;
-                crop.pts = (pts.parse::<f32>().unwrap() * time_base * 1000.0) as i64;
+                crop.pts = (pts.parse::<f32>().unwrap() * time_base * 1000.0).round() as i64;
                 let real_aspect =
                   (real_width * pict_size.num) as f32 / (real_height * pict_size.den) as f32;
                 crop.aspect_ratio = real_aspect;

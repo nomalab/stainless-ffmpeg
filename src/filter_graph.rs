@@ -1,6 +1,6 @@
 use crate::{
-  audio_decoder::AudioDecoder, filter::Filter, frame::Frame, order::*, tools,
-  tools::rational::Rational, video_decoder::VideoDecoder,
+  audio_decoder::AudioDecoder, filter::Filter, frame::Frame, order::*, stream::Stream, tools,
+  video_decoder::VideoDecoder,
 };
 use ffmpeg_sys_next::*;
 use libc::c_void;
@@ -51,6 +51,7 @@ impl FilterGraph {
     &mut self,
     label: &str,
     video_decoder: &VideoDecoder,
+    video_stream: Stream,
   ) -> Result<(), String> {
     let buffer = unsafe { Filter::new_with_label(self.graph, "buffer", label)? };
 
@@ -60,15 +61,10 @@ impl FilterGraph {
     let height = ParameterValue::Int64(i64::from(video_decoder.get_height()));
     height.set("height", buffer.context as *mut c_void)?;
 
-    let (mut num, den) = video_decoder.get_frame_rate();
-    if num == 0 {
-      num = 25;
-    }
-    let time_base = ParameterValue::Rational(Rational { num, den });
+    let time_base = ParameterValue::Rational(video_stream.get_time_base());
     time_base.set("time_base", buffer.context as *mut c_void)?;
 
-    let (num, den) = video_decoder.get_aspect_ratio();
-    let pixel_aspect = ParameterValue::Rational(Rational { num, den });
+    let pixel_aspect = ParameterValue::Rational(video_decoder.get_aspect_ratio());
     pixel_aspect.set("pixel_aspect", buffer.context as *mut c_void)?;
 
     let pix_fmt = ParameterValue::String(video_decoder.get_pix_fmt_name());

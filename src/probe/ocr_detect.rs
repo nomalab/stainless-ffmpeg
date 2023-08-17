@@ -95,7 +95,6 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
       let mut frame_rate = 1.0;
-      let mut time_base = 1.0;
       let mut media_offline_detected = false;
       let mut nb_frames = 0;
       let mut context = FormatContext::new(filename).unwrap();
@@ -107,9 +106,7 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
       for index in 0..context.get_nb_streams() {
         if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
           if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-            let rational_frame_rate = stream.get_frame_rate();
-            frame_rate = rational_frame_rate.num as f32 / rational_frame_rate.den as f32;
-            time_base = stream.get_time_base();
+            frame_rate = stream.get_frame_rate().to_float();
             if let Some(frames_number) = stream.get_nb_frames() {
               nb_frames = frames_number;
             } else {
@@ -137,8 +134,7 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
             if media_offline_detected {
               if let Some(last_detect) = detected_ocr.last_mut() {
                 if let Some(value) = entry_map.get("lavfi.scd.time") {
-                  last_detect.frame_end =
-                    (value.parse::<f32>().unwrap() * time_base / 25.0 * frame_rate - 1.0) as u64;
+                  last_detect.frame_end = (value.parse::<f32>().unwrap() * frame_rate - 1.0) as u64;
                   media_offline_detected = false;
                 }
               }
@@ -148,8 +144,7 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
                 media_offline_detected = true;
                 ocr.text = value.to_string();
                 if let Some(value) = entry_map.get("lavfi.scd.time") {
-                  ocr.frame_start =
-                    (value.parse::<f32>().unwrap() * time_base / 25.0 * frame_rate) as u64;
+                  ocr.frame_start = (value.parse::<f32>().unwrap() * frame_rate) as u64;
                 }
                 if let Some(value) = entry_map.get("lavfi.ocr.confidence") {
                   let mut word_conf = value.to_string().replace(char::is_whitespace, "%,");

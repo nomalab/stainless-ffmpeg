@@ -15,8 +15,13 @@ impl Stream {
     Ok(Stream { stream })
   }
 
-  pub fn get_time_base(&self) -> f32 {
-    unsafe { (*self.stream).time_base.num as f32 / (*self.stream).time_base.den as f32 }
+  pub fn get_time_base(&self) -> Rational {
+    unsafe {
+      Rational {
+        num: (*self.stream).time_base.num,
+        den: (*self.stream).time_base.den,
+      }
+    }
   }
 
   pub fn get_codec_name(&self) -> Option<String> {
@@ -74,7 +79,7 @@ impl Stream {
       if (*self.stream).duration == AV_NOPTS_VALUE {
         None
       } else {
-        Some((*self.stream).duration as f32 * self.get_time_base())
+        Some((*self.stream).duration as f32 * self.get_time_base().to_float())
       }
     }
   }
@@ -124,7 +129,7 @@ impl Stream {
       if (*self.stream).start_time == AV_NOPTS_VALUE {
         None
       } else {
-        Some((*self.stream).start_time as f32 * self.get_time_base())
+        Some((*self.stream).start_time as f32 * self.get_time_base().to_float())
       }
     }
   }

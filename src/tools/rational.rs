@@ -24,6 +24,10 @@ impl Rational {
       den: self.den / gcd,
     }
   }
+
+  pub fn to_float(self) -> f32 {
+    self.num as f32 / self.den as f32
+  }
 }
 
 impl From<Rational> for AVRational {
@@ -49,6 +53,10 @@ fn gcd(x: i32, y: i32) -> i32 {
 #[test]
 fn rational() {
   let r = Rational::new(2, 4);
+
+  let f = r.clone().to_float();
+  assert_eq!(f, 0.5);
+
   let r = r.invert();
   assert!(r.num == 4);
   assert!(r.den == 2);
