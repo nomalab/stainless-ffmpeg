@@ -1,6 +1,7 @@
 use crate::format_context::FormatContext;
 use crate::probe::black_and_silence::detect_black_and_silence;
 use crate::probe::black_detect::detect_black_frames;
+use crate::probe::blackfade_detect::detect_blackfade;
 use crate::probe::crop_detect::detect_black_borders;
 use crate::probe::dualmono_detect::detect_dualmono;
 use crate::probe::loudness_detect::detect_loudness;
@@ -38,6 +39,12 @@ pub struct SilenceResult {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct BlackResult {
+  pub start: i64,
+  pub end: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+pub struct BlackFadeResult {
   pub start: i64,
   pub end: i64,
 }
@@ -114,6 +121,8 @@ pub struct StreamProbeResult {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_black: Option<Vec<BlackResult>>,
   #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_blackfade: Option<Vec<BlackFadeResult>>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_crop: Option<Vec<CropResult>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_scene: Option<Vec<SceneResult>>,
@@ -165,6 +174,7 @@ pub struct CheckParameterValue {
 pub struct DeepProbeCheck {
   pub silence_detect: Option<HashMap<String, CheckParameterValue>>,
   pub black_detect: Option<HashMap<String, CheckParameterValue>>,
+  pub blackfade_detect: Option<HashMap<String, CheckParameterValue>>,
   pub black_and_silence_detect: Option<HashMap<String, CheckParameterValue>>,
   pub crop_detect: Option<HashMap<String, CheckParameterValue>>,
   pub scene_detect: Option<HashMap<String, CheckParameterValue>>,
@@ -224,6 +234,11 @@ impl fmt::Display for DeepProbeResult {
       writeln!(
         f,
         "{:30} : {:?}",
+        "Blackfade detection", stream.detected_blackfade
+      )?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
         "Black and silence detection", stream.detected_black_and_silence
       )?;
       writeln!(f, "{:30} : {:?}", "Crop detection", stream.detected_crop)?;
@@ -274,6 +289,7 @@ impl StreamProbeResult {
       detected_silence: None,
       silent_stream: None,
       detected_black: None,
+      detected_blackfade: None,
       detected_black_and_silence: None,
       detected_crop: None,
       detected_scene: None,
@@ -424,6 +440,15 @@ impl DeepProbe {
         video_indexes.clone(),
         black_parameters,
         video_details.clone(),
+      );
+    }
+
+    if let Some(blackfade_parameters) = check.blackfade_detect {
+      detect_blackfade(
+        &self.filename,
+        &mut streams,
+        video_indexes.clone(),
+        blackfade_parameters,
       );
     }
 
