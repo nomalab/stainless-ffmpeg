@@ -577,6 +577,30 @@ fn deep_probe() {
     th: Some(0.98),
     pairs: None,
   };
+  let blackfade_duration_params = CheckParameterValue {
+    min: Some(40),
+    max: None,
+    num: None,
+    den: None,
+    th: None,
+    pairs: None,
+  };
+  let blackfade_pixel_params = CheckParameterValue {
+    min: None,
+    max: None,
+    num: None,
+    den: None,
+    th: Some(0.1),
+    pairs: None,
+  };
+  let blackfade_picture_params = CheckParameterValue {
+    min: None,
+    max: None,
+    num: None,
+    den: None,
+    th: Some(1.0),
+    pairs: None,
+  };
   let spot_check = CheckParameterValue {
     min: None,
     max: Some(5),
@@ -660,6 +684,7 @@ fn deep_probe() {
 
   let mut silence_params = HashMap::new();
   let mut black_params = HashMap::new();
+  let mut blackfade_params = HashMap::new();
   let mut select_params = HashMap::new();
   let mut black_and_silence_params = HashMap::new();
   let mut scene_params = HashMap::new();
@@ -671,6 +696,9 @@ fn deep_probe() {
   black_params.insert("duration".to_string(), black_duration_params);
   black_params.insert("picture".to_string(), black_picture_params);
   black_params.insert("pixel".to_string(), black_pixel_params);
+  blackfade_params.insert("duration".to_string(), blackfade_duration_params);
+  blackfade_params.insert("picture".to_string(), blackfade_picture_params);
+  blackfade_params.insert("pixel".to_string(), blackfade_pixel_params);
   select_params.insert("spot_check".to_string(), spot_check);
   loudness_params.insert("pairing_list".to_string(), loudness_check);
   dualmono_params.insert("duration".to_string(), dualmono_duration_check.clone());
@@ -683,6 +711,7 @@ fn deep_probe() {
   let check = DeepProbeCheck {
     silence_detect: Some(silence_params),
     black_detect: Some(black_params),
+    blackfade_detect: Some(blackfade_params),
     crop_detect: Some(select_params),
     black_and_silence_detect: Some(black_and_silence_params),
     scene_detect: Some(scene_params),
