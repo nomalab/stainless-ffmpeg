@@ -202,6 +202,18 @@ fn dump_option(
 
         format!("{width}x{height}")
       }
+      AV_OPT_TYPE_PIXEL_FMT => {
+        let format = AVPixelFormat::AV_PIX_FMT_NONE;
+        let value_ptr: *const _ = &format;
+        av_opt_get_pixel_fmt(
+          filter as *mut _,
+          (*option).name,
+          AV_OPT_SEARCH_CHILDREN,
+          value_ptr as *mut _,
+        );
+        let pixel_fmt = av_get_pix_fmt_name(format);
+        tools::to_string(pixel_fmt)
+      }
       _ => {
         // println!("{:?} {:?}", option_name, (*option).type_ );
         "".to_owned()
