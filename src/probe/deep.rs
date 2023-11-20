@@ -9,6 +9,7 @@ use crate::probe::scene_detect::detect_scene;
 use crate::probe::silence_detect::detect_silence;
 use crate::probe::sine_detect::detect_sine;
 use crate::stream::Stream;
+use crate::tools::rational::Rational;
 use ffmpeg_sys_next::*;
 use log::LevelFilter;
 use std::{cmp, collections::HashMap, fmt};
@@ -331,6 +332,14 @@ impl DeepProbe {
     }
 
     let mut frame_duration = 0.0;
+    let mut frame_rate = 1.0;
+    let mut time_base = 1.0;
+    let mut metadata_width = 0;
+    let mut metadata_height = 0;
+    let mut stream_duration = None;
+    let mut stream_frames = None;
+    let mut bits_raw_sample = None;
+    let mut aspect_ratio = Rational::new(1, 1);
     let mut streams = vec![];
     streams.resize(context.get_nb_streams() as usize, StreamProbeResult::new());
     while let Ok(packet) = context.next_packet() {
@@ -353,6 +362,14 @@ impl DeepProbe {
             streams[stream_index].color_trc = stream.get_color_trc();
             streams[stream_index].color_matrix = stream.get_color_matrix();
             frame_duration = stream.get_frame_rate().invert().to_float();
+            frame_rate = stream.get_frame_rate().to_float();
+            time_base = stream.get_time_base().to_float();
+            stream_duration = stream.get_duration();
+            stream_frames = stream.get_nb_frames();
+            bits_raw_sample = stream.get_bits_per_raw_sample();
+            metadata_width = stream.get_width();
+            metadata_height = stream.get_height();
+            aspect_ratio = stream.get_picture_aspect_ratio();
           }
         }
       }
@@ -375,6 +392,8 @@ impl DeepProbe {
         &mut streams,
         audio_indexes.clone(),
         silence_parameters,
+        frame_rate,
+        frame_duration,
       );
     }
 
@@ -384,6 +403,9 @@ impl DeepProbe {
         &mut streams,
         video_indexes.clone(),
         black_parameters,
+        frame_rate,
+        frame_duration,
+        stream_duration,
       );
     }
 
@@ -405,6 +427,12 @@ impl DeepProbe {
         &mut streams,
         video_indexes.clone(),
         crop_parameters,
+        stream_frames,
+        bits_raw_sample,
+        time_base,
+        metadata_width,
+        metadata_height,
+        aspect_ratio,
       );
     }
 
@@ -414,6 +442,7 @@ impl DeepProbe {
         &mut streams,
         video_indexes.clone(),
         scene_parameters,
+        frame_rate,
       );
     }
 
@@ -423,6 +452,8 @@ impl DeepProbe {
         &mut streams,
         video_indexes.clone(),
         ocr_parameters,
+        frame_rate,
+        stream_frames,
       );
     }
 
@@ -447,11 +478,19 @@ impl DeepProbe {
         &mut streams,
         audio_indexes.clone(),
         dualmono_parameters,
+        frame_rate,
+        frame_duration,
       );
     }
 
     if let Some(sine_parameters) = check.sine_detect {
-      detect_sine(&self.filename, &mut streams, audio_indexes, sine_parameters);
+      detect_sine(
+        &self.filename,
+        &mut streams,
+        audio_indexes,
+        sine_parameters,
+        frame_rate,
+      );
     }
 
     let mut format = FormatProbeResult::new();

@@ -1,13 +1,10 @@
-use crate::format_context::FormatContext;
 use crate::order::{
   filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
   output::Output, output_kind::OutputKind, stream::Stream,
 };
 use crate::order::{Filter, Order, OutputResult::Entry, ParameterValue};
 use crate::probe::deep::{CheckParameterValue, CropResult, StreamProbeResult};
-use crate::stream::Stream as ContextStream;
 use crate::tools::rational::Rational;
-use ffmpeg_sys_next::AVMediaType;
 use std::collections::HashMap;
 
 pub fn create_graph(
@@ -91,31 +88,20 @@ pub fn detect_black_borders(
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
+  stream_frames: Option<i64>,
+  bits_raw_sample: Option<i32>,
+  time_base: f32,
+  metadata_width: i32,
+  metadata_height: i32,
+  aspect_ratio: Rational,
 ) {
-  let mut context = FormatContext::new(filename).unwrap();
-  if let Err(msg) = context.open_input() {
-    context.close_input();
-    error!("{:?}", msg);
-    return;
-  }
-
-  let mut nb_frames = 0;
-  let mut limit = 0;
-  for index in 0..context.get_nb_streams() {
-    if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
-      if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-        if let Some(frames) = stream.get_nb_frames() {
-          nb_frames = frames;
-        }
-        // black threshold : 16 pour 8bits / 64 pour 10bits / 256 pour 12bits
-        limit = match stream.get_bits_per_raw_sample() {
-          Some(10) => 64,
-          Some(12) => 256,
-          _ => 16,
-        }
-      }
-    }
-  }
+  let nb_frames = stream_frames.unwrap_or(0);
+  // black threshold : 16 pour 8bits / 64 pour 10bits / 256 pour 12bits
+  let limit = match bits_raw_sample {
+    Some(10) => 64,
+    Some(12) => 256,
+    _ => 16,
+  };
   let mut order = create_graph(filename, video_indexes.clone(), params, nb_frames, limit).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
@@ -129,27 +115,11 @@ pub fn detect_black_borders(
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
-      let mut time_base = 1.0;
-      let mut metadata_width = 0;
-      let mut metadata_height = 0;
-      let mut real_width = 0;
-      let mut real_height = 0;
       let mut w_changed = false;
       let mut h_changed = false;
-      let mut pict_size = Rational::new(1, 1);
+      let mut real_width = metadata_width;
+      let mut real_height = metadata_height;
 
-      for index in 0..context.get_nb_streams() {
-        if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
-          if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-            time_base = stream.get_time_base().to_float();
-            metadata_width = stream.get_width();
-            metadata_height = stream.get_height();
-            pict_size = stream.get_picture_aspect_ratio();
-            real_width = metadata_width;
-            real_height = metadata_height;
-          }
-        }
-      }
       for result in results {
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
@@ -190,7 +160,7 @@ pub fn detect_black_borders(
                 crop.height = real_height;
                 crop.pts = (pts.parse::<f32>().unwrap() * time_base * 1000.0).round() as i64;
                 let real_aspect =
-                  (real_width * pict_size.num) as f32 / (real_height * pict_size.den) as f32;
+                  (real_width * aspect_ratio.num) as f32 / (real_height * aspect_ratio.den) as f32;
                 crop.aspect_ratio = real_aspect;
                 detected_crop.push(crop);
                 w_changed = false;

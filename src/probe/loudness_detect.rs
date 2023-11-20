@@ -1,4 +1,3 @@
-use crate::format_context::FormatContext;
 use crate::order::{
   filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
@@ -126,12 +125,6 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
         Ok(results) => {
           info!("END OF PROCESS");
           info!("-> {:?} frames processed", results.len());
-          let mut context = FormatContext::new(filename).unwrap();
-          if let Err(msg) = context.open_input() {
-            context.close_input();
-            error!("{:?}", msg);
-            return;
-          }
           for result in results {
             if let Entry(entry_map) = result {
               if let Some(stream_id) = entry_map.get("stream_id") {

@@ -1,14 +1,11 @@
 use crate::{
-  format_context::FormatContext,
   order::{
     filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
     output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
     ParameterValue,
   },
   probe::deep::{BlackResult, CheckParameterValue, StreamProbeResult},
-  stream::Stream as ContextStream,
 };
-use ffmpeg_sys_next::AVMediaType;
 use std::collections::HashMap;
 
 pub fn create_graph(
@@ -82,6 +79,9 @@ pub fn detect_black_frames(
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
+  frame_rate: f32,
+  frame_duration: f32,
+  stream_duration: Option<f32>,
 ) {
   let mut order = create_graph(filename, video_indexes.clone(), params.clone()).unwrap();
   if let Err(msg) = order.setup() {
@@ -96,34 +96,17 @@ pub fn detect_black_frames(
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
-      let mut end_from_duration = 0;
+      let end_from_duration = match stream_duration {
+        Some(duration) => ((duration - frame_duration) * 1000.0).round() as i64,
+        None => ((results.len() as f32 - 1.0) / frame_rate * 1000.0).round() as i64,
+      };
       let mut max_duration = None;
       let mut min_duration = None;
-      let mut frame_duration = 0.0;
       if let Some(duration) = params.get("duration") {
         max_duration = duration.max;
         min_duration = duration.min;
       }
-      let mut context = FormatContext::new(filename).unwrap();
-      if let Err(msg) = context.open_input() {
-        context.close_input();
-        error!("{:?}", msg);
-        return;
-      }
-      for index in 0..context.get_nb_streams() {
-        if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
-          if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-            let frame_rate = stream.get_frame_rate().to_float();
-            frame_duration = stream.get_frame_rate().invert().to_float();
-            if let Some(stream_duration) = stream.get_duration() {
-              end_from_duration = ((stream_duration - frame_duration) * 1000.0).round() as i64;
-            } else {
-              end_from_duration =
-                ((results.len() as f32 - 1.0) / frame_rate * 1000.0).round() as i64;
-            }
-          }
-        }
-      }
+
       for result in results {
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {

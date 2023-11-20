@@ -1,12 +1,9 @@
-use crate::format_context::FormatContext;
 use crate::order::{
   filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
   ParameterValue,
 };
 use crate::probe::deep::{CheckParameterValue, SilenceResult, StreamProbeResult};
-use crate::stream::Stream as ContextStream;
-use ffmpeg_sys_next::AVMediaType;
 use std::collections::HashMap;
 
 pub fn create_graph<S: ::std::hash::BuildHasher>(
@@ -86,6 +83,8 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
+  frame_rate: f32,
+  frame_duration: f32,
 ) {
   let mut order = create_graph(filename, audio_indexes.clone(), &params).unwrap();
   if let Err(msg) = order.setup() {
@@ -100,26 +99,11 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
-      let mut end_from_duration = 0;
-      let mut frame_duration = 0.0;
-      let mut context = FormatContext::new(filename).unwrap();
-      if let Err(msg) = context.open_input() {
-        context.close_input();
-        error!("{:?}", msg);
-        return;
-      }
-      for index in 0..context.get_nb_streams() {
-        if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
-          if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-            let frame_rate = stream.get_frame_rate().to_float() as f64;
-            frame_duration = stream.get_frame_rate().invert().to_float() as f64;
-            end_from_duration =
-              (((results.len() as f64 / audio_indexes.clone().len() as f64) - 1.0) / frame_rate
-                * 1000.0)
-                .round() as i64;
-          }
-        }
-      }
+      let end_from_duration = (((results.len() as f64 / audio_indexes.clone().len() as f64) - 1.0)
+        / frame_rate as f64
+        * 1000.0)
+        .round() as i64;
+
       let mut max_duration = None;
       if let Some(duration) = params.get("duration") {
         max_duration = duration.max;
@@ -145,7 +129,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
             if let Some(value) = entry_map.get("lavfi.silence_end") {
               if let Some(last_detect) = detected_silence.last_mut() {
                 last_detect.end =
-                  ((value.parse::<f64>().unwrap() - frame_duration) * 1000.0).round() as i64;
+                  ((value.parse::<f64>().unwrap() - frame_duration as f64) * 1000.0).round() as i64;
               }
             }
             if let Some(value) = entry_map.get("lavfi.silence_duration") {
