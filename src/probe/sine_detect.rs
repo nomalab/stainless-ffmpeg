@@ -113,7 +113,7 @@ pub fn detect_sine(
       let mut time_base = 1.0;
       let mut tracks: Vec<Vec<Track>> = Vec::new();
       let mut sine: SineResult = Default::default();
-      let mut range_value: f64 = 0.0; //contains the range values to code a sample (=2^n)
+      let mut range_value: f64 = 1.0; //contains the range values to code a sample
       let mut last_starts: HashMap<Track, Option<i64>> = HashMap::new(); //contains the previous declared start
       let mut last_crests: HashMap<Track, f64> = HashMap::new(); //contains the crest factor from the previous frame
       let mut frames: HashMap<Track, f32> = HashMap::new(); //contains the current frame number
@@ -161,8 +161,13 @@ pub fn detect_sine(
 
             if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
               if let AVMediaType::AVMEDIA_TYPE_AUDIO = context.get_stream_type(index as isize) {
-                let bit_depth = stream.get_bits_per_sample();
-                range_value = 2_i32.pow(bit_depth as u32) as f64;
+                let sample_fmt = stream.get_sample_fmt();
+                range_value = match sample_fmt.as_str() {
+                  "s16" => i16::MAX as f64,
+                  "s32" => i32::MAX as f64,
+                  "s64" => i64::MAX as f64,
+                  _ => 1.0,
+                };
               }
             }
 
@@ -201,10 +206,10 @@ pub fn detect_sine(
               }
 
               if let Some(value) = entry_map.get(&crest_factor_key) {
-                let crest_factor = range_value / value.parse::<f64>().unwrap();
+                let crest_factor = value.parse::<f64>().unwrap() / range_value;
 
                 //sqrt(2) +/- 1e-3
-                if (1.4129..1.4151).contains(&crest_factor) {
+                if (2_f64.sqrt() - 1e-3_f64..2_f64.sqrt() + 1e-3_f64).contains(&crest_factor) {
                   if last_start_opt.is_some() {
                     if let Some(last_start) = last_start_opt {
                       //check if audio ends => 1000Hz until the end
@@ -233,17 +238,17 @@ pub fn detect_sine(
                       }
                     }
                   } else {
-                    sine.start = ((frame - 1.0) * (time_base * 1000.0)) as i64;
+                    sine.start = ((frame - 1.0) * (time_base * 1000.0)).round() as i64;
                     last_starts.insert(audio_stream_key.clone(), Some(sine.start));
                   }
-                } else if (1.4129..1.4151)
+                } else if (2_f64.sqrt() - 1e-3_f64..2_f64.sqrt() + 1e-3_f64)
                   .contains(last_crests.get(&audio_stream_key).unwrap_or(&0.0))
                   && last_start_opt.is_some()
                 {
                   if let Some(last_start) = last_start_opt {
                     sine.channel = channel;
                     sine.start = *last_start;
-                    sine.end = ((frame - 1.0) * (time_base * 1000.0)) as i64;
+                    sine.end = ((frame - 1.0) * (time_base * 1000.0)).round() as i64;
                     //check if sine is a 1000Hz => push and reset
                     if let Some(zero_crossing) = zero_cross.get(&audio_stream_key) {
                       if (zero_crossing / (sine.end - sine.start) as f64) == 2.0 {

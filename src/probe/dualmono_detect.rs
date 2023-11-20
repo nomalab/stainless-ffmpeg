@@ -188,12 +188,12 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
               end: duration,
             };
             if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_start") {
-              dualmono.start = (value.parse::<f64>().unwrap() * 1000.0) as i64;
+              dualmono.start = (value.parse::<f64>().unwrap() * 1000.0).round() as i64;
               detected_dualmono.push(dualmono);
             }
             if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_end") {
               if let Some(last_detect) = detected_dualmono.last_mut() {
-                last_detect.end = (value.parse::<f64>().unwrap() * 1000.0) as i64;
+                last_detect.end = (value.parse::<f64>().unwrap() * 1000.0).round() as i64;
               }
             }
             if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_duration") {
