@@ -6,6 +6,7 @@ pub fn detect_black_and_silence(
   video_indexes: Vec<u32>,
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
+  frame_duration: f32,
 ) {
   let mut bas = BlackAndSilenceResult { start: 0, end: 0 };
   let mut duration_min = None;
@@ -33,7 +34,7 @@ pub fn detect_black_and_silence(
             bas.start = bl_detect.start;
           }
           if bas.start < bas.end {
-            let bas_duration: i64 = bas.end - bas.start;
+            let bas_duration: i64 = bas.end - bas.start + (frame_duration * 1000.0).round() as i64;
             let detected_black_and_silence = streams[si_index as usize]
               .detected_black_and_silence
               .as_mut()

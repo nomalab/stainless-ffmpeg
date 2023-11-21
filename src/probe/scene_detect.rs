@@ -1,12 +1,9 @@
-use crate::format_context::FormatContext;
 use crate::order::{
   filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
   ParameterValue,
 };
 use crate::probe::deep::{CheckParameterValue, FalseSceneResult, SceneResult, StreamProbeResult};
-use crate::stream::Stream as ContextStream;
-use ffmpeg_sys_next::AVMediaType;
 use std::collections::HashMap;
 
 pub fn create_graph<S: ::std::hash::BuildHasher>(
@@ -67,6 +64,7 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
+  frame_rate: f32,
 ) {
   let mut order = create_graph(filename, video_indexes.clone(), &params).unwrap();
   if let Err(msg) = order.setup() {
@@ -82,21 +80,8 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
-      let mut frame_rate = 1.0;
       let mut scene_count = 0;
-      let mut context = FormatContext::new(filename).unwrap();
-      if let Err(msg) = context.open_input() {
-        context.close_input();
-        error!("{:?}", msg);
-        return;
-      }
-      for index in 0..context.get_nb_streams() {
-        if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
-          if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-            frame_rate = stream.get_frame_rate().to_float();
-          }
-        }
-      }
+
       for result in results {
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
