@@ -76,45 +76,35 @@ pub fn detect_blackfade(
             if let Some(value) = entry_map.get("lavfi.black_end") {
               if let Some(last_detect) = detected_blackfade.last_mut() {
                 last_detect.end = (value.parse::<f32>().unwrap() * 1000.0).round() as i64;
-                let black_duration = last_detect.end - last_detect.start;
+                let blackfade_duration = last_detect.end - last_detect.start;
+                let last_start = last_detect.start;
+                let last_end = last_detect.end;
                 if let Some(max) = max_duration {
-                  if black_duration > max as i64 {
+                  if blackfade_duration > max as i64 {
                     detected_blackfade.pop();
                   }
                 }
                 if let Some(min) = min_duration {
-                  if black_duration < min as i64 {
+                  if blackfade_duration < min as i64 {
                     detected_blackfade.pop();
                   }
                 }
+                let detected_black = streams[index as usize].detected_black.clone();
+                let mut fade = false;
+                if let Some(blackframes) = detected_black {
+                  for blackframe in blackframes {
+                    if (last_start < blackframe.start && blackframe.start < last_end)
+                      || (last_start < blackframe.end && blackframe.end < last_end)
+                    {
+                      fade = true;
+                    }
+                  }
+                }
+                if !fade {
+                  detected_blackfade.pop();
+                }
               }
             }
-          }
-        }
-      }
-
-      for index in video_indexes {
-        let detected_blackfade = streams[(index) as usize]
-          .detected_blackfade
-          .as_mut()
-          .unwrap();
-        let detected_black = streams[index as usize].detected_black.clone();
-        let mut removed_blackfade_count = 0;
-        for (index, blackfade) in detected_blackfade.clone().iter().enumerate() {
-          let mut fade = false;
-          if let Some(blackframes) = detected_black.clone() {
-            for blackframe in blackframes {
-              if (blackfade.start < blackframe.start && blackframe.start < blackfade.end)
-                || (blackfade.start < blackframe.end && blackframe.end < blackfade.end)
-              {
-                fade = true;
-                break;
-              }
-            }
-          }
-          if !fade {
-            detected_blackfade.remove(index - removed_blackfade_count);
-            removed_blackfade_count += 1;
           }
         }
       }
