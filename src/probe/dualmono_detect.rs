@@ -4,7 +4,7 @@ use crate::{
     output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
     ParameterValue,
   },
-  probe::deep::{CheckParameterValue, DualMonoResult, StreamProbeResult},
+  probe::deep::{CheckParameterValue, DualMonoResult, StreamProbeResult, VideoDetails},
 };
 use std::collections::HashMap;
 
@@ -116,8 +116,7 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
-  frame_rate: f32,
-  frame_duration: f32,
+  video_details: VideoDetails,
 ) {
   let mut order = create_graph(filename, &params).unwrap();
   let mut max_duration = None;
@@ -155,7 +154,7 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
       }
 
       let end_from_duration = (((results.len() as f64 / audio_stream_qualif_number as f64) - 1.0)
-        / frame_rate as f64
+        / video_details.frame_rate as f64
         * 1000.0)
         .round() as i64;
       for result in results {
@@ -181,7 +180,8 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
             if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_end") {
               if let Some(last_detect) = detected_dualmono.last_mut() {
                 last_detect.end =
-                  ((value.parse::<f64>().unwrap() - frame_duration as f64) * 1000.0).round() as i64;
+                  ((value.parse::<f64>().unwrap() - video_details.frame_duration as f64) * 1000.0)
+                    .round() as i64;
               }
             }
             if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_duration") {
@@ -201,8 +201,8 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
           .as_mut()
           .unwrap();
         if let Some(last_detect) = detected_dualmono.last() {
-          let duration =
-            last_detect.end - last_detect.start + (frame_duration * 1000.0).round() as i64;
+          let duration = last_detect.end - last_detect.start
+            + (video_details.frame_duration * 1000.0).round() as i64;
           if let Some(max) = max_duration {
             if duration > max as i64 {
               detected_dualmono.pop();

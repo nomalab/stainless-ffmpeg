@@ -3,7 +3,7 @@ use crate::order::{
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
   ParameterValue,
 };
-use crate::probe::deep::{CheckParameterValue, SilenceResult, StreamProbeResult};
+use crate::probe::deep::{CheckParameterValue, SilenceResult, StreamProbeResult, VideoDetails};
 use std::collections::HashMap;
 
 pub fn create_graph<S: ::std::hash::BuildHasher>(
@@ -83,8 +83,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
-  frame_rate: f32,
-  frame_duration: f32,
+  video_details: VideoDetails,
 ) {
   let mut order = create_graph(filename, audio_indexes.clone(), &params).unwrap();
   if let Err(msg) = order.setup() {
@@ -100,7 +99,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
       let end_from_duration = (((results.len() as f64 / audio_indexes.clone().len() as f64) - 1.0)
-        / frame_rate as f64
+        / video_details.frame_rate as f64
         * 1000.0)
         .round() as i64;
 
@@ -129,7 +128,8 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
             if let Some(value) = entry_map.get("lavfi.silence_end") {
               if let Some(last_detect) = detected_silence.last_mut() {
                 last_detect.end =
-                  ((value.parse::<f64>().unwrap() - frame_duration as f64) * 1000.0).round() as i64;
+                  ((value.parse::<f64>().unwrap() - video_details.frame_duration as f64) * 1000.0)
+                    .round() as i64;
               }
             }
             if let Some(value) = entry_map.get("lavfi.silence_duration") {
@@ -152,8 +152,8 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
         }
         if let Some(max) = max_duration {
           if let Some(last_detect) = detected_silence.last() {
-            let silence_duration =
-              last_detect.end - last_detect.start + (frame_duration * 1000.0).round() as i64;
+            let silence_duration = last_detect.end - last_detect.start
+              + (video_details.frame_duration * 1000.0).round() as i64;
             if silence_duration > max as i64 {
               detected_silence.pop();
             }

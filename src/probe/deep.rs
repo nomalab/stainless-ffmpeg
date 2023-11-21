@@ -174,6 +174,19 @@ pub struct DeepProbeCheck {
   pub sine_detect: Option<HashMap<String, CheckParameterValue>>,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct VideoDetails {
+  pub frame_rate: f32,
+  pub time_base: f32,
+  pub frame_duration: f32,
+  pub stream_duration: Option<f32>,
+  pub stream_frames: Option<i64>,
+  pub bits_raw_sample: Option<i32>,
+  pub metadata_width: i32,
+  pub metadata_height: i32,
+  pub aspect_ratio: Rational,
+}
+
 impl fmt::Display for DeepProbeResult {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     for (index, stream) in self.streams.iter().enumerate() {
@@ -301,6 +314,22 @@ impl Track {
   }
 }
 
+impl VideoDetails {
+  pub fn new() -> Self {
+    VideoDetails {
+      frame_rate: 1.0,
+      time_base: 1.0,
+      frame_duration: 0.0,
+      stream_duration: None,
+      stream_frames: None,
+      bits_raw_sample: None,
+      metadata_width: 0,
+      metadata_height: 0,
+      aspect_ratio: Rational::new(1, 1),
+    }
+  }
+}
+
 impl DeepProbe {
   pub fn new(filename: &str, id: Uuid) -> Self {
     DeepProbe {
@@ -331,15 +360,7 @@ impl DeepProbe {
       return Ok(());
     }
 
-    let mut frame_duration = 0.0;
-    let mut frame_rate = 1.0;
-    let mut time_base = 1.0;
-    let mut metadata_width = 0;
-    let mut metadata_height = 0;
-    let mut stream_duration = None;
-    let mut stream_frames = None;
-    let mut bits_raw_sample = None;
-    let mut aspect_ratio = Rational::new(1, 1);
+    let mut video_details = VideoDetails::new();
     let mut streams = vec![];
     streams.resize(context.get_nb_streams() as usize, StreamProbeResult::new());
     while let Ok(packet) = context.next_packet() {
@@ -361,15 +382,15 @@ impl DeepProbe {
             streams[stream_index].color_primaries = stream.get_color_primaries();
             streams[stream_index].color_trc = stream.get_color_trc();
             streams[stream_index].color_matrix = stream.get_color_matrix();
-            frame_duration = stream.get_frame_rate().invert().to_float();
-            frame_rate = stream.get_frame_rate().to_float();
-            time_base = stream.get_time_base().to_float();
-            stream_duration = stream.get_duration();
-            stream_frames = stream.get_nb_frames();
-            bits_raw_sample = stream.get_bits_per_raw_sample();
-            metadata_width = stream.get_width();
-            metadata_height = stream.get_height();
-            aspect_ratio = stream.get_picture_aspect_ratio();
+            video_details.frame_duration = stream.get_frame_rate().invert().to_float();
+            video_details.frame_rate = stream.get_frame_rate().to_float();
+            video_details.time_base = stream.get_time_base().to_float();
+            video_details.stream_duration = stream.get_duration();
+            video_details.stream_frames = stream.get_nb_frames();
+            video_details.bits_raw_sample = stream.get_bits_per_raw_sample();
+            video_details.metadata_width = stream.get_width();
+            video_details.metadata_height = stream.get_height();
+            video_details.aspect_ratio = stream.get_picture_aspect_ratio();
           }
         }
       }
@@ -392,8 +413,7 @@ impl DeepProbe {
         &mut streams,
         audio_indexes.clone(),
         silence_parameters,
-        frame_rate,
-        frame_duration,
+        video_details.clone(),
       );
     }
 
@@ -403,9 +423,7 @@ impl DeepProbe {
         &mut streams,
         video_indexes.clone(),
         black_parameters,
-        frame_rate,
-        frame_duration,
-        stream_duration,
+        video_details.clone(),
       );
     }
 
@@ -416,7 +434,7 @@ impl DeepProbe {
           video_indexes.clone(),
           audio_indexes.clone(),
           black_and_silence_parameters,
-          frame_duration,
+          video_details.frame_duration,
         );
       }
     }
@@ -427,12 +445,7 @@ impl DeepProbe {
         &mut streams,
         video_indexes.clone(),
         crop_parameters,
-        stream_frames,
-        bits_raw_sample,
-        time_base,
-        metadata_width,
-        metadata_height,
-        aspect_ratio,
+        video_details.clone(),
       );
     }
 
@@ -442,7 +455,7 @@ impl DeepProbe {
         &mut streams,
         video_indexes.clone(),
         scene_parameters,
-        frame_rate,
+        video_details.frame_rate,
       );
     }
 
@@ -452,8 +465,7 @@ impl DeepProbe {
         &mut streams,
         video_indexes.clone(),
         ocr_parameters,
-        frame_rate,
-        stream_frames,
+        video_details.clone(),
       );
     }
 
@@ -478,8 +490,7 @@ impl DeepProbe {
         &mut streams,
         audio_indexes.clone(),
         dualmono_parameters,
-        frame_rate,
-        frame_duration,
+        video_details.clone(),
       );
     }
 
@@ -489,7 +500,7 @@ impl DeepProbe {
         &mut streams,
         audio_indexes,
         sine_parameters,
-        frame_rate,
+        video_details.frame_rate,
       );
     }
 

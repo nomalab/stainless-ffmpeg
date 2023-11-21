@@ -4,7 +4,7 @@ use crate::{
     output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
     ParameterValue,
   },
-  probe::deep::{BlackResult, CheckParameterValue, StreamProbeResult},
+  probe::deep::{BlackResult, CheckParameterValue, StreamProbeResult, VideoDetails},
 };
 use std::collections::HashMap;
 
@@ -79,9 +79,7 @@ pub fn detect_black_frames(
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
-  frame_rate: f32,
-  frame_duration: f32,
-  stream_duration: Option<f32>,
+  video_details: VideoDetails,
 ) {
   let mut order = create_graph(filename, video_indexes.clone(), params.clone()).unwrap();
   if let Err(msg) = order.setup() {
@@ -96,9 +94,9 @@ pub fn detect_black_frames(
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
-      let end_from_duration = match stream_duration {
-        Some(duration) => ((duration - frame_duration) * 1000.0).round() as i64,
-        None => ((results.len() as f32 - 1.0) / frame_rate * 1000.0).round() as i64,
+      let end_from_duration = match video_details.stream_duration {
+        Some(duration) => ((duration - video_details.frame_duration) * 1000.0).round() as i64,
+        None => ((results.len() as f32 - 1.0) / video_details.frame_rate * 1000.0).round() as i64,
       };
       let mut max_duration = None;
       let mut min_duration = None;
@@ -127,10 +125,11 @@ pub fn detect_black_frames(
             }
             if let Some(value) = entry_map.get("lavfi.black_end") {
               if let Some(last_detect) = detected_black.last_mut() {
-                last_detect.end =
-                  ((value.parse::<f32>().unwrap() - frame_duration) * 1000.0).round() as i64;
-                let black_duration =
-                  last_detect.end - last_detect.start + (frame_duration * 1000.0).round() as i64;
+                last_detect.end = ((value.parse::<f32>().unwrap() - video_details.frame_duration)
+                  * 1000.0)
+                  .round() as i64;
+                let black_duration = last_detect.end - last_detect.start
+                  + (video_details.frame_duration * 1000.0).round() as i64;
                 if let Some(max) = max_duration {
                   if black_duration > max as i64 {
                     detected_black.pop();

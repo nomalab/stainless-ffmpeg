@@ -3,8 +3,7 @@ use crate::order::{
   output::Output, output_kind::OutputKind, stream::Stream,
 };
 use crate::order::{Filter, Order, OutputResult::Entry, ParameterValue};
-use crate::probe::deep::{CheckParameterValue, CropResult, StreamProbeResult};
-use crate::tools::rational::Rational;
+use crate::probe::deep::{CheckParameterValue, CropResult, StreamProbeResult, VideoDetails};
 use std::collections::HashMap;
 
 pub fn create_graph(
@@ -88,16 +87,11 @@ pub fn detect_black_borders(
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
-  stream_frames: Option<i64>,
-  bits_raw_sample: Option<i32>,
-  time_base: f32,
-  metadata_width: i32,
-  metadata_height: i32,
-  aspect_ratio: Rational,
+  video_details: VideoDetails,
 ) {
-  let nb_frames = stream_frames.unwrap_or(0);
+  let nb_frames = video_details.stream_frames.unwrap_or(0);
   // black threshold : 16 pour 8bits / 64 pour 10bits / 256 pour 12bits
-  let limit = match bits_raw_sample {
+  let limit = match video_details.bits_raw_sample {
     Some(10) => 64,
     Some(12) => 256,
     _ => 16,
@@ -117,8 +111,8 @@ pub fn detect_black_borders(
       info!("-> {:?} frames processed", results.len());
       let mut w_changed = false;
       let mut h_changed = false;
-      let mut real_width = metadata_width;
-      let mut real_height = metadata_height;
+      let mut real_width = video_details.metadata_width;
+      let mut real_height = video_details.metadata_height;
 
       for result in results {
         if let Entry(entry_map) = result {
@@ -130,8 +124,8 @@ pub fn detect_black_borders(
             }
             let detected_crop = streams[(index) as usize].detected_crop.as_mut().unwrap();
             let mut crop = CropResult {
-              width: metadata_width,
-              height: metadata_height,
+              width: video_details.metadata_width,
+              height: video_details.metadata_height,
               ..Default::default()
             };
             if let (Some(x1), Some(x2)) = (
@@ -139,7 +133,7 @@ pub fn detect_black_borders(
               entry_map.get("lavfi.cropdetect.x2"),
             ) {
               let width = x2.parse::<i32>().unwrap() - x1.parse::<i32>().unwrap() + 1;
-              if width != metadata_width {
+              if width != video_details.metadata_width {
                 w_changed = true;
               }
               real_width = width;
@@ -149,7 +143,7 @@ pub fn detect_black_borders(
               entry_map.get("lavfi.cropdetect.y2"),
             ) {
               let height = y2.parse::<i32>().unwrap() - y1.parse::<i32>().unwrap() + 1;
-              if height != metadata_height {
+              if height != video_details.metadata_height {
                 h_changed = true;
               }
               real_height = height;
@@ -158,9 +152,10 @@ pub fn detect_black_borders(
               if w_changed || h_changed {
                 crop.width = real_width;
                 crop.height = real_height;
-                crop.pts = (pts.parse::<f32>().unwrap() * time_base * 1000.0).round() as i64;
-                let real_aspect =
-                  (real_width * aspect_ratio.num) as f32 / (real_height * aspect_ratio.den) as f32;
+                crop.pts =
+                  (pts.parse::<f32>().unwrap() * video_details.time_base * 1000.0).round() as i64;
+                let real_aspect = (real_width * video_details.aspect_ratio.num) as f32
+                  / (real_height * video_details.aspect_ratio.den) as f32;
                 crop.aspect_ratio = real_aspect;
                 detected_crop.push(crop);
                 w_changed = false;

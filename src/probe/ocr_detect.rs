@@ -3,7 +3,7 @@ use crate::order::{
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
   ParameterValue,
 };
-use crate::probe::deep::{CheckParameterValue, OcrResult, StreamProbeResult};
+use crate::probe::deep::{CheckParameterValue, OcrResult, StreamProbeResult, VideoDetails};
 use std::collections::HashMap;
 
 pub fn create_graph<S: ::std::hash::BuildHasher>(
@@ -77,8 +77,7 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
-  frame_rate: f32,
-  stream_frames: Option<i64>,
+  video_details: VideoDetails,
 ) {
   let mut order = create_graph(filename, video_indexes.clone(), &params).unwrap();
   if let Err(msg) = order.setup() {
@@ -94,7 +93,7 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
       let mut media_offline_detected = false;
-      let last_frame = stream_frames.unwrap_or(results.len() as i64) - 1;
+      let last_frame = video_details.stream_frames.unwrap_or(results.len() as i64) - 1;
 
       for result in results {
         if let Entry(entry_map) = result {
@@ -115,7 +114,8 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
             if media_offline_detected {
               if let Some(last_detect) = detected_ocr.last_mut() {
                 if let Some(value) = entry_map.get("lavfi.scd.time") {
-                  last_detect.frame_end = (value.parse::<f32>().unwrap() * frame_rate - 1.0) as u64;
+                  last_detect.frame_end =
+                    (value.parse::<f32>().unwrap() * video_details.frame_rate - 1.0) as u64;
                   media_offline_detected = false;
                 }
               }
@@ -125,7 +125,8 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
                 media_offline_detected = true;
                 ocr.text = value.to_string();
                 if let Some(value) = entry_map.get("lavfi.scd.time") {
-                  ocr.frame_start = (value.parse::<f32>().unwrap() * frame_rate) as u64;
+                  ocr.frame_start =
+                    (value.parse::<f32>().unwrap() * video_details.frame_rate) as u64;
                 }
                 if let Some(value) = entry_map.get("lavfi.ocr.confidence") {
                   let mut word_conf = value.to_string().replace(char::is_whitespace, "%,");

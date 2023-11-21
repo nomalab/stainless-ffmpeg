@@ -1,7 +1,7 @@
 use ffmpeg_sys_next::*;
 use std::mem::swap;
 
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Rational {
   pub num: i32,
   pub den: i32,
