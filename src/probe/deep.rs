@@ -449,6 +449,7 @@ impl DeepProbe {
         &mut streams,
         video_indexes.clone(),
         blackfade_parameters,
+        video_details.clone(),
       );
     }
 

@@ -1,11 +1,8 @@
 use super::black_detect::create_graph;
 use crate::{
-  format_context::FormatContext,
   order::OutputResult::Entry,
-  probe::deep::{BlackFadeResult, CheckParameterValue, StreamProbeResult},
-  stream::Stream as ContextStream,
+  probe::deep::{BlackFadeResult, CheckParameterValue, StreamProbeResult, VideoDetails},
 };
-use ffmpeg_sys_next::AVMediaType;
 use std::collections::HashMap;
 
 pub fn detect_blackfade(
@@ -13,6 +10,7 @@ pub fn detect_blackfade(
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
+  video_details: VideoDetails,
 ) {
   let mut order = create_graph(filename, video_indexes.clone(), params.clone()).unwrap();
   if let Err(msg) = order.setup() {
@@ -27,31 +25,17 @@ pub fn detect_blackfade(
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());
-      let mut duration = 0;
+      let end_from_duration = match video_details.stream_duration {
+        Some(duration) => ((duration - video_details.frame_duration) * 1000.0).round() as i64,
+        None => ((results.len() as f32 - 1.0) / video_details.frame_rate * 1000.0).round() as i64,
+      };
       let mut max_duration = None;
       let mut min_duration = None;
       if let Some(duration) = params.get("duration") {
         max_duration = duration.max;
         min_duration = duration.min;
       }
-      let mut context = FormatContext::new(filename).unwrap();
-      if let Err(msg) = context.open_input() {
-        context.close_input();
-        error!("{:?}", msg);
-        return;
-      }
-      for index in 0..context.get_nb_streams() {
-        if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
-          if let AVMediaType::AVMEDIA_TYPE_VIDEO = context.get_stream_type(index as isize) {
-            let frame_rate = stream.get_frame_rate().to_float();
-            if let Some(stream_duration) = stream.get_duration() {
-              duration = (stream_duration * 1000.0) as i64;
-            } else {
-              duration = (results.len() as f32 / frame_rate * 1000.0) as i64;
-            }
-          }
-        }
-      }
+
       for result in results {
         if let Entry(entry_map) = result {
           if let Some(stream_id) = entry_map.get("stream_id") {
@@ -66,7 +50,7 @@ pub fn detect_blackfade(
               .unwrap();
             let mut blackfade = BlackFadeResult {
               start: 0,
-              end: duration,
+              end: end_from_duration,
             };
 
             if let Some(value) = entry_map.get("lavfi.black_start") {
@@ -75,7 +59,9 @@ pub fn detect_blackfade(
             }
             if let Some(value) = entry_map.get("lavfi.black_end") {
               if let Some(last_detect) = detected_blackfade.last_mut() {
-                last_detect.end = (value.parse::<f32>().unwrap() * 1000.0).round() as i64;
+                last_detect.end = ((value.parse::<f32>().unwrap() - video_details.frame_duration)
+                  * 1000.0)
+                  .round() as i64;
                 let blackfade_duration = last_detect.end - last_detect.start;
                 let last_start = last_detect.start;
                 let last_end = last_detect.end;
@@ -93,8 +79,8 @@ pub fn detect_blackfade(
                 let mut fade = false;
                 if let Some(blackframes) = detected_black {
                   for blackframe in blackframes {
-                    if (last_start < blackframe.start && blackframe.start < last_end)
-                      || (last_start < blackframe.end && blackframe.end < last_end)
+                    if (last_start < blackframe.start && blackframe.start <= last_end)
+                      || (last_start <= blackframe.end && blackframe.end < last_end)
                     {
                       fade = true;
                     }
