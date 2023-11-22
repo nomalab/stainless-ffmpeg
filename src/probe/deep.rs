@@ -567,7 +567,7 @@ fn deep_probe() {
     max: None,
     num: None,
     den: None,
-    th: Some(0.1),
+    th: Some(0.0),
     pairs: None,
   };
   let black_picture_params = CheckParameterValue {
@@ -575,7 +575,7 @@ fn deep_probe() {
     max: None,
     num: None,
     den: None,
-    th: Some(0.98),
+    th: Some(1.0),
     pairs: None,
   };
   let blackfade_duration_params = CheckParameterValue {
@@ -591,7 +591,7 @@ fn deep_probe() {
     max: None,
     num: None,
     den: None,
-    th: Some(0.1),
+    th: Some(0.5),
     pairs: None,
   };
   let blackfade_picture_params = CheckParameterValue {

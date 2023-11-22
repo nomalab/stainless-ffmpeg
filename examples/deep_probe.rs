@@ -56,7 +56,7 @@ fn main() {
       max: None,
       num: None,
       den: None,
-      th: Some(0.1),
+      th: Some(0.5),
       pairs: None,
     };
     let blackfade_picture_params = CheckParameterValue {
