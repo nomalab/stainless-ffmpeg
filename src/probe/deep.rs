@@ -1,6 +1,7 @@
 use crate::format_context::FormatContext;
 use crate::probe::black_and_silence::detect_black_and_silence;
 use crate::probe::black_detect::detect_black_frames;
+use crate::probe::blackfade_detect::detect_blackfade;
 use crate::probe::crop_detect::detect_black_borders;
 use crate::probe::dualmono_detect::detect_dualmono;
 use crate::probe::loudness_detect::detect_loudness;
@@ -38,6 +39,12 @@ pub struct SilenceResult {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct BlackResult {
+  pub start: i64,
+  pub end: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+pub struct BlackFadeResult {
   pub start: i64,
   pub end: i64,
 }
@@ -114,6 +121,8 @@ pub struct StreamProbeResult {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_black: Option<Vec<BlackResult>>,
   #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_blackfade: Option<Vec<BlackFadeResult>>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_crop: Option<Vec<CropResult>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_scene: Option<Vec<SceneResult>>,
@@ -165,6 +174,7 @@ pub struct CheckParameterValue {
 pub struct DeepProbeCheck {
   pub silence_detect: Option<HashMap<String, CheckParameterValue>>,
   pub black_detect: Option<HashMap<String, CheckParameterValue>>,
+  pub blackfade_detect: Option<HashMap<String, CheckParameterValue>>,
   pub black_and_silence_detect: Option<HashMap<String, CheckParameterValue>>,
   pub crop_detect: Option<HashMap<String, CheckParameterValue>>,
   pub scene_detect: Option<HashMap<String, CheckParameterValue>>,
@@ -224,6 +234,11 @@ impl fmt::Display for DeepProbeResult {
       writeln!(
         f,
         "{:30} : {:?}",
+        "Blackfade detection", stream.detected_blackfade
+      )?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
         "Black and silence detection", stream.detected_black_and_silence
       )?;
       writeln!(f, "{:30} : {:?}", "Crop detection", stream.detected_crop)?;
@@ -274,6 +289,7 @@ impl StreamProbeResult {
       detected_silence: None,
       silent_stream: None,
       detected_black: None,
+      detected_blackfade: None,
       detected_black_and_silence: None,
       detected_crop: None,
       detected_scene: None,
@@ -427,6 +443,16 @@ impl DeepProbe {
       );
     }
 
+    if let Some(blackfade_parameters) = check.blackfade_detect {
+      detect_blackfade(
+        &self.filename,
+        &mut streams,
+        video_indexes.clone(),
+        blackfade_parameters,
+        video_details.clone(),
+      );
+    }
+
     if let Some(black_and_silence_parameters) = check.black_and_silence_detect {
       if check.black_detect.is_some() && check.silence_detect.is_some() {
         detect_black_and_silence(
@@ -541,7 +567,7 @@ fn deep_probe() {
     max: None,
     num: None,
     den: None,
-    th: Some(0.1),
+    th: Some(0.0),
     pairs: None,
   };
   let black_picture_params = CheckParameterValue {
@@ -549,7 +575,31 @@ fn deep_probe() {
     max: None,
     num: None,
     den: None,
-    th: Some(0.98),
+    th: Some(1.0),
+    pairs: None,
+  };
+  let blackfade_duration_params = CheckParameterValue {
+    min: Some(40),
+    max: None,
+    num: None,
+    den: None,
+    th: None,
+    pairs: None,
+  };
+  let blackfade_pixel_params = CheckParameterValue {
+    min: None,
+    max: None,
+    num: None,
+    den: None,
+    th: Some(0.5),
+    pairs: None,
+  };
+  let blackfade_picture_params = CheckParameterValue {
+    min: None,
+    max: None,
+    num: None,
+    den: None,
+    th: Some(1.0),
     pairs: None,
   };
   let spot_check = CheckParameterValue {
@@ -635,6 +685,7 @@ fn deep_probe() {
 
   let mut silence_params = HashMap::new();
   let mut black_params = HashMap::new();
+  let mut blackfade_params = HashMap::new();
   let mut select_params = HashMap::new();
   let mut black_and_silence_params = HashMap::new();
   let mut scene_params = HashMap::new();
@@ -646,6 +697,9 @@ fn deep_probe() {
   black_params.insert("duration".to_string(), black_duration_params);
   black_params.insert("picture".to_string(), black_picture_params);
   black_params.insert("pixel".to_string(), black_pixel_params);
+  blackfade_params.insert("duration".to_string(), blackfade_duration_params);
+  blackfade_params.insert("picture".to_string(), blackfade_picture_params);
+  blackfade_params.insert("pixel".to_string(), blackfade_pixel_params);
   select_params.insert("spot_check".to_string(), spot_check);
   loudness_params.insert("pairing_list".to_string(), loudness_check);
   dualmono_params.insert("duration".to_string(), dualmono_duration_check.clone());
@@ -658,6 +712,7 @@ fn deep_probe() {
   let check = DeepProbeCheck {
     silence_detect: Some(silence_params),
     black_detect: Some(black_params),
+    blackfade_detect: Some(blackfade_params),
     crop_detect: Some(select_params),
     black_and_silence_detect: Some(black_and_silence_params),
     scene_detect: Some(scene_params),

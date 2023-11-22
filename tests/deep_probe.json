@@ -23,21 +23,22 @@
                   "end": 14920
                }
             ],
-            "detected_scene": [
+            "detected_blackfade": [
                {
-                  "frame_index": 124,
-                  "score": 33,
-                  "scene_number": 1
-               },
+                  "start": 0,
+                  "end": 5560
+               }
+            ],
+            "detected_scene": [
                {
                   "frame_index": 249,
                   "score": 31,
-                  "scene_number": 2
+                  "scene_number": 1
                },
                {
                   "frame_index": 374,
                   "score": 33,
-                  "scene_number": 3
+                  "scene_number": 2
                }
             ],
             "detected_false_scene": [],
@@ -344,7 +345,7 @@
          }
       ],
       "format": {
-         "detected_bitrate_format": 13973326
+         "detected_bitrate_format": 14329064
       }
    }
 }

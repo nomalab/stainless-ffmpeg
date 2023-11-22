@@ -1,5 +1,6 @@
 mod black_and_silence;
 mod black_detect;
+mod blackfade_detect;
 mod crop_detect;
 pub mod deep;
 mod dualmono_detect;
