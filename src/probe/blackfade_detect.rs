@@ -62,25 +62,14 @@ pub fn detect_blackfade(
                 last_detect.end = ((value.parse::<f32>().unwrap() - video_details.frame_duration)
                   * 1000.0)
                   .round() as i64;
-                let blackfade_duration = last_detect.end - last_detect.start;
-                let last_start = last_detect.start;
-                let last_end = last_detect.end;
-                if let Some(max) = max_duration {
-                  if blackfade_duration > max as i64 {
-                    detected_blackfade.pop();
-                  }
-                }
-                if let Some(min) = min_duration {
-                  if blackfade_duration < min as i64 {
-                    detected_blackfade.pop();
-                  }
-                }
+                let blackfade_duration = last_detect.end - last_detect.start
+                  + (video_details.frame_duration * 1000.0).round() as i64;
                 let detected_black = streams[index as usize].detected_black.clone();
                 let mut fade = false;
                 if let Some(blackframes) = detected_black {
                   for blackframe in blackframes {
-                    if (last_start < blackframe.start && blackframe.start <= last_end)
-                      || (last_start <= blackframe.end && blackframe.end < last_end)
+                    if (last_detect.start < blackframe.start && blackframe.start <= last_detect.end)
+                      || (last_detect.start <= blackframe.end && blackframe.end < last_detect.end)
                     {
                       fade = true;
                     }
@@ -88,6 +77,17 @@ pub fn detect_blackfade(
                 }
                 if !fade {
                   detected_blackfade.pop();
+                } else {
+                  if let Some(max) = max_duration {
+                    if blackfade_duration > max as i64 {
+                      detected_blackfade.pop();
+                    }
+                  }
+                  if let Some(min) = min_duration {
+                    if blackfade_duration < min as i64 {
+                      detected_blackfade.pop();
+                    }
+                  }
                 }
               }
             }
