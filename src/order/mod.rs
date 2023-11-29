@@ -85,9 +85,7 @@ impl Order {
         break;
       }
 
-      if audio_frames.len() == self.filter_graph.audio_inputs.len()
-        && video_frames.len() == self.filter_graph.video_inputs.len()
-      {
+      if video_frames.len() == self.filter_graph.video_inputs.len() {
         let (output_audio_frames, output_video_frames) =
           if audio_frames.is_empty() && video_frames.is_empty() {
             (audio_frames, video_frames)
