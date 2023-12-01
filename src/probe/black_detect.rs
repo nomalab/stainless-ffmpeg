@@ -86,7 +86,7 @@ pub fn detect_black_frames(
     error!("{:?}", msg);
     return;
   }
-  for index in video_indexes {
+  for index in video_indexes.clone() {
     streams[index as usize].detected_black = Some(vec![]);
   }
 
@@ -141,6 +141,25 @@ pub fn detect_black_frames(
                   }
                 }
               }
+            }
+          }
+        }
+      }
+
+      for index in video_indexes {
+        let detected_black: &mut Vec<BlackResult> =
+          streams[(index) as usize].detected_black.as_mut().unwrap();
+        if let Some(last_detect) = detected_black.last() {
+          let black_duration = last_detect.end - last_detect.start
+            + (video_details.frame_duration * 1000.0).round() as i64;
+          if let Some(max) = max_duration {
+            if black_duration > max as i64 {
+              detected_black.pop();
+            }
+          }
+          if let Some(min) = min_duration {
+            if black_duration < min as i64 {
+              detected_black.pop();
             }
           }
         }
