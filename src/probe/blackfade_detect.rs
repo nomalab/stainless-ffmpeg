@@ -12,13 +12,26 @@ pub fn detect_blackfade(
   params: HashMap<String, CheckParameterValue>,
   video_details: VideoDetails,
 ) {
+  let mut blackframes_exist = false;
+  for video_index in video_indexes.clone() {
+    streams[video_index as usize].detected_blackfade = Some(vec![]);
+    if !streams[video_index as usize]
+      .detected_black
+      .clone()
+      .unwrap_or_default()
+      .is_empty()
+    {
+      blackframes_exist = true;
+    }
+  }
+  if !blackframes_exist {
+    return;
+  }
+
   let mut order = create_graph(filename, video_indexes.clone(), params.clone()).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
     return;
-  }
-  for index in video_indexes.clone() {
-    streams[index as usize].detected_blackfade = Some(vec![]);
   }
 
   match order.process() {

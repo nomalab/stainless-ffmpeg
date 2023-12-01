@@ -444,26 +444,13 @@ impl DeepProbe {
     }
 
     if let Some(blackfade_parameters) = check.blackfade_detect {
-      let blackframes_exist = video_indexes.iter().any(|&video_index| {
-        if let Some(detected_black) = &streams[video_index as usize].detected_black {
-          !detected_black.is_empty()
-        } else {
-          false
-        }
-      });
-      if blackframes_exist {
-        detect_blackfade(
-          &self.filename,
-          &mut streams,
-          video_indexes.clone(),
-          blackfade_parameters,
-          video_details.clone(),
-        );
-      } else {
-        for index in video_indexes.clone() {
-          streams[index as usize].detected_blackfade = Some(vec![]);
-        }
-      }
+      detect_blackfade(
+        &self.filename,
+        &mut streams,
+        video_indexes.clone(),
+        blackfade_parameters,
+        video_details.clone(),
+      );
     }
 
     if let Some(black_and_silence_parameters) = check.black_and_silence_detect {
