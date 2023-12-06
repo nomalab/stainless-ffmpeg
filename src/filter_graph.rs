@@ -250,11 +250,15 @@ impl FilterGraph {
     let mut output_video_frames = vec![];
 
     unsafe {
+      let mut audio_frames_indexes = vec![];
       for frame in in_audio_frames {
         check_result!(av_buffersrc_add_frame(
-          self.audio_inputs[frame.index - 1].context,
+          self.audio_inputs[audio_frames_indexes.len()].context,
           frame.frame
         ));
+        if !audio_frames_indexes.contains(&frame.index) {
+          audio_frames_indexes.push(frame.index)
+        }
       }
       for (index, frame) in in_video_frames.iter().enumerate() {
         check_result!(av_buffersrc_add_frame(
