@@ -1,4 +1,3 @@
-use crate::filter_graph::FilterGraph;
 use std::collections::HashMap;
 
 mod decoder_format;
@@ -15,6 +14,7 @@ mod output_result;
 pub mod parameters;
 pub mod stream;
 
+use crate::filter_graph::FilterGraph;
 use crate::frame::Frame;
 use crate::order::decoder_format::DecoderFormat;
 use crate::order::encoder_format::EncoderFormat;
@@ -26,6 +26,7 @@ use crate::order::output::Output;
 use crate::order::output_kind::OutputKind;
 pub use crate::order::output_result::OutputResult;
 pub use crate::order::parameters::*;
+use crate::order::stream::Stream;
 
 use crate::packet::Packet;
 use std::ptr::null_mut;
@@ -77,6 +78,18 @@ impl Order {
 
   pub fn process(&mut self) -> Result<Vec<OutputResult>, String> {
     let mut results = vec![];
+    let mut sorted_audio_inputs: Vec<Stream> = vec![];
+
+    for input in &self.inputs {
+      if let Input::Streams { streams, .. } = input {
+        for stream in streams {
+          sorted_audio_inputs.push(Stream {
+            index: sorted_audio_inputs.len() as u32,
+            label: stream.label.to_owned(),
+          });
+        }
+      }
+    }
 
     loop {
       let (audio_frames, video_frames, subtitle_packets, end) = self.process_input();
@@ -90,7 +103,11 @@ impl Order {
           if audio_frames.is_empty() && video_frames.is_empty() {
             (audio_frames, video_frames)
           } else {
-            self.filter_graph.process(&audio_frames, &video_frames)?
+            self.filter_graph.process(
+              &audio_frames,
+              &video_frames,
+              Some(sorted_audio_inputs.clone()),
+            )?
           };
         for output_frame in output_audio_frames {
           for output in &self.outputs {
