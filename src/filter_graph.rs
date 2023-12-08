@@ -238,13 +238,13 @@ impl FilterGraph {
     &self,
     in_audio_frames: &[Frame],
     in_video_frames: &[Frame],
-    sorted_audio_inputs: Option<Vec<StreamOrder>>,
+    sorted_stream_inputs: Option<Vec<StreamOrder>>,
   ) -> Result<(Vec<Frame>, Vec<Frame>), String> {
     let mut output_audio_frames = vec![];
     let mut output_video_frames = vec![];
 
     unsafe {
-      if let Some(streams) = sorted_audio_inputs {
+      if let Some(streams) = sorted_stream_inputs {
         let mut index = 0;
         for frame in in_audio_frames {
           if let Some(stream) = streams.iter().find(|&stream| stream.label == frame.name) {
@@ -255,12 +255,12 @@ impl FilterGraph {
             frame.frame
           ));
         }
-      }
-      for frame in in_video_frames {
-        check_result!(av_buffersrc_add_frame(
-          self.video_inputs[0].context,
-          frame.frame
-        ));
+        for frame in in_video_frames {
+          check_result!(av_buffersrc_add_frame(
+            self.video_inputs[index as usize].context,
+            frame.frame
+          ));
+        }
       }
 
       for (index, output_filter) in self.audio_outputs.iter().enumerate() {

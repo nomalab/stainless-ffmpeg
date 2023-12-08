@@ -78,13 +78,13 @@ impl Order {
 
   pub fn process(&mut self) -> Result<Vec<OutputResult>, String> {
     let mut results = vec![];
-    let mut sorted_audio_inputs: Vec<Stream> = vec![];
+    let mut sorted_stream_inputs: Vec<Stream> = vec![];
 
     for input in &self.inputs {
       if let Input::Streams { streams, .. } = input {
         for stream in streams {
-          sorted_audio_inputs.push(Stream {
-            index: sorted_audio_inputs.len() as u32,
+          sorted_stream_inputs.push(Stream {
+            index: sorted_stream_inputs.len() as u32,
             label: stream.label.to_owned(),
           });
         }
@@ -105,7 +105,7 @@ impl Order {
           self.filter_graph.process(
             &audio_frames,
             &video_frames,
-            Some(sorted_audio_inputs.clone()),
+            Some(sorted_stream_inputs.clone()),
           )?
         };
       for output_frame in output_audio_frames {
