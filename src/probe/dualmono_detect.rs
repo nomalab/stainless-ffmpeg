@@ -25,26 +25,28 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
   aphasemeter_params.insert("phasing".to_string(), ParameterValue::Bool(true));
   aphasemeter_params.insert("tolerance".to_string(), ParameterValue::Float(0.001));
 
-  let channel_layouts = ParameterValue::String("mono".to_string());
+  let channel_layouts = ParameterValue::String("stereo".to_string());
   let mut aformat_params: HashMap<String, ParameterValue> = HashMap::new();
   aformat_params.insert("channel_layouts".to_string(), channel_layouts);
 
   match params.get("pairing_list") {
     Some(pairing_list) => {
+      let mut index: i32 = 0;
       if let Some(pairs) = pairing_list.pairs.clone() {
-        for (iter, pair) in pairs.iter().enumerate() {
+        for pair in pairs {
           if pair.len() == 2 || pair.len() == 1 {
-            let mut amerge_params: HashMap<String, ParameterValue> = HashMap::new();
-            let mut amerge_input = vec![];
+            let mut filter_input = vec![];
             let mut input_streams_vec = vec![];
-            let output_label = format!("audio_output_{iter}");
+            let output_label = format!("audio_output_{index}");
             let mut is_stereo = true;
+            let mut to_merge = false;
 
-            for track in pair {
+            for track in pair.clone() {
               is_stereo =
                 (pair.len() == 1 && track.channel == 2) || pair.len() == 2 && track.channel == 1;
+              to_merge = pair.len() == 2 && track.channel == 1;
               let input_label = format!("audio_input_{}", track.index);
-              amerge_input.push(FilterInput {
+              filter_input.push(FilterInput {
                 kind: InputKind::Stream,
                 stream_label: input_label.clone(),
               });
@@ -55,27 +57,30 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
             }
 
             if is_stereo {
-              amerge_params.insert(
-                "inputs".to_string(),
-                ParameterValue::Int64(pair.len() as i64),
-              );
-              filters.push(Filter {
-                name: "amerge".to_string(),
-                label: Some(format!("amerge_filter{iter}")),
-                parameters: amerge_params,
-                inputs: Some(amerge_input),
-                outputs: None,
-              });
+              if to_merge {
+                let mut amerge_params: HashMap<String, ParameterValue> = HashMap::new();
+                amerge_params.insert(
+                  "inputs".to_string(),
+                  ParameterValue::Int64(pair.len() as i64),
+                );
+                filters.push(Filter {
+                  name: "amerge".to_string(),
+                  label: Some(format!("amerge_filter{index}")),
+                  parameters: amerge_params,
+                  inputs: Some(filter_input.clone()),
+                  outputs: None,
+                });
+              }
               filters.push(Filter {
                 name: "aphasemeter".to_string(),
-                label: Some(format!("aphasemeter_filter{iter}")),
+                label: Some(format!("aphasemeter_filter{index}")),
                 parameters: aphasemeter_params.clone(),
-                inputs: None,
+                inputs: if to_merge { None } else { Some(filter_input) },
                 outputs: None,
               });
               filters.push(Filter {
                 name: "aformat".to_string(),
-                label: Some(format!("aformat_filter{iter}")),
+                label: Some(format!("aformat_filter{index}")),
                 parameters: aformat_params.clone(),
                 inputs: None,
                 outputs: Some(vec![FilterOutput {
@@ -84,7 +89,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
               });
 
               inputs.push(Input::Streams {
-                id: iter as u32,
+                id: index as u32,
                 path: filename.to_string(),
                 streams: input_streams_vec,
               });
@@ -100,6 +105,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
                 streams: vec![],
                 parameters: HashMap::new(),
               });
+              index += 1;
             }
           }
         }
