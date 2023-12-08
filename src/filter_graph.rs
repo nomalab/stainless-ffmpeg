@@ -240,14 +240,6 @@ impl FilterGraph {
     in_video_frames: &[Frame],
     sorted_audio_inputs: Option<Vec<StreamOrder>>,
   ) -> Result<(Vec<Frame>, Vec<Frame>), String> {
-    if in_video_frames.len() != self.video_inputs.len() {
-      return Err(format!(
-        "unable to process graph, mistmatch input frames ({}) with graph inputs ({})",
-        in_video_frames.len(),
-        self.video_inputs.len()
-      ));
-    }
-
     let mut output_audio_frames = vec![];
     let mut output_video_frames = vec![];
 
@@ -264,9 +256,9 @@ impl FilterGraph {
           ));
         }
       }
-      for (index, frame) in in_video_frames.iter().enumerate() {
+      for frame in in_video_frames {
         check_result!(av_buffersrc_add_frame(
-          self.video_inputs[index].context,
+          self.video_inputs[0].context,
           frame.frame
         ));
       }
@@ -290,18 +282,21 @@ impl FilterGraph {
       }
 
       for (index, output_filter) in self.video_outputs.iter().enumerate() {
-        let output_frame = av_frame_alloc();
-        let result = av_buffersink_get_frame(output_filter.context, output_frame);
-        if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
-          break;
-        } else {
-          check_result!(result);
+        let mut result = 0;
+        while result == 0 {
+          let output_frame = av_frame_alloc();
+          result = av_buffersink_get_frame(output_filter.context, output_frame);
+          if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
+            break;
+          } else {
+            check_result!(result);
+          }
+          output_video_frames.push(Frame {
+            name: Some(output_filter.get_label()),
+            frame: output_frame,
+            index,
+          });
         }
-        output_video_frames.push(Frame {
-          name: Some(output_filter.get_label()),
-          frame: output_frame,
-          index,
-        });
       }
     }
 
