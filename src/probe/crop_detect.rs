@@ -3,6 +3,8 @@ use crate::order::{
   output::Output, output_kind::OutputKind, stream::Stream,
 };
 use crate::order::{Filter, Order, OutputResult::Entry, ParameterValue};
+use crate::packet::Packet;
+use crate::prelude::Frame;
 use crate::probe::deep::{CheckParameterValue, CropResult, StreamProbeResult, VideoDetails};
 use std::collections::HashMap;
 
@@ -79,7 +81,7 @@ pub fn create_graph(
     });
   }
 
-  Order::new(inputs, filters, outputs)
+  Order::add_io(inputs, filters, outputs)
 }
 
 pub fn detect_black_borders(
@@ -88,6 +90,9 @@ pub fn detect_black_borders(
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
   video_details: VideoDetails,
+  audio_frames: &Vec<Frame>,
+  video_frames: &Vec<Frame>,
+  subtitle_packets: &Vec<Packet>,
 ) {
   let nb_frames = video_details.stream_frames.unwrap_or(0);
   // black threshold : 16 pour 8bits / 64 pour 10bits / 256 pour 12bits
@@ -96,8 +101,8 @@ pub fn detect_black_borders(
     Some(12) => 256,
     _ => 16,
   };
-  let mut order = create_graph(filename, video_indexes.clone(), params, nb_frames, limit).unwrap();
-  if let Err(msg) = order.setup() {
+  let mut new_order = create_graph(filename, video_indexes.clone(), params, nb_frames, limit).unwrap();
+  if let Err(msg) = new_order.setup() {
     error!("{:?}", msg);
     return;
   }
@@ -105,7 +110,7 @@ pub fn detect_black_borders(
     streams[index as usize].detected_crop = Some(vec![]);
   }
 
-  match order.process() {
+  match new_order.process(video_frames, audio_frames, subtitle_packets) {
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());

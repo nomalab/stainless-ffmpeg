@@ -1,4 +1,10 @@
+use ffmpeg_sys_next::AVMediaType;
+
 use crate::filter_graph::FilterGraph;
+use crate::order::stream::Stream;
+use crate::probe::deep::{StreamProbeResult, VideoDetails};
+use crate::stream::Stream as StreamAV;
+use std::cmp;
 use std::collections::HashMap;
 
 mod decoder_format;
@@ -15,6 +21,7 @@ mod output_result;
 pub mod parameters;
 pub mod stream;
 
+use crate::format_context::FormatContext;
 use crate::frame::Frame;
 use crate::order::decoder_format::DecoderFormat;
 use crate::order::encoder_format::EncoderFormat;
@@ -28,7 +35,6 @@ pub use crate::order::output_result::OutputResult;
 pub use crate::order::parameters::*;
 
 use crate::packet::Packet;
-use std::ptr::null_mut;
 
 #[derive(Debug, Deserialize)]
 pub struct Order {
@@ -46,7 +52,23 @@ pub struct Order {
 }
 
 impl Order {
-  pub fn new(inputs: Vec<Input>, graph: Vec<Filter>, outputs: Vec<Output>) -> Result<Self, String> {
+  pub fn new() -> Result<Self, String> {
+    Ok(Order {
+      inputs: vec![],
+      outputs: vec![],
+      graph: vec![],
+      total_streams: 0,
+      input_formats: vec![],
+      output_formats: vec![],
+      filter_graph: FilterGraph::new()?,
+    })
+  }
+
+  pub fn add_io(
+    inputs: Vec<Input>,
+    graph: Vec<Filter>,
+    outputs: Vec<Output>,
+  ) -> Result<Self, String> {
     Ok(Order {
       inputs,
       outputs,
@@ -75,107 +97,49 @@ impl Order {
     Ok(())
   }
 
-  pub fn process(&mut self) -> Result<Vec<OutputResult>, String> {
-    let mut results = vec![];
+  pub fn process_input(
+    &mut self,
+    context: &mut FormatContext,
+    mut streams: Vec<StreamProbeResult>,
+    mut video_details: VideoDetails,
+  ) -> (Vec<Frame>, Vec<Frame>, Vec<StreamProbeResult>, VideoDetails) {
+    warn!("Build inputs with context");
+    let _ = self.build_inputs(context);
 
-    loop {
-      let (audio_frames, video_frames, subtitle_packets, end) = self.process_input();
-
-      if end == self.total_streams {
-        break;
-      }
-
-      if audio_frames.len() == self.filter_graph.audio_inputs.len()
-        && video_frames.len() == self.filter_graph.video_inputs.len()
-      {
-        let (output_audio_frames, output_video_frames) =
-          if audio_frames.is_empty() && video_frames.is_empty() {
-            (audio_frames, video_frames)
-          } else {
-            self.filter_graph.process(&audio_frames, &video_frames)?
-          };
-        for output_frame in output_audio_frames {
-          for output in &self.outputs {
-            if output.stream == output_frame.name {
-              if let Some(OutputKind::AudioMetadata) = output.kind {
-                if let Input::Streams { streams, .. } = &self.inputs[output_frame.index] {
-                  for stream in streams {
-                    let mut entry = HashMap::new();
-                    entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
-                    entry.insert("stream_id".to_owned(), stream.index.to_string());
-
-                    for key in &output.keys {
-                      if let Some(value) = output_frame.get_metadata(key) {
-                        entry.insert(key.clone(), value);
-                      }
-                    }
-                    results.push(OutputResult::Entry(entry));
-                  }
-                }
-              }
-            }
-          }
-
-          for output in &mut self.output_formats {
-            if let Some(packet) = output.encode(&output_frame)? {
-              results.push(OutputResult::Packet(packet));
-            };
-          }
-        }
-
-        for output_packet in subtitle_packets {
-          for output in &mut self.output_formats {
-            output.wrap(&output_packet)?;
-          }
-        }
-        for output_frame in output_video_frames {
-          for output in &self.outputs {
-            if let Some(OutputKind::VideoMetadata) = output.kind {
-              let mut entry = HashMap::new();
-              entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
-              if let Input::Streams { streams, .. } = &self.inputs[output_frame.index] {
-                entry.insert("stream_id".to_owned(), streams[0].index.to_string());
-              }
-
-              for key in &output.keys {
-                if let Some(value) = output_frame.get_metadata(key) {
-                  entry.insert(key.clone(), value);
-                }
-              }
-
-              results.push(OutputResult::Entry(entry));
-            }
-          }
-
-          for output in &mut self.output_formats {
-            if let Some(packet) = output.encode(&output_frame)? {
-              results.push(OutputResult::Packet(packet));
-            };
-          }
-        }
-      }
-    }
-
-    Ok(results)
-  }
-
-  fn process_input(&mut self) -> (Vec<Frame>, Vec<Frame>, Vec<Packet>, u32) {
-    let mut audio_frames = vec![];
-    let mut subtitle_packets = vec![];
     let mut video_frames = vec![];
-    let mut end = 0;
+    let mut audio_frames = vec![];
+    streams.resize(context.get_nb_streams() as usize, StreamProbeResult::new());
+    while let Ok(packet) = context.next_packet() {
+      unsafe {
+        let stream_index = (*packet.packet).stream_index as usize;
+        let packet_size = (*packet.packet).size;
 
-    for format in &mut self.input_formats {
-      for _ in 0..format.context.get_nb_streams() {
-        match format.context.next_packet() {
-          Ok(mut packet) => {
-            for decoder in &format.audio_decoders {
-              if decoder.stream_index == packet.get_stream_index() {
-                if let Ok(frame) = decoder.decode(&packet) {
-                  audio_frames.push(frame);
-                }
-              }
-            }
+        streams[stream_index].stream_index = stream_index;
+        streams[stream_index].count_packets += 1;
+        streams[stream_index].min_packet_size =
+          cmp::min(packet_size, streams[stream_index].min_packet_size);
+        streams[stream_index].max_packet_size =
+          cmp::max(packet_size, streams[stream_index].max_packet_size);
+
+        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
+          if let Ok(stream) = StreamAV::new(context.get_stream(stream_index as isize)) {
+            streams[stream_index].color_space = stream.get_color_space();
+            streams[stream_index].color_range = stream.get_color_range();
+            streams[stream_index].color_primaries = stream.get_color_primaries();
+            streams[stream_index].color_trc = stream.get_color_trc();
+            streams[stream_index].color_matrix = stream.get_color_matrix();
+            video_details.frame_duration = stream.get_frame_rate().invert().to_float();
+            video_details.frame_rate = stream.get_frame_rate().to_float();
+            video_details.time_base = stream.get_time_base().to_float();
+            video_details.stream_duration = stream.get_duration();
+            video_details.stream_frames = stream.get_nb_frames();
+            video_details.bits_raw_sample = stream.get_bits_per_raw_sample();
+            video_details.metadata_width = stream.get_width();
+            video_details.metadata_height = stream.get_height();
+            video_details.aspect_ratio = stream.get_picture_aspect_ratio();
+          }
+
+          for format in &mut self.input_formats {
             for decoder in &format.video_decoders {
               if decoder.stream_index == packet.get_stream_index() {
                 if let Ok(frame) = decoder.decode(&packet) {
@@ -183,36 +147,175 @@ impl Order {
                 }
               }
             }
-            for decoder in &format.subtitle_decoders {
-              if decoder.stream_index == packet.get_stream_index() {
-                packet.name = Some(decoder.identifier.clone());
-                subtitle_packets.push(packet);
-                break;
-              }
-            }
           }
-          Err(msg) => {
-            if msg == "End of data stream" {
-              for decoder in &format.video_decoders {
-                let packet = null_mut();
-
-                let p = Packet { name: None, packet };
-
-                if let Ok(frame) = decoder.decode(&p) {
-                  video_frames.push(frame);
-                } else {
-                  end += 1;
+        }
+        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
+          for format in &mut self.input_formats {
+            for decoder in &format.audio_decoders {
+              if decoder.stream_index == packet.get_stream_index() {
+                if let Ok(frame) = decoder.decode(&packet) {
+                  audio_frames.push(frame);
                 }
               }
-            } else {
-              end += 1;
             }
           }
+        }
+        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_SUBTITLE {}
+      }
+    }
+
+    println!("PROCESS INPUT TERMINATED");
+    (video_frames, audio_frames, streams, video_details)
+  }
+
+  pub fn process(
+    &mut self,
+    video_frames: &Vec<Frame>,
+    audio_frames: &Vec<Frame>,
+    subtitle_packets: &Vec<Packet>,
+  ) -> Result<Vec<OutputResult>, String> {
+    let mut results = vec![];
+    let (is_video_analyze, is_audio_analyze) = self.media_type_analyzed();
+    let mut audio_frames_iterator = audio_frames.iter();
+    let mut video_frames_iterator = video_frames.iter();
+    let mut sorted_audio_inputs: Vec<Stream> = vec![];
+
+    for input in &self.inputs {
+      if let Input::Streams { streams, .. } = input {
+        for stream in streams {
+          sorted_audio_inputs.push(Stream {
+            index: sorted_audio_inputs.len() as u32,
+            label: stream.label.to_owned(),
+          });
+        }
+      }
+    }
+    println!("\nINPUTS {:?}", self.inputs);
+
+    loop {
+      let video_frame = video_frames_iterator.next();
+      let audio_frame = audio_frames_iterator.next();
+      if video_frame.is_none() && audio_frame.is_none() {
+        break;
+      }
+
+      let (output_audio_frames, output_video_frames) = self.filter_graph.process(
+        audio_frame,
+        video_frame,
+        Some(sorted_audio_inputs.clone()),
+        is_video_analyze,
+        is_audio_analyze,
+      )?;
+
+      for output_frame in output_audio_frames {
+        for output in &self.outputs {
+          if output.stream == output_frame.name {
+            if let Some(OutputKind::AudioMetadata) = output.kind {
+              if let Input::Streams { streams, .. } = &self.inputs[output_frame.index] {
+                for stream in streams {
+                  let mut entry = HashMap::new();
+                  entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
+                  entry.insert("stream_id".to_owned(), stream.index.to_string());
+                  for key in &output.keys {
+                    if let Some(value) = output_frame.get_metadata(key) {
+                      entry.insert(key.clone(), value);
+                    }
+                  }
+                  results.push(OutputResult::Entry(entry));
+                }
+              }
+            }
+          }
+        }
+        for output in &mut self.output_formats {
+          if let Some(packet) = output.encode(&output_frame)? {
+            results.push(OutputResult::Packet(packet));
+          };
+        }
+      }
+      for output_packet in subtitle_packets {
+        for output in &mut self.output_formats {
+          output.wrap(&output_packet)?;
+        }
+      }
+      for output_frame in output_video_frames {
+        for output in &self.outputs {
+          if let Some(OutputKind::VideoMetadata) = output.kind {
+            let mut entry = HashMap::new();
+            entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
+            if let Input::Streams { streams, .. } = &self.inputs[output_frame.index] {
+              entry.insert("stream_id".to_owned(), streams[0].index.to_string());
+            }
+            for key in &output.keys {
+              if let Some(value) = output_frame.get_metadata(key) {
+                entry.insert(key.clone(), value);
+              }
+            }
+            results.push(OutputResult::Entry(entry));
+          }
+        }
+        for output in &mut self.output_formats {
+          if let Some(packet) = output.encode(&output_frame)? {
+            results.push(OutputResult::Packet(packet));
+          };
         }
       }
     }
 
-    (audio_frames, video_frames, subtitle_packets, end)
+    Ok(results)
+  }
+
+  pub fn media_type_analyzed(&mut self) -> (bool, bool) {
+    let mut is_video_analyze = false;
+    let mut is_audio_analyze = false;
+    for input in &self.inputs {
+      match input {
+        Input::Streams { streams, .. } => {
+          for stream in streams {
+            if let Some(label) = stream.label.clone() {
+              if label.starts_with("audio") {
+                is_audio_analyze = true;
+              }
+              if label.starts_with("video") {
+                is_video_analyze = true;
+              }
+            }
+          }
+        }
+        Input::VideoFrames { .. } => (),
+      }
+    }
+    (is_video_analyze, is_audio_analyze)
+  }
+
+  fn build_inputs(&mut self, context: &FormatContext) -> Result<(), String> {
+    for i in 0..context.get_nb_streams() {
+      let mut input_id = format!("unknown_input_{i}");
+      if context.get_stream_type(i as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
+        input_id = format!("video_input_{i}");
+      }
+      if context.get_stream_type(i as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
+        input_id = format!("audio_input_{i}");
+      }
+      if context.get_stream_type(i as isize) == AVMediaType::AVMEDIA_TYPE_SUBTITLE {
+        input_id = format!("subtitle_input_{i}");
+      }
+      let input_streams = vec![Stream {
+        index: i,
+        label: Some(input_id),
+      }];
+      self.inputs.push(Input::Streams {
+        id: i,
+        path: context.filename.to_string(),
+        streams: input_streams,
+      });
+    }
+    for input in &self.inputs {
+      let decoder = DecoderFormat::new(&mut self.filter_graph, input)?;
+      self.total_streams += decoder.context.get_nb_streams();
+      self.input_formats.push(decoder);
+    }
+    Ok(())
   }
 
   fn build_input_format(&mut self) -> Result<(), String> {

@@ -3,6 +3,8 @@ use crate::order::{
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
   ParameterValue,
 };
+use crate::packet::Packet;
+use crate::prelude::Frame;
 use crate::probe::deep::{CheckParameterValue, OcrResult, StreamProbeResult, VideoDetails};
 use std::collections::HashMap;
 
@@ -69,7 +71,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
       parameters: HashMap::new(),
     });
   }
-  Order::new(inputs, filters, outputs)
+  Order::add_io(inputs, filters, outputs)
 }
 
 pub fn detect_ocr<S: ::std::hash::BuildHasher>(
@@ -78,9 +80,12 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
   video_details: VideoDetails,
+  audio_frames: &Vec<Frame>,
+  video_frames: &Vec<Frame>,
+  subtitle_packets: &Vec<Packet>,
 ) {
-  let mut order = create_graph(filename, video_indexes.clone(), &params).unwrap();
-  if let Err(msg) = order.setup() {
+  let mut new_order = create_graph(filename, video_indexes.clone(), &params).unwrap();
+  if let Err(msg) = new_order.setup() {
     error!("{:?}", msg);
     return;
   }
@@ -88,7 +93,7 @@ pub fn detect_ocr<S: ::std::hash::BuildHasher>(
     streams[index as usize].detected_ocr = Some(vec![]);
   }
 
-  match order.process() {
+  match new_order.process(video_frames, audio_frames, subtitle_packets) {
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());

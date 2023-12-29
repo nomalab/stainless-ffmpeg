@@ -1,4 +1,3 @@
-use crate::format_context::FormatContext;
 use crate::probe::black_and_silence::detect_black_and_silence;
 use crate::probe::black_detect::detect_black_frames;
 use crate::probe::blackfade_detect::detect_blackfade;
@@ -11,8 +10,11 @@ use crate::probe::silence_detect::detect_silence;
 use crate::probe::sine_detect::detect_sine;
 use crate::stream::Stream;
 use crate::tools::rational::Rational;
+use crate::{format_context::FormatContext, order::Order};
 use ffmpeg_sys_next::*;
 use log::LevelFilter;
+use std::fmt::format;
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::{cmp, collections::HashMap, fmt};
 use uuid::Uuid;
 
@@ -105,10 +107,10 @@ pub struct SineResult {
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct StreamProbeResult {
-  stream_index: usize,
-  count_packets: usize,
-  min_packet_size: i32,
-  max_packet_size: i32,
+  pub stream_index: usize,
+  pub count_packets: usize,
+  pub min_packet_size: i32,
+  pub max_packet_size: i32,
   pub color_space: Option<String>,
   pub color_range: Option<String>,
   pub color_primaries: Option<String>,
@@ -356,6 +358,8 @@ impl DeepProbe {
   }
 
   pub fn process(&mut self, log_level: LevelFilter, check: DeepProbeCheck) -> Result<(), String> {
+    let start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+
     let av_log_level = match log_level {
       LevelFilter::Error => AV_LOG_ERROR,
       LevelFilter::Warn => AV_LOG_WARNING,
@@ -368,7 +372,6 @@ impl DeepProbe {
     unsafe {
       av_log_set_level(av_log_level);
     }
-
     let mut context = FormatContext::new(&self.filename).unwrap();
     if context.open_input().is_err() {
       self.result = None;
@@ -378,39 +381,12 @@ impl DeepProbe {
 
     let mut video_details = VideoDetails::new();
     let mut streams = vec![];
-    streams.resize(context.get_nb_streams() as usize, StreamProbeResult::new());
-    while let Ok(packet) = context.next_packet() {
-      unsafe {
-        let stream_index = (*packet.packet).stream_index as usize;
-        let packet_size = (*packet.packet).size;
-
-        streams[stream_index].stream_index = stream_index;
-        streams[stream_index].count_packets += 1;
-        streams[stream_index].min_packet_size =
-          cmp::min(packet_size, streams[stream_index].min_packet_size);
-        streams[stream_index].max_packet_size =
-          cmp::max(packet_size, streams[stream_index].max_packet_size);
-
-        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
-          if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
-            streams[stream_index].color_space = stream.get_color_space();
-            streams[stream_index].color_range = stream.get_color_range();
-            streams[stream_index].color_primaries = stream.get_color_primaries();
-            streams[stream_index].color_trc = stream.get_color_trc();
-            streams[stream_index].color_matrix = stream.get_color_matrix();
-            video_details.frame_duration = stream.get_frame_rate().invert().to_float();
-            video_details.frame_rate = stream.get_frame_rate().to_float();
-            video_details.time_base = stream.get_time_base().to_float();
-            video_details.stream_duration = stream.get_duration();
-            video_details.stream_frames = stream.get_nb_frames();
-            video_details.bits_raw_sample = stream.get_bits_per_raw_sample();
-            video_details.metadata_width = stream.get_width();
-            video_details.metadata_height = stream.get_height();
-            video_details.aspect_ratio = stream.get_picture_aspect_ratio();
-          }
-        }
-      }
-    }
+    let video_frames;
+    let audio_frames;
+    let subtitle_packets = vec![];
+    let mut order: Order = Order::new().unwrap();
+    (video_frames, audio_frames, streams, video_details) =
+      order.process_input(&mut context, streams, video_details);
 
     let mut audio_indexes = vec![];
     let mut video_indexes = vec![];
@@ -430,6 +406,9 @@ impl DeepProbe {
         audio_indexes.clone(),
         silence_parameters,
         video_details.clone(),
+        &audio_frames,
+        &video_frames,
+        &subtitle_packets,
       );
     }
 
@@ -440,6 +419,9 @@ impl DeepProbe {
         video_indexes.clone(),
         black_parameters,
         video_details.clone(),
+        &audio_frames,
+        &video_frames,
+        &subtitle_packets,
       );
     }
 
@@ -450,6 +432,9 @@ impl DeepProbe {
         video_indexes.clone(),
         blackfade_parameters,
         video_details.clone(),
+        &audio_frames,
+        &video_frames,
+        &subtitle_packets,
       );
     }
 
@@ -472,6 +457,9 @@ impl DeepProbe {
         video_indexes.clone(),
         crop_parameters,
         video_details.clone(),
+        &audio_frames,
+        &video_frames,
+        &subtitle_packets,
       );
     }
 
@@ -482,6 +470,9 @@ impl DeepProbe {
         video_indexes.clone(),
         scene_parameters,
         video_details.frame_rate,
+        &audio_frames,
+        &video_frames,
+        &subtitle_packets,
       );
     }
 
@@ -492,6 +483,9 @@ impl DeepProbe {
         video_indexes.clone(),
         ocr_parameters,
         video_details.clone(),
+        &audio_frames,
+        &video_frames,
+        &subtitle_packets,
       );
     }
 
@@ -507,6 +501,9 @@ impl DeepProbe {
         &mut streams,
         audio_indexes.clone(),
         loudness_parameters,
+        &audio_frames,
+        &video_frames,
+        &subtitle_packets,
       );
     }
 
@@ -517,6 +514,9 @@ impl DeepProbe {
         audio_indexes.clone(),
         dualmono_parameters,
         video_details.clone(),
+        &audio_frames,
+        &video_frames,
+        &subtitle_packets,
       );
     }
 
@@ -527,6 +527,9 @@ impl DeepProbe {
         audio_indexes,
         sine_parameters,
         video_details.frame_rate,
+        &audio_frames,
+        &video_frames,
+        &subtitle_packets,
       );
     }
 
@@ -536,6 +539,10 @@ impl DeepProbe {
     self.result = Some(DeepProbeResult { streams, format });
 
     context.close_input();
+
+    let end = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    println!("\nDEEP PROBE DURATION {:?}", end - start);
+
     Ok(())
   }
 }

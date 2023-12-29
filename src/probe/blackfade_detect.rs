@@ -1,7 +1,7 @@
 use super::black_detect::create_graph;
 use crate::{
   order::OutputResult::Entry,
-  probe::deep::{BlackFadeResult, CheckParameterValue, StreamProbeResult, VideoDetails},
+  probe::deep::{BlackFadeResult, CheckParameterValue, StreamProbeResult, VideoDetails}, prelude::Frame, packet::Packet,
 };
 use std::collections::HashMap;
 
@@ -11,9 +11,12 @@ pub fn detect_blackfade(
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
   video_details: VideoDetails,
+  audio_frames: &Vec<Frame>,
+  video_frames: &Vec<Frame>,
+  subtitle_packets: &Vec<Packet>,
 ) {
-  let mut order = create_graph(filename, video_indexes.clone(), params.clone()).unwrap();
-  if let Err(msg) = order.setup() {
+  let mut new_order = create_graph(filename, video_indexes.clone(), params.clone()).unwrap();
+  if let Err(msg) = new_order.setup() {
     error!("{:?}", msg);
     return;
   }
@@ -21,7 +24,7 @@ pub fn detect_blackfade(
     streams[index as usize].detected_blackfade = Some(vec![]);
   }
 
-  match order.process() {
+  match new_order.process(video_frames, audio_frames, subtitle_packets) {
     Ok(results) => {
       info!("END OF PROCESS");
       info!("-> {:?} frames processed", results.len());

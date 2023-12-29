@@ -1,9 +1,11 @@
 use crate::{
   order::{
-    filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
-    output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
-    ParameterValue,
+    filter_input::FilterInput, filter_output::FilterOutput, input::Input,
+    input_kind::InputKind, output::Output, output_kind::OutputKind, stream::Stream, Filter, Order,
+    OutputResult::Entry, ParameterValue,
   },
+  packet::Packet,
+  prelude::Frame,
   probe::deep::{BlackResult, CheckParameterValue, StreamProbeResult, VideoDetails},
 };
 use std::collections::HashMap;
@@ -71,7 +73,7 @@ pub fn create_graph(
     });
   }
 
-  Order::new(inputs, filters, outputs)
+  Order::add_io(inputs, filters, outputs)
 }
 
 pub fn detect_black_frames(
@@ -80,9 +82,12 @@ pub fn detect_black_frames(
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
   video_details: VideoDetails,
+  audio_frames: &Vec<Frame>,
+  video_frames: &Vec<Frame>,
+  subtitle_packets: &Vec<Packet>,
 ) {
-  let mut order = create_graph(filename, video_indexes.clone(), params.clone()).unwrap();
-  if let Err(msg) = order.setup() {
+  let mut new_order = create_graph(filename, video_indexes.clone(), params.clone()).unwrap();
+  if let Err(msg) = new_order.setup() {
     error!("{:?}", msg);
     return;
   }
@@ -90,10 +95,10 @@ pub fn detect_black_frames(
     streams[index as usize].detected_black = Some(vec![]);
   }
 
-  match order.process() {
+  match new_order.process(video_frames, audio_frames, subtitle_packets) {
     Ok(results) => {
-      info!("END OF PROCESS");
-      info!("-> {:?} frames processed", results.len());
+      println!("END OF BLACKFRAMES PROCESS");
+      println!("-> {:?} frames processed", results.len());
       let end_from_duration = match video_details.stream_duration {
         Some(duration) => ((duration - video_details.frame_duration) * 1000.0).round() as i64,
         None => ((results.len() as f32 - 1.0) / video_details.frame_rate * 1000.0).round() as i64,

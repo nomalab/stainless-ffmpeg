@@ -2,6 +2,7 @@ use crate::{
   audio_decoder::AudioDecoder, filter::Filter, frame::Frame, order::*, stream::Stream, tools,
   video_decoder::VideoDecoder,
 };
+use crate::order::stream::Stream as StreamOrder;
 use ffmpeg_sys_next::*;
 use libc::c_void;
 use std::{fmt, ptr::null_mut};
@@ -235,69 +236,68 @@ impl FilterGraph {
 
   pub fn process(
     &self,
-    in_audio_frames: &[Frame],
-    in_video_frames: &[Frame],
+    in_audio_frame_opt: Option<&Frame>,
+    in_video_frame_opt: Option<&Frame>,
+    sorted_audio_inputs: Option<Vec<StreamOrder>>,
+    is_video_analyze: bool,
+    is_audio_analyze: bool,
   ) -> Result<(Vec<Frame>, Vec<Frame>), String> {
-    if in_audio_frames.len() != self.audio_inputs.len() {
-      return Err(format!(
-        "unable to process graph, mistmatch input frames ({}) with graph inputs ({})",
-        in_audio_frames.len(),
-        self.audio_inputs.len()
-      ));
-    }
-    if in_video_frames.len() != self.video_inputs.len() {
-      return Err(format!(
-        "unable to process graph, mistmatch input frames ({}) with graph inputs ({})",
-        in_video_frames.len(),
-        self.video_inputs.len()
-      ));
-    }
-
     let mut output_audio_frames = vec![];
     let mut output_video_frames = vec![];
 
     unsafe {
-      for (index, frame) in in_audio_frames.iter().enumerate() {
-        check_result!(av_buffersrc_add_frame(
-          self.audio_inputs[index].context,
-          frame.frame
-        ));
-      }
-      for (index, frame) in in_video_frames.iter().enumerate() {
-        check_result!(av_buffersrc_add_frame(
-          self.video_inputs[index].context,
-          frame.frame
-        ));
+      if is_audio_analyze {
+        if let Some(in_audio_frame) = in_audio_frame_opt {
+          if let Some(streams) = sorted_audio_inputs {
+            let mut index = 0;
+            if let Some(stream) = streams.iter().find(|&stream| stream.label == in_audio_frame.name) {
+              index = stream.index;
+            }
+            check_result!(av_buffersrc_write_frame(
+              self.audio_inputs[index as usize].context,
+              in_audio_frame.frame
+            ));
+          }
+
+          for (index, output_filter) in self.audio_outputs.iter().enumerate() {
+            let output_frame = av_frame_alloc();
+            let result = av_buffersink_get_frame(output_filter.context, output_frame);
+            if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
+              break;
+            } else {
+              check_result!(result);
+            }
+            output_audio_frames.push(Frame {
+              name: Some(output_filter.get_label()),
+              frame: output_frame,
+              index,
+            });
+          }
+        }
       }
 
-      for (index, output_filter) in self.audio_outputs.iter().enumerate() {
-        let output_frame = av_frame_alloc();
-        let result = av_buffersink_get_frame(output_filter.context, output_frame);
-        if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
-          break;
-        } else {
-          check_result!(result);
-        }
-        output_audio_frames.push(Frame {
-          name: Some(output_filter.get_label()),
-          frame: output_frame,
-          index,
-        });
-      }
+      if is_video_analyze {
+        if let Some(in_video_frame) = in_video_frame_opt {
+          check_result!(av_buffersrc_write_frame(
+            self.video_inputs[in_video_frame.index].context,
+            in_video_frame.frame
+          ));
 
-      for (index, output_filter) in self.video_outputs.iter().enumerate() {
-        let output_frame = av_frame_alloc();
-        let result = av_buffersink_get_frame(output_filter.context, output_frame);
-        if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
-          break;
-        } else {
-          check_result!(result);
+          for (index, output_filter) in self.video_outputs.iter().enumerate() {
+            let output_frame = av_frame_alloc();
+            let result = av_buffersink_get_frame(output_filter.context, output_frame);
+            if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
+              break;
+            } else {
+              check_result!(result);
+            }
+            output_video_frames.push(Frame {
+              name: Some(output_filter.get_label()),
+              frame: output_frame,
+              index,
+            });
+          }
         }
-        output_video_frames.push(Frame {
-          name: Some(output_filter.get_label()),
-          frame: output_frame,
-          index,
-        });
       }
     }
 

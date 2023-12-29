@@ -3,6 +3,8 @@ use crate::order::{
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
   ParameterValue,
 };
+use crate::packet::Packet;
+use crate::prelude::Frame;
 use crate::probe::deep::{CheckParameterValue, SilenceResult, StreamProbeResult, VideoDetails};
 use std::collections::HashMap;
 
@@ -75,7 +77,8 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
     });
   }
 
-  Order::new(inputs, filters, outputs)
+  Order::add_io(inputs, filters, outputs)
+  // Order::add_io(inputs, filters, outputs, audio_frames, video_frames, subtitle_packets)
 }
 
 pub fn detect_silence<S: ::std::hash::BuildHasher>(
@@ -84,9 +87,13 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
   video_details: VideoDetails,
+  audio_frames: &Vec<Frame>,
+  video_frames: &Vec<Frame>,
+  subtitle_packets: &Vec<Packet>,
 ) {
-  let mut order = create_graph(filename, audio_indexes.clone(), &params).unwrap();
-  if let Err(msg) = order.setup() {
+  let mut new_order = create_graph(filename, audio_indexes.clone(), &params).unwrap();
+  // let mut new_order = create_graph(filename, audio_indexes.clone(), &params, audio_frames, video_frames, subtitle_packets).unwrap();
+  if let Err(msg) = new_order.setup() {
     error!("{:?}", msg);
     return;
   }
@@ -94,10 +101,10 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
     streams[index as usize].detected_silence = Some(vec![]);
   }
 
-  match order.process() {
+  match new_order.process(video_frames, audio_frames, subtitle_packets) {
     Ok(results) => {
-      info!("END OF PROCESS");
-      info!("-> {:?} frames processed", results.len());
+      println!("END OF SILENCE PROCESS");
+      println!("-> {:?} frames processed", results.len());
       let end_from_duration = (((results.len() as f64 / audio_indexes.clone().len() as f64) - 1.0)
         / video_details.frame_rate as f64
         * 1000.0)

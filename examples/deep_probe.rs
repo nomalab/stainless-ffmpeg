@@ -187,7 +187,7 @@ fn main() {
       dualmono_detect: Some(dualmono_params),
       sine_detect: Some(sine_params),
     };
-    probe.process(LevelFilter::Off, check).unwrap();
+    probe.process(LevelFilter::Info, check).unwrap();
     let result = serde_json::to_string(&probe).unwrap();
     println!("RESULT : \n{}\n", result);
 
