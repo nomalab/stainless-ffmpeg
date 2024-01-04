@@ -27,12 +27,13 @@ impl Frame {
   }
 }
 
-impl Drop for Frame {
-  fn drop(&mut self) {
-    unsafe {
-      if !self.frame.is_null() {
-        av_frame_free(&mut self.frame);
-      }
-    }
-  }
-}
+// impl Drop for Frame {
+//   fn drop(&mut self) {
+//     unsafe {
+//       if !self.frame.is_null() {
+//         println!("FREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
+//         av_frame_free(&mut self.frame);
+//       }
+//     }
+//   }
+// }

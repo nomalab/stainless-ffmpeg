@@ -24,7 +24,7 @@ fn main() {
       return;
     }
 
-    match order.process() {
+    match order.process(&Vec::new(), &Vec::new(), &Vec::new()) {
       Ok(results) => {
         info!("END OF PROCESS");
         info!("-> {:?} frames processed", results.len());

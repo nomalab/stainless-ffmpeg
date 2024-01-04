@@ -1,7 +1,9 @@
 use super::black_detect::create_graph;
 use crate::{
   order::OutputResult::Entry,
-  probe::deep::{BlackFadeResult, CheckParameterValue, StreamProbeResult, VideoDetails}, prelude::Frame, packet::Packet,
+  packet::Packet,
+  prelude::Frame,
+  probe::deep::{BlackFadeResult, CheckParameterValue, StreamProbeResult, VideoDetails},
 };
 use std::collections::HashMap;
 

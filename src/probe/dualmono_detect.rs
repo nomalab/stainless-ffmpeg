@@ -4,7 +4,9 @@ use crate::{
     output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
     ParameterValue,
   },
-  probe::deep::{CheckParameterValue, DualMonoResult, StreamProbeResult, VideoDetails}, prelude::Frame, packet::Packet,
+  packet::Packet,
+  prelude::Frame,
+  probe::deep::{CheckParameterValue, DualMonoResult, StreamProbeResult, VideoDetails},
 };
 use std::collections::HashMap;
 

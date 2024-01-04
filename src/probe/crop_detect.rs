@@ -101,7 +101,8 @@ pub fn detect_black_borders(
     Some(12) => 256,
     _ => 16,
   };
-  let mut new_order = create_graph(filename, video_indexes.clone(), params, nb_frames, limit).unwrap();
+  let mut new_order =
+    create_graph(filename, video_indexes.clone(), params, nb_frames, limit).unwrap();
   if let Err(msg) = new_order.setup() {
     error!("{:?}", msg);
     return;

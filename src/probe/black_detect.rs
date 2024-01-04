@@ -1,8 +1,8 @@
 use crate::{
   order::{
-    filter_input::FilterInput, filter_output::FilterOutput, input::Input,
-    input_kind::InputKind, output::Output, output_kind::OutputKind, stream::Stream, Filter, Order,
-    OutputResult::Entry, ParameterValue,
+    filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
+    output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
+    ParameterValue,
   },
   packet::Packet,
   prelude::Frame,
