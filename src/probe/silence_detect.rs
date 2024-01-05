@@ -3,16 +3,15 @@ use crate::order::{
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
   ParameterValue,
 };
-use crate::packet::Packet;
-use crate::prelude::Frame;
 use crate::probe::deep::{CheckParameterValue, SilenceResult, StreamProbeResult, VideoDetails};
 use std::collections::HashMap;
 
 pub fn create_graph<S: ::std::hash::BuildHasher>(
+  order: &mut Order,
   filename: &str,
   audio_indexes: Vec<u32>,
   params: &HashMap<String, CheckParameterValue, S>,
-) -> Result<Order, String> {
+) -> Result<(), String> {
   let mut filters = vec![];
   let mut inputs = vec![];
   let mut outputs = vec![];
@@ -77,23 +76,19 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
     });
   }
 
-  Order::add_io(inputs, filters, outputs)
-  // Order::add_io(inputs, filters, outputs, audio_frames, video_frames, subtitle_packets)
+  Ok(order.add_io(inputs, filters, outputs)?)
 }
 
 pub fn detect_silence<S: ::std::hash::BuildHasher>(
+  order: &mut Order,
   filename: &str,
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
   video_details: VideoDetails,
-  audio_frames: &Vec<Frame>,
-  video_frames: &Vec<Frame>,
-  subtitle_packets: &Vec<Packet>,
 ) {
-  let mut new_order = create_graph(filename, audio_indexes.clone(), &params).unwrap();
-  // let mut new_order = create_graph(filename, audio_indexes.clone(), &params, audio_frames, video_frames, subtitle_packets).unwrap();
-  if let Err(msg) = new_order.setup() {
+  create_graph(order, filename, audio_indexes.clone(), &params).unwrap();
+  if let Err(msg) = order.setup() {
     error!("{:?}", msg);
     return;
   }
@@ -101,7 +96,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
     streams[index as usize].detected_silence = Some(vec![]);
   }
 
-  match new_order.process(video_frames, audio_frames, subtitle_packets) {
+  match order.process() {
     Ok(results) => {
       println!("END OF SILENCE PROCESS");
       println!("-> {:?} frames processed", results.len());

@@ -4,17 +4,16 @@ use crate::{
     output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
     ParameterValue,
   },
-  packet::Packet,
-  prelude::Frame,
   probe::deep::{BlackResult, CheckParameterValue, StreamProbeResult, VideoDetails},
 };
 use std::collections::HashMap;
 
 pub fn create_graph(
+  order: &mut Order,
   filename: &str,
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
-) -> Result<Order, String> {
+) -> Result<(), String> {
   let mut filters = vec![];
   let mut inputs = vec![];
   let mut outputs = vec![];
@@ -73,21 +72,19 @@ pub fn create_graph(
     });
   }
 
-  Order::add_io(inputs, filters, outputs)
+  Ok(order.add_io(inputs, filters, outputs)?)
 }
 
 pub fn detect_black_frames(
+  order: &mut Order,
   filename: &str,
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
   video_details: VideoDetails,
-  audio_frames: &Vec<Frame>,
-  video_frames: &Vec<Frame>,
-  subtitle_packets: &Vec<Packet>,
 ) {
-  let mut new_order = create_graph(filename, video_indexes.clone(), params.clone()).unwrap();
-  if let Err(msg) = new_order.setup() {
+  create_graph(order, filename, video_indexes.clone(), params.clone()).unwrap();
+  if let Err(msg) = order.setup() {
     error!("{:?}", msg);
     return;
   }
@@ -95,7 +92,7 @@ pub fn detect_black_frames(
     streams[index as usize].detected_black = Some(vec![]);
   }
 
-  match new_order.process(video_frames, audio_frames, subtitle_packets) {
+  match order.process() {
     Ok(results) => {
       println!("END OF BLACKFRAMES PROCESS");
       println!("-> {:?} frames processed", results.len());

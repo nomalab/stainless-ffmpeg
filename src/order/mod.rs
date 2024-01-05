@@ -36,7 +36,7 @@ pub use crate::order::parameters::*;
 
 use crate::packet::Packet;
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct Order {
   pub inputs: Vec<Input>,
   pub outputs: Vec<Output>,
@@ -49,6 +49,12 @@ pub struct Order {
   output_formats: Vec<EncoderFormat>,
   #[serde(skip)]
   pub filter_graph: FilterGraph,
+  #[serde(skip)]
+  video_frames: Vec<Frame>,
+  #[serde(skip)]
+  audio_frames: Vec<Frame>,
+  #[serde(skip)]
+  subtitle_packets: Vec<Packet>,
 }
 
 impl Order {
@@ -61,23 +67,26 @@ impl Order {
       input_formats: vec![],
       output_formats: vec![],
       filter_graph: FilterGraph::new()?,
+      video_frames: vec![],
+      audio_frames: vec![],
+      subtitle_packets: vec![],
     })
   }
 
   pub fn add_io(
+    &mut self,
     inputs: Vec<Input>,
     graph: Vec<Filter>,
     outputs: Vec<Output>,
-  ) -> Result<Self, String> {
-    Ok(Order {
-      inputs,
-      outputs,
-      graph,
-      total_streams: 0,
-      input_formats: vec![],
-      output_formats: vec![],
-      filter_graph: FilterGraph::new()?,
-    })
+  ) -> Result<(), String> {
+    self.inputs = inputs;
+    self.graph = graph;
+    self.outputs = outputs;
+    self.total_streams = 0;
+    self.input_formats = vec![];
+    self.output_formats = vec![];
+    self.filter_graph = FilterGraph::new()?;
+    Ok(())
   }
 
   pub fn new_parse(message: &str) -> Result<Self, String> {
@@ -102,12 +111,10 @@ impl Order {
     context: &mut FormatContext,
     mut streams: Vec<StreamProbeResult>,
     mut video_details: VideoDetails,
-  ) -> (Vec<Frame>, Vec<Frame>, Vec<StreamProbeResult>, VideoDetails) {
+  ) -> (Vec<StreamProbeResult>, VideoDetails) {
     warn!("Build inputs with context");
     let _ = self.build_inputs(context);
 
-    let mut video_frames = vec![];
-    let mut audio_frames = vec![];
     streams.resize(context.get_nb_streams() as usize, StreamProbeResult::new());
     while let Ok(packet) = context.next_packet() {
       unsafe {
@@ -143,7 +150,7 @@ impl Order {
             for decoder in &format.video_decoders {
               if decoder.stream_index == packet.get_stream_index() {
                 if let Ok(frame) = decoder.decode(&packet) {
-                  video_frames.push(frame);
+                  self.video_frames.push(frame);
                 }
               }
             }
@@ -154,7 +161,7 @@ impl Order {
             for decoder in &format.audio_decoders {
               if decoder.stream_index == packet.get_stream_index() {
                 if let Ok(frame) = decoder.decode(&packet) {
-                  audio_frames.push(frame);
+                  self.audio_frames.push(frame);
                 }
               }
             }
@@ -164,20 +171,14 @@ impl Order {
       }
     }
 
-    println!("PROCESS INPUT TERMINATED");
-    (video_frames, audio_frames, streams, video_details)
+    (streams, video_details)
   }
 
-  pub fn process(
-    &mut self,
-    video_frames: &Vec<Frame>,
-    audio_frames: &Vec<Frame>,
-    subtitle_packets: &Vec<Packet>,
-  ) -> Result<Vec<OutputResult>, String> {
+  pub fn process(&mut self) -> Result<Vec<OutputResult>, String> {
     let mut results = vec![];
     let (is_video_analyze, is_audio_analyze) = self.media_type_analyzed();
-    let mut audio_frames_iterator = audio_frames.iter();
-    let mut video_frames_iterator = video_frames.iter();
+    let mut audio_frames_iterator = self.audio_frames.iter();
+    let mut video_frames_iterator = self.video_frames.iter();
     let mut sorted_inputs: Vec<Stream> = vec![];
 
     for input in &self.inputs {
@@ -247,7 +248,7 @@ impl Order {
             };
           }
         }
-        for output_packet in subtitle_packets {
+        for output_packet in &self.subtitle_packets {
           for output in &mut self.output_formats {
             output.wrap(&output_packet)?;
           }

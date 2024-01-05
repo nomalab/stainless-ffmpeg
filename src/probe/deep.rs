@@ -13,9 +13,8 @@ use crate::tools::rational::Rational;
 use crate::{format_context::FormatContext, order::Order};
 use ffmpeg_sys_next::*;
 use log::LevelFilter;
-use std::fmt::format;
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::{cmp, collections::HashMap, fmt};
+use std::{collections::HashMap, fmt};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
@@ -381,12 +380,8 @@ impl DeepProbe {
 
     let mut video_details = VideoDetails::new();
     let mut streams = vec![];
-    let video_frames;
-    let audio_frames;
-    let subtitle_packets = vec![];
     let mut order: Order = Order::new().unwrap();
-    (video_frames, audio_frames, streams, video_details) =
-      order.process_input(&mut context, streams, video_details);
+    (streams, video_details) = order.process_input(&mut context, streams, video_details);
 
     let mut audio_indexes = vec![];
     let mut video_indexes = vec![];
@@ -401,40 +396,34 @@ impl DeepProbe {
 
     if let Some(silence_parameters) = check.silence_detect.clone() {
       detect_silence(
+        &mut order,
         &self.filename,
         &mut streams,
         audio_indexes.clone(),
         silence_parameters,
         video_details.clone(),
-        &audio_frames,
-        &video_frames,
-        &subtitle_packets,
       );
     }
 
     if let Some(black_parameters) = check.black_detect.clone() {
       detect_black_frames(
+        &mut order,
         &self.filename,
         &mut streams,
         video_indexes.clone(),
         black_parameters,
         video_details.clone(),
-        &audio_frames,
-        &video_frames,
-        &subtitle_packets,
       );
     }
 
     if let Some(blackfade_parameters) = check.blackfade_detect {
       detect_blackfade(
+        &mut order,
         &self.filename,
         &mut streams,
         video_indexes.clone(),
         blackfade_parameters,
         video_details.clone(),
-        &audio_frames,
-        &video_frames,
-        &subtitle_packets,
       );
     }
 
@@ -452,40 +441,36 @@ impl DeepProbe {
 
     if let Some(crop_parameters) = check.crop_detect {
       detect_black_borders(
+        &mut order,
         &self.filename,
         &mut streams,
         video_indexes.clone(),
         crop_parameters,
         video_details.clone(),
-        &audio_frames,
-        &video_frames,
-        &subtitle_packets,
       );
     }
 
+    println!("scene detect");
+
     if let Some(scene_parameters) = check.scene_detect {
       detect_scene(
+        &mut order,
         &self.filename,
         &mut streams,
         video_indexes.clone(),
         scene_parameters,
         video_details.frame_rate,
-        &audio_frames,
-        &video_frames,
-        &subtitle_packets,
       );
     }
 
     if let Some(ocr_parameters) = check.ocr_detect {
       detect_ocr(
+        &mut order,
         &self.filename,
         &mut streams,
         video_indexes.clone(),
         ocr_parameters,
         video_details.clone(),
-        &audio_frames,
-        &video_frames,
-        &subtitle_packets,
       );
     }
 
@@ -497,39 +482,33 @@ impl DeepProbe {
 
     if let Some(loudness_parameters) = check.loudness_detect {
       detect_loudness(
+        &mut order,
         &self.filename,
         &mut streams,
         audio_indexes.clone(),
         loudness_parameters,
-        &audio_frames,
-        &video_frames,
-        &subtitle_packets,
       );
     }
 
     if let Some(dualmono_parameters) = check.dualmono_detect {
       detect_dualmono(
+        &mut order,
         &self.filename,
         &mut streams,
         audio_indexes.clone(),
         dualmono_parameters,
         video_details.clone(),
-        &audio_frames,
-        &video_frames,
-        &subtitle_packets,
       );
     }
 
     if let Some(sine_parameters) = check.sine_detect {
       detect_sine(
+        &mut order,
         &self.filename,
         &mut streams,
         audio_indexes,
         sine_parameters,
         video_details.frame_rate,
-        &audio_frames,
-        &video_frames,
-        &subtitle_packets,
       );
     }
 
