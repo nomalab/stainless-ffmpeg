@@ -357,7 +357,7 @@ impl DeepProbe {
   }
 
   pub fn process(&mut self, log_level: LevelFilter, check: DeepProbeCheck) -> Result<(), String> {
-    let start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    let dp_start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
     let av_log_level = match log_level {
       LevelFilter::Error => AV_LOG_ERROR,
@@ -381,7 +381,9 @@ impl DeepProbe {
     let mut video_details = VideoDetails::new();
     let mut streams = vec![];
     let mut order: Order = Order::new().unwrap();
+    let decode_start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
     (streams, video_details) = order.process_input(&mut context, streams, video_details);
+    let decode_end = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
     let mut audio_indexes = vec![];
     let mut video_indexes = vec![];
@@ -450,8 +452,6 @@ impl DeepProbe {
       );
     }
 
-    println!("scene detect");
-
     if let Some(scene_parameters) = check.scene_detect {
       detect_scene(
         &mut order,
@@ -519,8 +519,9 @@ impl DeepProbe {
 
     context.close_input();
 
-    let end = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-    println!("\nDEEP PROBE DURATION {:?}", end - start);
+    let dp_end: std::time::Duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    println!("\nDECODE DURATION {:?}", decode_end - decode_start);
+    println!("DEEP PROBE DURATION {:?}\n", dp_end - dp_start);
 
     Ok(())
   }

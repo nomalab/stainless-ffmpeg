@@ -1,4 +1,4 @@
-use ffmpeg_sys_next::{av_frame_clone, AVMediaType};
+use ffmpeg_sys_next::AVMediaType;
 
 use crate::filter_graph::FilterGraph;
 use crate::order::stream::Stream;
@@ -50,9 +50,9 @@ pub struct Order {
   #[serde(skip)]
   pub filter_graph: FilterGraph,
   #[serde(skip)]
-  video_frames: Vec<Frame>,
+  video_frames: Vec<Vec<Frame>>,
   #[serde(skip)]
-  audio_frames: Vec<Frame>,
+  audio_frames: Vec<Vec<Frame>>,
   #[serde(skip)]
   subtitle_packets: Vec<Packet>,
 }
@@ -116,11 +116,14 @@ impl Order {
     let _ = self.build_inputs(context);
 
     streams.resize(context.get_nb_streams() as usize, StreamProbeResult::new());
+    let mut i = 0;
+    let mut j = 0;
+    self.video_frames.push(vec![]);
+    self.audio_frames.push(vec![]);
     while let Ok(packet) = context.next_packet() {
       unsafe {
         let stream_index = (*packet.packet).stream_index as usize;
         let packet_size = (*packet.packet).size;
-
         streams[stream_index].stream_index = stream_index;
         streams[stream_index].count_packets += 1;
         streams[stream_index].min_packet_size =
@@ -150,7 +153,8 @@ impl Order {
             for decoder in &format.video_decoders {
               if decoder.stream_index == packet.get_stream_index() {
                 if let Ok(frame) = decoder.decode(&packet) {
-                  self.video_frames.push(frame);
+                  self.video_frames[j].push(frame);
+                  i += 1;
                 }
               }
             }
@@ -161,13 +165,29 @@ impl Order {
             for decoder in &format.audio_decoders {
               if decoder.stream_index == packet.get_stream_index() {
                 if let Ok(frame) = decoder.decode(&packet) {
-                  self.audio_frames.push(frame);
+                  self.audio_frames[j].push(frame);
+                  i += 1;
                 }
               }
             }
           }
         }
-        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_SUBTITLE {}
+        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_SUBTITLE {
+          for format in &mut self.input_formats {
+            for decoder in &format.subtitle_decoders {
+              if decoder.stream_index == stream_index as isize {
+                // packet.name = Some(decoder.identifier.clone());
+                // subtitle_packets_decoded.push(packet);
+                break;
+              }
+            }
+          }
+        }
+        if i == 1000 {
+          j += 1;
+          self.video_frames.push(vec![]);
+          self.audio_frames.push(vec![]);
+        }
       }
     }
 
@@ -176,9 +196,6 @@ impl Order {
 
   pub fn process(&mut self) -> Result<Vec<OutputResult>, String> {
     let mut results = vec![];
-    let (is_video_analyze, is_audio_analyze) = self.media_type_analyzed();
-    let mut audio_frames_iterator = self.audio_frames.iter();
-    let mut video_frames_iterator = self.video_frames.iter();
     let mut sorted_inputs: Vec<Stream> = vec![];
 
     for input in &self.inputs {
@@ -192,88 +209,64 @@ impl Order {
       }
     }
 
-    loop {
-      let video_frame = video_frames_iterator.next();
-      let audio_frame = audio_frames_iterator.next();
-      if video_frame.is_none() && audio_frame.is_none() {
-        break;
-      }
-
-      unsafe {
-        let vframe;
-        let aframe;
-        if video_frame.is_none() {
-          vframe = None;
-        } else {
-          vframe = Some(av_frame_clone(video_frame.unwrap().frame))
-        }
-        if audio_frame.is_none() {
-          aframe = None;
-        } else {
-          aframe = Some(av_frame_clone(audio_frame.unwrap().frame))
-        }
-        let (output_audio_frames, output_video_frames) = self.filter_graph.process(
-          sorted_inputs.clone(),
-          video_frame,
-          audio_frame,
-          vframe,
-          aframe,
-          is_video_analyze,
-          is_audio_analyze,
-        )?;
-        for output_frame in output_audio_frames {
-          for output in &self.outputs {
-            if output.stream == output_frame.name {
-              if let Some(OutputKind::AudioMetadata) = output.kind {
-                if let Input::Streams { streams, .. } = &self.inputs[output_frame.index] {
-                  for stream in streams {
-                    let mut entry = HashMap::new();
-                    entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
-                    entry.insert("stream_id".to_owned(), stream.index.to_string());
-
-                    for key in &output.keys {
-                      if let Some(value) = output_frame.get_metadata(key) {
-                        entry.insert(key.clone(), value);
-                      }
-                    }
-                    results.push(OutputResult::Entry(entry));
-                  }
-                }
-              }
-            }
-          }
-          for output in &mut self.output_formats {
-            if let Some(packet) = output.encode(&output_frame)? {
-              results.push(OutputResult::Packet(packet));
-            };
-          }
-        }
-        for output_packet in &self.subtitle_packets {
-          for output in &mut self.output_formats {
-            output.wrap(&output_packet)?;
-          }
-        }
-        for output_frame in output_video_frames {
-          for output in &self.outputs {
-            if let Some(OutputKind::VideoMetadata) = output.kind {
-              let mut entry = HashMap::new();
-              entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
+    for i in 0..std::cmp::max(self.video_frames.len(), self.audio_frames.len()) {
+      let (output_audio_frames, output_video_frames) = self.filter_graph.process(
+        self.audio_frames.get(i).unwrap_or(&vec![]),
+        self.video_frames.get(i).unwrap_or(&vec![]),
+        Some(sorted_inputs.clone()),
+      )?;
+      for output_frame in output_audio_frames {
+        for output in &self.outputs {
+          if output.stream == output_frame.name {
+            if let Some(OutputKind::AudioMetadata) = output.kind {
               if let Input::Streams { streams, .. } = &self.inputs[output_frame.index] {
-                entry.insert("stream_id".to_owned(), streams[0].index.to_string());
-              }
-              for key in &output.keys {
-                if let Some(value) = output_frame.get_metadata(key) {
-                  entry.insert(key.clone(), value);
+                for stream in streams {
+                  let mut entry = HashMap::new();
+                  entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
+                  entry.insert("stream_id".to_owned(), stream.index.to_string());
+
+                  for key in &output.keys {
+                    if let Some(value) = output_frame.get_metadata(key) {
+                      entry.insert(key.clone(), value);
+                    }
+                  }
+                  results.push(OutputResult::Entry(entry));
                 }
               }
-              results.push(OutputResult::Entry(entry));
             }
           }
-          for output in &mut self.output_formats {
-            if let Some(packet) = output.encode(&output_frame)? {
-              results.push(OutputResult::Packet(packet));
-            };
+        }
+        for output in &mut self.output_formats {
+          if let Some(packet) = output.encode(&output_frame)? {
+            results.push(OutputResult::Packet(packet));
+          };
+        }
+      }
+      for output_packet in &self.subtitle_packets {
+        for output in &mut self.output_formats {
+          output.wrap(&output_packet)?;
+        }
+      }
+      for output_frame in output_video_frames {
+        for output in &self.outputs {
+          if let Some(OutputKind::VideoMetadata) = output.kind {
+            let mut entry = HashMap::new();
+            entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
+            if let Input::Streams { streams, .. } = &self.inputs[output_frame.index] {
+              entry.insert("stream_id".to_owned(), streams[0].index.to_string());
+            }
+            for key in &output.keys {
+              if let Some(value) = output_frame.get_metadata(key) {
+                entry.insert(key.clone(), value);
+              }
+            }
+            results.push(OutputResult::Entry(entry));
           }
+        }
+        for output in &mut self.output_formats {
+          if let Some(packet) = output.encode(&output_frame)? {
+            results.push(OutputResult::Packet(packet));
+          };
         }
       }
     }
@@ -281,41 +274,15 @@ impl Order {
     Ok(results)
   }
 
-  pub fn media_type_analyzed(&mut self) -> (bool, bool) {
-    let mut is_video_analyze = false;
-    let mut is_audio_analyze = false;
-    for input in &self.inputs {
-      match input {
-        Input::Streams { streams, .. } => {
-          for stream in streams {
-            if let Some(label) = stream.label.clone() {
-              if label.starts_with("audio") {
-                is_audio_analyze = true;
-              }
-              if label.starts_with("video") {
-                is_video_analyze = true;
-              }
-            }
-          }
-        }
-        Input::VideoFrames { .. } => (),
-      }
-    }
-    (is_video_analyze, is_audio_analyze)
-  }
-
   fn build_inputs(&mut self, context: &FormatContext) -> Result<(), String> {
     for i in 0..context.get_nb_streams() {
-      let mut input_id = format!("unknown_input_{i}");
-      if context.get_stream_type(i as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
-        input_id = format!("video_input_{i}");
-      }
-      if context.get_stream_type(i as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
-        input_id = format!("audio_input_{i}");
-      }
-      if context.get_stream_type(i as isize) == AVMediaType::AVMEDIA_TYPE_SUBTITLE {
-        input_id = format!("subtitle_input_{i}");
-      }
+      let mut input_id = format!("unknown_input_{}", i);
+      input_id = match context.get_stream_type(i as isize) {
+        AVMediaType::AVMEDIA_TYPE_VIDEO => format!("video_input_{}", i),
+        AVMediaType::AVMEDIA_TYPE_AUDIO => format!("audio_input_{}", i),
+        AVMediaType::AVMEDIA_TYPE_SUBTITLE => format!("subtitle_input_{}", i),
+        _ => input_id,
+      };
       let input_streams = vec![Stream {
         index: i,
         label: Some(input_id),

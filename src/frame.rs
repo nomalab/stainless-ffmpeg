@@ -2,7 +2,6 @@ use crate::tools;
 use ffmpeg_sys_next::{av_dict_get, av_frame_free, AVFrame};
 use std::{ffi::CString, ptr::null_mut};
 
-#[derive(Debug, Clone)]
 pub struct Frame {
   pub name: Option<String>,
   pub frame: *mut AVFrame,
@@ -27,13 +26,12 @@ impl Frame {
   }
 }
 
-// impl Drop for Frame {
-//   fn drop(&mut self) {
-//     unsafe {
-//       if !self.frame.is_null() {
-//         println!("FREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
-//         av_frame_free(&mut self.frame);
-//       }
-//     }
-//   }
-// }
+impl Drop for Frame {
+  fn drop(&mut self) {
+    unsafe {
+      if !self.frame.is_null() {
+        av_frame_free(&mut self.frame);
+      }
+    }
+  }
+}

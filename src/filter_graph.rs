@@ -236,31 +236,25 @@ impl FilterGraph {
 
   pub fn process(
     &self,
-    sorted_inputs: Vec<StreamOrder>,
-    video_frame: Option<&Frame>,
-    audio_frame: Option<&Frame>,
-    vframe: Option<*mut AVFrame>,
-    aframe: Option<*mut AVFrame>,
-    is_video_analyzed: bool,
-    is_audio_analyzed: bool,
+    in_audio_frames: &[Frame],
+    in_video_frames: &[Frame],
+    sorted_inputs: Option<Vec<StreamOrder>>,
   ) -> Result<(Vec<Frame>, Vec<Frame>), String> {
     let mut output_audio_frames = vec![];
     let mut output_video_frames = vec![];
 
     unsafe {
-      if is_audio_analyzed && audio_frame.is_some() {
-        if let Some(frame) = audio_frame {
-          if let Some(stream) = sorted_inputs
+      for frame in in_audio_frames {
+        if let Some(ref sorted_streams) = sorted_inputs {
+          if let Some(stream) = sorted_streams
             .iter()
             .find(|&stream| stream.label == frame.name)
           {
-            if let Some(mut aframe) = aframe {
-              check_result!(av_buffersrc_add_frame(
-                self.audio_inputs[stream.index as usize].context,
-                aframe
-              ));
-              av_frame_free(&mut aframe);
-            }
+            let res = av_buffersrc_add_frame(
+              self.audio_inputs[stream.index as usize].context,
+              av_frame_clone(frame.frame),
+            );
+            check_result!(res);
 
             for (index, output_filter) in self.audio_outputs.iter().enumerate() {
               let mut result = 0;
@@ -283,20 +277,17 @@ impl FilterGraph {
         }
       }
 
-      if is_video_analyzed && video_frame.is_some() {
-        if let Some(frame) = video_frame {
-          if let Some(stream) = sorted_inputs
+      for frame in in_video_frames {
+        if let Some(ref sorted_streams) = sorted_inputs {
+          if let Some(stream) = sorted_streams
             .iter()
             .clone()
             .find(|&stream| stream.label == frame.name)
           {
-            if let Some(mut vframe) = vframe {
-              check_result!(av_buffersrc_add_frame(
-                self.video_inputs[stream.index as usize].context,
-                vframe
-              ));
-              av_frame_free(&mut vframe);
-            }
+            check_result!(av_buffersrc_add_frame(
+              self.video_inputs[stream.index as usize].context,
+              av_frame_clone(frame.frame),
+            ));
 
             for (index, output_filter) in self.video_outputs.iter().enumerate() {
               let mut result = 0;

@@ -82,10 +82,7 @@ fn main() {
 
       let frame = audio_decoder.decode(&packet).unwrap();
 
-      let (frames, _) = graph
-        .process(Vec::new(), None, None, None, None, false, false)
-        .unwrap();
-
+      let (frames, _) = graph.process(&[frame], &[], None).unwrap();
       let frame = frames.first().unwrap();
 
       unsafe {
