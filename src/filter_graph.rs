@@ -246,17 +246,19 @@ impl FilterGraph {
     let mut output_video_frames = vec![];
 
     unsafe {
-      for (index, frame) in in_audio_frames.iter().enumerate() {
-        check_result!(av_buffersrc_add_frame(
-          self.audio_inputs[index].context,
-          frame.frame
-        ));
+      for frame in in_audio_frames {
+        for input in &self.audio_inputs {
+          if input.get_label() == frame.name.clone().unwrap() {
+            check_result!(av_buffersrc_add_frame(input.context, frame.frame));
+          }
+        }
       }
-      for (index, frame) in in_video_frames.iter().enumerate() {
-        check_result!(av_buffersrc_add_frame(
-          self.video_inputs[index].context,
-          frame.frame
-        ));
+      for frame in in_video_frames {
+        for input in &self.video_inputs {
+          if input.get_label() == frame.name.clone().unwrap() {
+            check_result!(av_buffersrc_add_frame(input.context, frame.frame));
+          }
+        }
       }
 
       for (index, output_filter) in self.audio_outputs.iter().enumerate() {
