@@ -262,33 +262,39 @@ impl FilterGraph {
       }
 
       for (index, output_filter) in self.audio_outputs.iter().enumerate() {
-        let output_frame = av_frame_alloc();
-        let result = av_buffersink_get_frame(output_filter.context, output_frame);
-        if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
-          break;
-        } else {
-          check_result!(result);
+        let mut result = 0;
+        while result >= 0 {
+          let output_frame = av_frame_alloc();
+          result = av_buffersink_get_frame(output_filter.context, output_frame);
+          if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
+            break;
+          } else {
+            check_result!(result);
+          }
+          output_audio_frames.push(Frame {
+            name: Some(output_filter.get_label()),
+            frame: output_frame,
+            index,
+          });
         }
-        output_audio_frames.push(Frame {
-          name: Some(output_filter.get_label()),
-          frame: output_frame,
-          index,
-        });
       }
 
       for (index, output_filter) in self.video_outputs.iter().enumerate() {
-        let output_frame = av_frame_alloc();
-        let result = av_buffersink_get_frame(output_filter.context, output_frame);
-        if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
-          break;
-        } else {
-          check_result!(result);
+        let mut result = 0;
+        while result >= 0 {
+          let output_frame = av_frame_alloc();
+          result = av_buffersink_get_frame(output_filter.context, output_frame);
+          if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
+            break;
+          } else {
+            check_result!(result);
+          }
+          output_video_frames.push(Frame {
+            name: Some(output_filter.get_label()),
+            frame: output_frame,
+            index,
+          });
         }
-        output_video_frames.push(Frame {
-          name: Some(output_filter.get_label()),
-          frame: output_frame,
-          index,
-        });
       }
     }
 
