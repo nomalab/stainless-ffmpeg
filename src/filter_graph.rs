@@ -1,4 +1,3 @@
-use crate::order::stream::Stream as StreamOrder;
 use crate::{
   audio_decoder::AudioDecoder, filter::Filter, frame::Frame, order::*, stream::Stream, tools,
   video_decoder::VideoDecoder,
@@ -238,7 +237,6 @@ impl FilterGraph {
     &self,
     in_audio_frames: &[Frame],
     in_video_frames: &[Frame],
-    sorted_audio_inputs: Option<Vec<StreamOrder>>,
   ) -> Result<(Vec<Frame>, Vec<Frame>), String> {
     if in_video_frames.len() != self.video_inputs.len() {
       return Err(format!(
@@ -250,18 +248,12 @@ impl FilterGraph {
 
     let mut output_audio_frames = vec![];
     let mut output_video_frames = vec![];
-
     unsafe {
-      if let Some(streams) = sorted_audio_inputs {
-        let mut index = 0;
-        for frame in in_audio_frames {
-          if let Some(stream) = streams.iter().find(|&stream| stream.label == frame.name) {
-            index = stream.index;
+      for frame in in_audio_frames {
+        for input in &self.audio_inputs {
+          if input.get_label() == frame.name.clone().unwrap() {
+            check_result!(av_buffersrc_add_frame(input.context, frame.frame));
           }
-          check_result!(av_buffersrc_add_frame(
-            self.audio_inputs[index as usize].context,
-            frame.frame
-          ));
         }
       }
       for (index, frame) in in_video_frames.iter().enumerate() {
