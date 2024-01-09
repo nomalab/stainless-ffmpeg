@@ -242,21 +242,6 @@ impl FilterGraph {
     in_audio_frames: &[Frame],
     in_video_frames: &[Frame],
   ) -> Result<(Vec<Frame>, Vec<Frame>), String> {
-    if in_audio_frames.len() != self.audio_inputs.len() {
-      return Err(format!(
-        "unable to process graph, mistmatch input frames ({}) with graph inputs ({})",
-        in_audio_frames.len(),
-        self.audio_inputs.len()
-      ));
-    }
-    if in_video_frames.len() != self.video_inputs.len() {
-      return Err(format!(
-        "unable to process graph, mistmatch input frames ({}) with graph inputs ({})",
-        in_video_frames.len(),
-        self.video_inputs.len()
-      ));
-    }
-
     let mut output_audio_frames = vec![];
     let mut output_video_frames = vec![];
 

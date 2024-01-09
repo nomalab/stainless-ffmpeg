@@ -85,73 +85,69 @@ impl Order {
         break;
       }
 
-      if audio_frames.len() == self.filter_graph.audio_inputs.len()
-        && video_frames.len() == self.filter_graph.video_inputs.len()
-      {
-        let (output_audio_frames, output_video_frames) =
-          if audio_frames.is_empty() && video_frames.is_empty() {
-            (audio_frames, video_frames)
-          } else {
-            self.filter_graph.process(&audio_frames, &video_frames)?
-          };
-        for output_frame in output_audio_frames {
-          for output in &self.outputs {
-            if output.stream == output_frame.name {
-              if let Some(OutputKind::AudioMetadata) = output.kind {
-                if let Input::Streams { streams, .. } = &self.inputs[output_frame.index] {
-                  for stream in streams {
-                    let mut entry = HashMap::new();
-                    entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
-                    entry.insert("stream_id".to_owned(), stream.index.to_string());
-
-                    for key in &output.keys {
-                      if let Some(value) = output_frame.get_metadata(key) {
-                        entry.insert(key.clone(), value);
-                      }
-                    }
-                    results.push(OutputResult::Entry(entry));
-                  }
-                }
-              }
-            }
-          }
-
-          for output in &mut self.output_formats {
-            if let Some(packet) = output.encode(&output_frame)? {
-              results.push(OutputResult::Packet(packet));
-            };
-          }
-        }
-
-        for output_packet in subtitle_packets {
-          for output in &mut self.output_formats {
-            output.wrap(&output_packet)?;
-          }
-        }
-        for output_frame in output_video_frames {
-          for output in &self.outputs {
-            if let Some(OutputKind::VideoMetadata) = output.kind {
-              let mut entry = HashMap::new();
-              entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
+      let (output_audio_frames, output_video_frames) =
+        if audio_frames.is_empty() && video_frames.is_empty() {
+          (audio_frames, video_frames)
+        } else {
+          self.filter_graph.process(&audio_frames, &video_frames)?
+        };
+      for output_frame in output_audio_frames {
+        for output in &self.outputs {
+          if output.stream == output_frame.name {
+            if let Some(OutputKind::AudioMetadata) = output.kind {
               if let Input::Streams { streams, .. } = &self.inputs[output_frame.index] {
-                entry.insert("stream_id".to_owned(), streams[0].index.to_string());
-              }
+                for stream in streams {
+                  let mut entry = HashMap::new();
+                  entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
+                  entry.insert("stream_id".to_owned(), stream.index.to_string());
 
-              for key in &output.keys {
-                if let Some(value) = output_frame.get_metadata(key) {
-                  entry.insert(key.clone(), value);
+                  for key in &output.keys {
+                    if let Some(value) = output_frame.get_metadata(key) {
+                      entry.insert(key.clone(), value);
+                    }
+                  }
+                  results.push(OutputResult::Entry(entry));
                 }
               }
-
-              results.push(OutputResult::Entry(entry));
             }
           }
+        }
 
-          for output in &mut self.output_formats {
-            if let Some(packet) = output.encode(&output_frame)? {
-              results.push(OutputResult::Packet(packet));
-            };
+        for output in &mut self.output_formats {
+          if let Some(packet) = output.encode(&output_frame)? {
+            results.push(OutputResult::Packet(packet));
+          };
+        }
+      }
+
+      for output_packet in subtitle_packets {
+        for output in &mut self.output_formats {
+          output.wrap(&output_packet)?;
+        }
+      }
+      for output_frame in output_video_frames {
+        for output in &self.outputs {
+          if let Some(OutputKind::VideoMetadata) = output.kind {
+            let mut entry = HashMap::new();
+            entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
+            if let Input::Streams { streams, .. } = &self.inputs[output_frame.index] {
+              entry.insert("stream_id".to_owned(), streams[0].index.to_string());
+            }
+
+            for key in &output.keys {
+              if let Some(value) = output_frame.get_metadata(key) {
+                entry.insert(key.clone(), value);
+              }
+            }
+
+            results.push(OutputResult::Entry(entry));
           }
+        }
+
+        for output in &mut self.output_formats {
+          if let Some(packet) = output.encode(&output_frame)? {
+            results.push(OutputResult::Packet(packet));
+          };
         }
       }
     }
