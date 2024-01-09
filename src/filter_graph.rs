@@ -248,15 +248,19 @@ impl FilterGraph {
     unsafe {
       for frame in in_audio_frames {
         for input in &self.audio_inputs {
-          if input.get_label() == frame.name.clone().unwrap() {
-            check_result!(av_buffersrc_add_frame(input.context, frame.frame));
+          if let Some(label) = &frame.name {
+            if input.get_label() == *label {
+              check_result!(av_buffersrc_add_frame(input.context, frame.frame));
+            }
           }
         }
       }
       for frame in in_video_frames {
         for input in &self.video_inputs {
-          if input.get_label() == frame.name.clone().unwrap() {
-            check_result!(av_buffersrc_add_frame(input.context, frame.frame));
+          if let Some(label) = &frame.name {
+            if input.get_label() == *label {
+              check_result!(av_buffersrc_add_frame(input.context, frame.frame));
+            }
           }
         }
       }
