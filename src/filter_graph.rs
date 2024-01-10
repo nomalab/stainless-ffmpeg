@@ -250,11 +250,10 @@ impl FilterGraph {
             .iter()
             .find(|&stream| stream.label == frame.name)
           {
-            let res = av_buffersrc_add_frame(
+            av_buffersrc_add_frame(
               self.audio_inputs[stream.index as usize].context,
               av_frame_clone(frame.frame),
             );
-            check_result!(res);
 
             for (index, output_filter) in self.audio_outputs.iter().enumerate() {
               let mut result = 0;
