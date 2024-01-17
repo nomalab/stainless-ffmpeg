@@ -36,7 +36,7 @@ pub use crate::order::parameters::*;
 
 use crate::packet::Packet;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Order {
   pub inputs: Vec<Input>,
   pub outputs: Vec<Output>,
@@ -44,7 +44,9 @@ pub struct Order {
   #[serde(skip)]
   total_streams: u32,
   #[serde(skip)]
-  input_formats: Vec<DecoderFormat>,
+  pub input_formats_src: Vec<DecoderFormat>,
+  #[serde(skip)]
+  pub input_formats: Vec<DecoderFormat>,
   #[serde(skip)]
   output_formats: Vec<EncoderFormat>,
   #[serde(skip)]
@@ -55,6 +57,8 @@ pub struct Order {
   audio_frames: Vec<Frame>,
   #[serde(skip)]
   subtitle_packets: Vec<Packet>,
+  #[serde(skip)]
+  packets: Vec<Packet>,
 }
 
 impl Order {
@@ -65,11 +69,34 @@ impl Order {
       graph: vec![],
       total_streams: 0,
       input_formats: vec![],
+      input_formats_src: vec![],
       output_formats: vec![],
       filter_graph: FilterGraph::new()?,
       video_frames: vec![],
       audio_frames: vec![],
       subtitle_packets: vec![],
+      packets: vec![],
+    })
+  }
+
+  pub fn new_with_io(
+    inputs: Vec<Input>,
+    graph: Vec<Filter>,
+    outputs: Vec<Output>,
+  ) -> Result<Self, String> {
+    Ok(Order {
+      inputs,
+      outputs,
+      graph,
+      total_streams: 0,
+      input_formats: vec![],
+      input_formats_src: vec![],
+      output_formats: vec![],
+      filter_graph: FilterGraph::new()?,
+      video_frames: vec![],
+      audio_frames: vec![],
+      subtitle_packets: vec![],
+      packets: vec![],
     })
   }
 
@@ -112,7 +139,6 @@ impl Order {
     mut streams: Vec<StreamProbeResult>,
     mut video_details: VideoDetails,
   ) -> (Vec<StreamProbeResult>, VideoDetails) {
-    warn!("Build inputs with context");
     let _ = self.build_inputs(context);
 
     streams.resize(context.get_nb_streams() as usize, StreamProbeResult::new());
@@ -144,65 +170,74 @@ impl Order {
             video_details.metadata_height = stream.get_height();
             video_details.aspect_ratio = stream.get_picture_aspect_ratio();
           }
-
-          for format in &mut self.input_formats {
-            for decoder in &format.video_decoders {
-              if decoder.stream_index == packet.get_stream_index() {
-                if let Ok(frame) = decoder.decode(&packet) {
-                  self.video_frames.push(frame);
-                }
-              }
-            }
-          }
-        }
-        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
-          for format in &mut self.input_formats {
-            for decoder in &format.audio_decoders {
-              if decoder.stream_index == packet.get_stream_index() {
-                if let Ok(frame) = decoder.decode(&packet) {
-                  self.audio_frames.push(frame);
-                }
-              }
-            }
-          }
-        }
-        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_SUBTITLE {
-          for format in &mut self.input_formats {
-            for decoder in &format.subtitle_decoders {
-              if decoder.stream_index == stream_index as isize {
-                // packet.name = Some(decoder.identifier.clone());
-                // subtitle_packets_decoded.push(packet);
-                break;
-              }
-            }
-          }
         }
       }
+      self.packets.push(packet);
     }
-
     (streams, video_details)
   }
 
-  pub fn process(&mut self) -> Result<Vec<OutputResult>, String> {
-    let mut results = vec![];
-    let mut sorted_inputs: Vec<Stream> = vec![];
+  pub fn decode_input(&mut self, context: &mut FormatContext) -> bool {
+    let mut last_index = 900;
+    self.audio_frames.clear();
+    self.video_frames.clear();
+    self.subtitle_packets.clear();
+    let mut decode_end = true;
 
-    for input in &self.inputs {
-      if let Input::Streams { streams, .. } = input {
-        for stream in streams {
-          sorted_inputs.push(Stream {
-            index: sorted_inputs.len() as u32,
-            label: stream.label.to_owned(),
-          });
+    'first_loop: for (index, packet) in self.packets.iter().enumerate() {
+      last_index = index;
+      let stream_index = (unsafe { *packet.packet }).stream_index as usize;
+
+      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
+        for format in &mut self.input_formats_src {
+          for decoder in &format.video_decoders {
+            if decoder.stream_index == packet.get_stream_index() {
+              if let Ok(frame) = decoder.decode(&packet) {
+                self.video_frames.push(frame);
+                if self.video_frames.len() >= 150 {
+                  decode_end = false;
+                  break 'first_loop;
+                }
+              }
+            }
+          }
+        }
+      }
+      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
+        for format in &mut self.input_formats_src {
+          for decoder in &format.audio_decoders {
+            if decoder.stream_index == packet.get_stream_index() {
+              if let Ok(frame) = decoder.decode(&packet) {
+                self.audio_frames.push(frame);
+              }
+            }
+          }
+        }
+      }
+      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_SUBTITLE {
+        for format in &mut self.input_formats_src {
+          for decoder in &format.subtitle_decoders {
+            if decoder.stream_index == stream_index as isize {
+              // packet.name = Some(decoder.identifier.clone());
+              // subtitle_packets_decoded.push(packet);
+              break;
+            }
+          }
         }
       }
     }
+    self.packets.drain(0..last_index);
 
-    let (output_audio_frames, output_video_frames) = self.filter_graph.process(
-      &self.audio_frames,
-      &self.video_frames,
-      Some(sorted_inputs.clone()),
-    )?;
+    return decode_end;
+  }
+
+  pub fn process(&self, src: &Order) -> Result<Vec<OutputResult>, String> {
+    let mut results = vec![];
+
+    let (output_audio_frames, output_video_frames) = self
+      .filter_graph
+      .process(&src.audio_frames, &src.video_frames)?;
+    // println!("output audio frames {:?}", output_audio_frames.len());
     for output_frame in output_audio_frames {
       for output in &self.outputs {
         if output.stream == output_frame.name {
@@ -224,14 +259,14 @@ impl Order {
           }
         }
       }
-      for output in &mut self.output_formats {
+      for output in &self.output_formats {
         if let Some(packet) = output.encode(&output_frame)? {
           results.push(OutputResult::Packet(packet));
         };
       }
     }
     for output_packet in &self.subtitle_packets {
-      for output in &mut self.output_formats {
+      for output in &self.output_formats {
         output.wrap(&output_packet)?;
       }
     }
@@ -251,7 +286,7 @@ impl Order {
           results.push(OutputResult::Entry(entry));
         }
       }
-      for output in &mut self.output_formats {
+      for output in &self.output_formats {
         if let Some(packet) = output.encode(&output_frame)? {
           results.push(OutputResult::Packet(packet));
         };
@@ -283,7 +318,7 @@ impl Order {
     for input in &self.inputs {
       let decoder = DecoderFormat::new(&mut self.filter_graph, input)?;
       self.total_streams += decoder.context.get_nb_streams();
-      self.input_formats.push(decoder);
+      self.input_formats_src.push(decoder);
     }
     Ok(())
   }

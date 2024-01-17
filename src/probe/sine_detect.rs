@@ -1,4 +1,5 @@
 use crate::format_context::FormatContext;
+use crate::order::OutputResult;
 use crate::order::{
   filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
@@ -10,11 +11,10 @@ use ffmpeg_sys_next::AVMediaType;
 use std::collections::HashMap;
 
 pub fn create_graph(
-  order: &mut Order,
   filename: &str,
   audio_indexes: Vec<u32>,
   params: &HashMap<String, CheckParameterValue>,
-) -> Result<(), String> {
+) -> Result<Order, String> {
   let mut filters = vec![];
   let mut inputs = vec![];
   let mut outputs = vec![];
@@ -88,195 +88,230 @@ pub fn create_graph(
     }
   }
 
-  Ok(order.add_io(inputs, filters, outputs)?)
+  Order::new_with_io(inputs, filters, outputs)
 }
 
 pub fn detect_sine(
-  order: &mut Order,
+  orders: &mut HashMap<String, Order>,
+  output_results: &mut HashMap<String, Vec<OutputResult>>,
   filename: &str,
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
   frame_rate: f32,
+  decode_end: bool,
 ) {
-  create_graph(order, filename, audio_indexes.clone(), &params).unwrap();
-  if let Err(msg) = order.setup() {
-    error!("{:?}", msg);
-    return;
+  if orders.get("sine").is_none() {
+    let mut order = create_graph(filename, audio_indexes.clone(), &params).unwrap();
+    if let Err(msg) = order.setup() {
+      error!("{:?}", msg);
+    }
+    orders.insert("sine".to_string(), order);
+    output_results.insert("sine".to_string(), vec![]);
   }
-  for index in audio_indexes.clone() {
-    streams[index as usize].detected_sine = Some(vec![]);
-  }
 
-  match order.process() {
-    Ok(results) => {
-      info!("END OF PROCESS");
-      info!("-> {:?} frames processed", results.len());
-      let end_from_duration =
-        (((results.len() as f64 / audio_indexes.len() as f64) - 1.0) / frame_rate as f64 * 1000.0)
-          .round() as i64;
-      let mut tracks: Vec<Vec<Track>> = Vec::new();
-      let mut sine: SineResult = Default::default();
-      let mut range_value: f64 = 1.0; //contains the range values to code a sample
-      let mut last_starts: HashMap<Track, Option<i64>> = HashMap::new(); //contains the previous declared start
-      let mut last_crests: HashMap<Track, f64> = HashMap::new(); //contains the crest factor from the previous frame
-      let mut frames: HashMap<Track, f64> = HashMap::new(); //contains the current frame number
-      let mut zero_cross: HashMap<Track, f64> = HashMap::new(); //contains the number of zero crossings
-      let mut max_duration = None;
-      let mut min_duration = None;
-      if let Some(duration) = params.get("duration") {
-        min_duration = duration.min;
-        max_duration = duration.max;
+  if !decode_end {
+    match orders
+      .get("sine")
+      .unwrap()
+      .process(orders.get("src").unwrap())
+    {
+      Ok(results) => {
+        output_results
+          .entry("sine".to_string())
+          .and_modify(|own_results| own_results.extend(results));
       }
-      match params.get("pairing_list") {
-        Some(pairing_list) => {
-          if let Some(pairs) = pairing_list.pairs.clone() {
-            tracks = pairs;
-          }
-        }
-        None => return warn!("No input message for the 1000Hz analysis (audio qualification)"),
-      }
-
-      let mut context = FormatContext::new(filename).unwrap();
-      if let Err(msg) = context.open_input() {
-        context.close_input();
-        error!("{:?}", msg);
-        return;
-      }
-      for result in results {
-        if let Entry(entry_map) = result {
-          if let Some(stream_id) = entry_map.get("stream_id") {
-            let index: u8 = stream_id.parse().unwrap();
-            if streams[(index) as usize].detected_sine.is_none() {
-              error!("Error : unexpected detection on stream ${index}");
-              break;
-            }
-            let detected_sine = streams[index as usize].detected_sine.as_mut().unwrap();
-
-            if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
-              if let AVMediaType::AVMEDIA_TYPE_AUDIO = context.get_stream_type(index as isize) {
-                let sample_fmt = stream.get_sample_fmt();
-                range_value = match sample_fmt.as_str() {
-                  "s16" => i16::MAX as f64,
-                  "s32" => i32::MAX as f64,
-                  "s64" => i64::MAX as f64,
-                  _ => 1.0,
-                };
-              }
-            }
-
-            /*
-             * If a crest factor of a signal is sqrt(2), that means that the signal is a sine.
-             * If no previous start sine have been declared, we define one.
-             * We can look for the end of the sine :
-             *      -in the middle of the signal : as soon as we get a crest factor != sqrt(2)
-             *       that means that the previous frame was the end of the sine.
-             *      -at the end of the signal : if we get a crest factor == sqrt(2) until the
-             *       end of the signal, that means that there is a sine until the end.
-             * 1000Hz is a sine with 1000 periods per second. There is 2 zero crossings per
-             * period :
-             * if zero_cross_nb / sine_duration(second) = 2000, then this is a 1000Hz.
-             */
-            let mut crest_factor_key;
-            let mut zero_crossing_key;
-
-            let channels = Track::get_channels_number(tracks.clone(), index);
-            for channel in 1..(channels + 1) {
-              crest_factor_key = format!("lavfi.astats.{channel}.Crest_factor");
-              zero_crossing_key = format!("lavfi.astats.{channel}.Zero_crossings");
-              let audio_stream_key = Track::new(index, channel);
-
-              //update frame count
-              let frame = *frames.get(&audio_stream_key).unwrap_or(&0.0);
-              frames.insert(audio_stream_key.clone(), frame + 1.0);
-              let last_start_opt = last_starts.get(&audio_stream_key).unwrap_or(&None);
-
-              //update signal zero crossing count
-              if let Some(value) = entry_map.get(&zero_crossing_key) {
-                let prev_value = zero_cross.get(&audio_stream_key).unwrap_or(&0.0);
-                let new_value = prev_value + value.parse::<f64>().unwrap();
-                zero_cross.insert(audio_stream_key.clone(), new_value);
-              }
-
-              if let Some(value) = entry_map.get(&crest_factor_key) {
-                let crest_factor = value.parse::<f64>().unwrap() / range_value;
-
-                //sqrt(2) +/- 1e-3
-                if (2_f64.sqrt() - 1e-3_f64..2_f64.sqrt() + 1e-3_f64).contains(&crest_factor) {
-                  if last_start_opt.is_some() {
-                    if let Some(last_start) = last_start_opt {
-                      //check if audio ends => 1000Hz until the end
-                      if (frame / frame_rate as f64 * 1000.0).round() as i64 == end_from_duration {
-                        sine.channel = channel;
-                        sine.start = *last_start;
-                        sine.end = end_from_duration;
-                        //check if sine is a 1000Hz => push and reset
-                        if let Some(zero_crossing) = zero_cross.get(&audio_stream_key.clone()) {
-                          let sine_duration = ((frame + 1.0) / frame_rate as f64 * 1000.0).round()
-                            as i64
-                            - sine.start;
-                          if (zero_crossing / sine_duration as f64) == 2.0 {
-                            detected_sine.push(sine);
-                            last_starts.insert(audio_stream_key.clone(), None);
-                            zero_cross.insert(audio_stream_key.clone(), 0.0);
-                            if let Some(max) = max_duration {
-                              if sine_duration > max as i64 {
-                                detected_sine.pop();
-                              }
-                            }
-                            if let Some(min) = min_duration {
-                              if sine_duration < min as i64 {
-                                detected_sine.pop();
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  } else {
-                    sine.start = (frame / frame_rate as f64 * 1000.0).round() as i64;
-                    last_starts.insert(audio_stream_key.clone(), Some(sine.start));
-                  }
-                } else if (2_f64.sqrt() - 1e-3_f64..2_f64.sqrt() + 1e-3_f64)
-                  .contains(last_crests.get(&audio_stream_key).unwrap_or(&0.0))
-                  && last_start_opt.is_some()
-                {
-                  if let Some(last_start) = last_start_opt {
-                    sine.channel = channel;
-                    sine.start = *last_start;
-                    sine.end = ((frame - 1.0) / frame_rate as f64 * 1000.0).round() as i64;
-                    //check if sine is a 1000Hz => push and reset
-                    let sine_duration =
-                      (frame / frame_rate as f64 * 1000.0).round() as i64 - sine.start;
-                    if let Some(zero_crossing) = zero_cross.get(&audio_stream_key) {
-                      if (zero_crossing / sine_duration as f64) == 2.0 {
-                        detected_sine.push(sine);
-                        last_starts.insert(audio_stream_key.clone(), None);
-                        zero_cross.insert(audio_stream_key.clone(), 0.0);
-                        if let Some(max) = max_duration {
-                          if sine_duration > max as i64 {
-                            detected_sine.pop();
-                          }
-                        }
-                        if let Some(min) = min_duration {
-                          if sine_duration < min as i64 {
-                            detected_sine.pop();
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-                //update last crest factor
-                last_crests.insert(audio_stream_key, crest_factor);
-              }
-            }
-          }
-        }
+      Err(msg) => {
+        error!("ERROR: {}", msg)
       }
     }
-    Err(msg) => {
-      error!("ERROR: {}", msg);
+  } else {
+    for index in audio_indexes.clone() {
+      if streams[index as usize].detected_sine.is_none() {
+        streams[index as usize].detected_sine = Some(vec![]);
+      }
+    }
+
+    match orders
+      .get("sine")
+      .unwrap()
+      .process(orders.get("src").unwrap())
+    {
+      Ok(result) => {
+        output_results
+          .entry("sine".to_string())
+          .and_modify(|own_results| own_results.extend(result));
+        let results = output_results.get("sine").unwrap();
+        println!("END OF SINE PROCESS");
+        println!("-> {:?} frames processed", results.len());
+        let end_from_duration = (((results.len() as f64 / audio_indexes.len() as f64) - 1.0)
+          / frame_rate as f64
+          * 1000.0)
+          .round() as i64;
+        let mut tracks: Vec<Vec<Track>> = Vec::new();
+        let mut sine: SineResult = Default::default();
+        let mut range_value: f64 = 1.0; //contains the range values to code a sample
+        let mut last_starts: HashMap<Track, Option<i64>> = HashMap::new(); //contains the previous declared start
+        let mut last_crests: HashMap<Track, f64> = HashMap::new(); //contains the crest factor from the previous frame
+        let mut frames: HashMap<Track, f64> = HashMap::new(); //contains the current frame number
+        let mut zero_cross: HashMap<Track, f64> = HashMap::new(); //contains the number of zero crossings
+        let mut max_duration = None;
+        let mut min_duration = None;
+        if let Some(duration) = params.get("duration") {
+          min_duration = duration.min;
+          max_duration = duration.max;
+        }
+        match params.get("pairing_list") {
+          Some(pairing_list) => {
+            if let Some(pairs) = pairing_list.pairs.clone() {
+              tracks = pairs;
+            }
+          }
+          None => return warn!("No input message for the 1000Hz analysis (audio qualification)"),
+        }
+
+        let mut context = FormatContext::new(filename).unwrap();
+        if let Err(msg) = context.open_input() {
+          context.close_input();
+          error!("{:?}", msg);
+          return;
+        }
+        for result in results {
+          if let Entry(entry_map) = result {
+            if let Some(stream_id) = entry_map.get("stream_id") {
+              let index: u8 = stream_id.parse().unwrap();
+              if streams[(index) as usize].detected_sine.is_none() {
+                error!("Error : unexpected detection on stream ${index}");
+                break;
+              }
+              let detected_sine = streams[index as usize].detected_sine.as_mut().unwrap();
+
+              if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
+                if let AVMediaType::AVMEDIA_TYPE_AUDIO = context.get_stream_type(index as isize) {
+                  let sample_fmt = stream.get_sample_fmt();
+                  range_value = match sample_fmt.as_str() {
+                    "s16" => i16::MAX as f64,
+                    "s32" => i32::MAX as f64,
+                    "s64" => i64::MAX as f64,
+                    _ => 1.0,
+                  };
+                }
+              }
+
+              /*
+               * If a crest factor of a signal is sqrt(2), that means that the signal is a sine.
+               * If no previous start sine have been declared, we define one.
+               * We can look for the end of the sine :
+               *      -in the middle of the signal : as soon as we get a crest factor != sqrt(2)
+               *       that means that the previous frame was the end of the sine.
+               *      -at the end of the signal : if we get a crest factor == sqrt(2) until the
+               *       end of the signal, that means that there is a sine until the end.
+               * 1000Hz is a sine with 1000 periods per second. There is 2 zero crossings per
+               * period :
+               * if zero_cross_nb / sine_duration(second) = 2000, then this is a 1000Hz.
+               */
+              let mut crest_factor_key;
+              let mut zero_crossing_key;
+
+              let channels = Track::get_channels_number(tracks.clone(), index);
+              for channel in 1..(channels + 1) {
+                crest_factor_key = format!("lavfi.astats.{channel}.Crest_factor");
+                zero_crossing_key = format!("lavfi.astats.{channel}.Zero_crossings");
+                let audio_stream_key = Track::new(index, channel);
+
+                //update frame count
+                let frame = *frames.get(&audio_stream_key).unwrap_or(&0.0);
+                frames.insert(audio_stream_key.clone(), frame + 1.0);
+                let last_start_opt = last_starts.get(&audio_stream_key).unwrap_or(&None);
+
+                //update signal zero crossing count
+                if let Some(value) = entry_map.get(&zero_crossing_key) {
+                  let prev_value = zero_cross.get(&audio_stream_key).unwrap_or(&0.0);
+                  let new_value = prev_value + value.parse::<f64>().unwrap();
+                  zero_cross.insert(audio_stream_key.clone(), new_value);
+                }
+
+                if let Some(value) = entry_map.get(&crest_factor_key) {
+                  let crest_factor = value.parse::<f64>().unwrap() / range_value;
+
+                  //sqrt(2) +/- 1e-3
+                  if (2_f64.sqrt() - 1e-3_f64..2_f64.sqrt() + 1e-3_f64).contains(&crest_factor) {
+                    if last_start_opt.is_some() {
+                      if let Some(last_start) = last_start_opt {
+                        //check if audio ends => 1000Hz until the end
+                        if (frame / frame_rate as f64 * 1000.0).round() as i64 == end_from_duration
+                        {
+                          sine.channel = channel;
+                          sine.start = *last_start;
+                          sine.end = end_from_duration;
+                          //check if sine is a 1000Hz => push and reset
+                          if let Some(zero_crossing) = zero_cross.get(&audio_stream_key.clone()) {
+                            let sine_duration = ((frame + 1.0) / frame_rate as f64 * 1000.0).round()
+                              as i64
+                              - sine.start;
+                            if (zero_crossing / sine_duration as f64) == 2.0 {
+                              detected_sine.push(sine);
+                              last_starts.insert(audio_stream_key.clone(), None);
+                              zero_cross.insert(audio_stream_key.clone(), 0.0);
+                              if let Some(max) = max_duration {
+                                if sine_duration > max as i64 {
+                                  detected_sine.pop();
+                                }
+                              }
+                              if let Some(min) = min_duration {
+                                if sine_duration < min as i64 {
+                                  detected_sine.pop();
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    } else {
+                      sine.start = (frame / frame_rate as f64 * 1000.0).round() as i64;
+                      last_starts.insert(audio_stream_key.clone(), Some(sine.start));
+                    }
+                  } else if (2_f64.sqrt() - 1e-3_f64..2_f64.sqrt() + 1e-3_f64)
+                    .contains(last_crests.get(&audio_stream_key).unwrap_or(&0.0))
+                    && last_start_opt.is_some()
+                  {
+                    if let Some(last_start) = last_start_opt {
+                      sine.channel = channel;
+                      sine.start = *last_start;
+                      sine.end = ((frame - 1.0) / frame_rate as f64 * 1000.0).round() as i64;
+                      //check if sine is a 1000Hz => push and reset
+                      let sine_duration =
+                        (frame / frame_rate as f64 * 1000.0).round() as i64 - sine.start;
+                      if let Some(zero_crossing) = zero_cross.get(&audio_stream_key) {
+                        if (zero_crossing / sine_duration as f64) == 2.0 {
+                          detected_sine.push(sine);
+                          last_starts.insert(audio_stream_key.clone(), None);
+                          zero_cross.insert(audio_stream_key.clone(), 0.0);
+                          if let Some(max) = max_duration {
+                            if sine_duration > max as i64 {
+                              detected_sine.pop();
+                            }
+                          }
+                          if let Some(min) = min_duration {
+                            if sine_duration < min as i64 {
+                              detected_sine.pop();
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                  //update last crest factor
+                  last_crests.insert(audio_stream_key, crest_factor);
+                }
+              }
+            }
+          }
+        }
+      }
+      Err(msg) => {
+        error!("ERROR: {}", msg);
+      }
     }
   }
 }

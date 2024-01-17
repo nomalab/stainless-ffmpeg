@@ -92,7 +92,7 @@ impl EncoderFormat {
     })
   }
 
-  pub fn wrap(&mut self, packet: &Packet) -> Result<(), String> {
+  pub fn wrap(&self, packet: &Packet) -> Result<(), String> {
     for subtitle_encoder in &self.subtitle_encoders {
       if let Some(ref name) = packet.name {
         if subtitle_encoder.identifier == *name {
@@ -110,7 +110,7 @@ impl EncoderFormat {
     Ok(())
   }
 
-  pub fn encode(&mut self, frame: &Frame) -> Result<Option<Packet>, String> {
+  pub fn encode(&self, frame: &Frame) -> Result<Option<Packet>, String> {
     let mut r_packet = None;
     for audio_encoder in &self.audio_encoders {
       if let Some(ref name) = frame.name {
@@ -139,7 +139,7 @@ impl EncoderFormat {
         }
       }
     }
-    for video_encoder in &mut self.video_encoders {
+    for video_encoder in &self.video_encoders {
       if let Some(ref name) = frame.name {
         if video_encoder.identifier == *name {
           unsafe {

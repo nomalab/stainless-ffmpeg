@@ -1,5 +1,6 @@
 use ffmpeg_sys_next::{av_packet_free, AVPacket};
 
+#[derive(Debug)]
 pub struct Packet {
   pub name: Option<String>,
   pub packet: *mut AVPacket,

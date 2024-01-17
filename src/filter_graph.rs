@@ -1,4 +1,3 @@
-use crate::order::stream::Stream as StreamOrder;
 use crate::{
   audio_decoder::AudioDecoder, filter::Filter, frame::Frame, order::*, stream::Stream, tools,
   video_decoder::VideoDecoder,
@@ -238,74 +237,69 @@ impl FilterGraph {
     &self,
     in_audio_frames: &[Frame],
     in_video_frames: &[Frame],
-    sorted_inputs: Option<Vec<StreamOrder>>,
   ) -> Result<(Vec<Frame>, Vec<Frame>), String> {
     let mut output_audio_frames = vec![];
     let mut output_video_frames = vec![];
 
     unsafe {
       for frame in in_audio_frames {
-        if let Some(ref sorted_streams) = sorted_inputs {
-          if let Some(stream) = sorted_streams
-            .iter()
-            .find(|&stream| stream.label == frame.name)
-          {
-            av_buffersrc_add_frame(
-              self.audio_inputs[stream.index as usize].context,
-              av_frame_clone(frame.frame),
-            );
-
-            for (index, output_filter) in self.audio_outputs.iter().enumerate() {
-              let mut result = 0;
-              while result == 0 {
-                let output_frame = av_frame_alloc();
-                result = av_buffersink_get_frame(output_filter.context, output_frame);
-                if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
-                  break;
-                } else {
-                  check_result!(result);
-                }
-                output_audio_frames.push(Frame {
-                  name: Some(output_filter.get_label()),
-                  frame: output_frame,
-                  index,
-                });
-              }
+        for input in &self.audio_inputs {
+          if let Some(label) = &frame.name {
+            if input.get_label() == *label {
+              check_result!(av_buffersrc_add_frame(
+                input.context,
+                av_frame_clone(frame.frame)
+              ));
+            }
+          }
+        }
+      }
+      for frame in in_video_frames {
+        for input in &self.video_inputs {
+          if let Some(label) = &frame.name {
+            if input.get_label() == *label {
+              check_result!(av_buffersrc_add_frame(
+                input.context,
+                av_frame_clone(frame.frame)
+              ));
             }
           }
         }
       }
 
-      for frame in in_video_frames {
-        if let Some(ref sorted_streams) = sorted_inputs {
-          if let Some(stream) = sorted_streams
-            .iter()
-            .clone()
-            .find(|&stream| stream.label == frame.name)
-          {
-            check_result!(av_buffersrc_add_frame(
-              self.video_inputs[stream.index as usize].context,
-              av_frame_clone(frame.frame),
-            ));
-
-            for (index, output_filter) in self.video_outputs.iter().enumerate() {
-              let mut result = 0;
-              while result == 0 {
-                let output_frame = av_frame_alloc();
-                result = av_buffersink_get_frame(output_filter.context, output_frame);
-                if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
-                  break;
-                } else {
-                  check_result!(result);
-                }
-                output_video_frames.push(Frame {
-                  name: Some(output_filter.get_label()),
-                  frame: output_frame,
-                  index,
-                });
-              }
-            }
+      for (index, output_filter) in self.audio_outputs.iter().enumerate() {
+        let mut result = 0;
+        while result >= 0 {
+          let output_frame = av_frame_alloc();
+          result = av_buffersink_get_frame(output_filter.context, output_frame);
+          if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
+            break;
+          } else {
+            check_result!(result);
           }
+          output_audio_frames.push(Frame {
+            name: Some(output_filter.get_label()),
+            frame: output_frame,
+            index,
+          });
+        }
+      }
+
+      for (index, output_filter) in self.video_outputs.iter().enumerate() {
+        let mut result = 0;
+        while result >= 0 {
+          let output_frame = av_frame_alloc();
+          result = av_buffersink_get_frame(output_filter.context, output_frame);
+          if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
+            break;
+          } else {
+            check_result!(result);
+          }
+          output_video_frames.push(Frame {
+            name: Some(output_filter.get_label()),
+            frame: output_frame,
+            index,
+          });
         }
       }
     }

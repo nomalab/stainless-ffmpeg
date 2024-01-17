@@ -124,10 +124,10 @@ impl VideoEncoder {
     }
   }
 
-  pub fn encode(&mut self, frame: &Frame, packet: &Packet) -> Result<bool, String> {
+  pub fn encode(&self, frame: &Frame, packet: &Packet) -> Result<bool, String> {
     unsafe {
       (*frame.frame).pts = self.pts;
-      self.pts += 1;
+      // self.pts += 1;
 
       check_result!(avcodec_send_frame(self.codec_context, frame.frame));
       let ret = avcodec_receive_packet(self.codec_context, packet.packet as *mut _);

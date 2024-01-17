@@ -1,7 +1,14 @@
 use crate::{
   order::{
-    filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
-    output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
+    filter_input::FilterInput,
+    filter_output::FilterOutput,
+    input::Input,
+    input_kind::InputKind,
+    output::Output,
+    output_kind::OutputKind,
+    stream::Stream,
+    Filter, Order,
+    OutputResult::{self, Entry},
     ParameterValue,
   },
   probe::deep::{BlackResult, CheckParameterValue, StreamProbeResult, VideoDetails},
@@ -9,11 +16,10 @@ use crate::{
 use std::collections::HashMap;
 
 pub fn create_graph(
-  order: &mut Order,
   filename: &str,
   video_indexes: Vec<u32>,
-  params: HashMap<String, CheckParameterValue>,
-) -> Result<(), String> {
+  params: &HashMap<String, CheckParameterValue>,
+) -> Result<Order, String> {
   let mut filters = vec![];
   let mut inputs = vec![];
   let mut outputs = vec![];
@@ -72,74 +78,106 @@ pub fn create_graph(
     });
   }
 
-  Ok(order.add_io(inputs, filters, outputs)?)
+  Order::new_with_io(inputs, filters, outputs)
 }
 
 pub fn detect_black_frames(
-  order: &mut Order,
+  orders: &mut HashMap<String, Order>,
+  output_results: &mut HashMap<String, Vec<OutputResult>>,
   filename: &str,
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
   video_details: VideoDetails,
+  decode_end: bool,
 ) {
-  create_graph(order, filename, video_indexes.clone(), params.clone()).unwrap();
-  if let Err(msg) = order.setup() {
-    error!("{:?}", msg);
-    return;
-  }
-  for index in video_indexes {
-    streams[index as usize].detected_black = Some(vec![]);
+  if orders.get("blackframes").is_none() {
+    let mut order = create_graph(filename, video_indexes.clone(), &params).unwrap();
+    if let Err(msg) = order.setup() {
+      error!("{:?}", msg);
+    }
+    orders.insert("blackframes".to_string(), order);
+    output_results.insert("blackframes".to_string(), vec![]);
   }
 
-  match order.process() {
-    Ok(results) => {
-      println!("END OF BLACKFRAMES PROCESS");
-      println!("-> {:?} frames processed", results.len());
-      let end_from_duration = match video_details.stream_duration {
-        Some(duration) => ((duration - video_details.frame_duration) * 1000.0).round() as i64,
-        None => ((results.len() as f32 - 1.0) / video_details.frame_rate * 1000.0).round() as i64,
-      };
-      let mut max_duration = None;
-      let mut min_duration = None;
-      if let Some(duration) = params.get("duration") {
-        max_duration = duration.max;
-        min_duration = duration.min;
+  if !decode_end {
+    match orders
+      .get("blackframes")
+      .unwrap()
+      .process(orders.get("src").unwrap())
+    {
+      Ok(results) => {
+        output_results
+          .entry("blackframes".to_string())
+          .and_modify(|own_results| own_results.extend(results));
       }
+      Err(msg) => {
+        error!("ERROR: {}", msg)
+      }
+    }
+  } else {
+    for index in video_indexes {
+      if streams[index as usize].detected_black.is_none() {
+        streams[index as usize].detected_black = Some(vec![]);
+      }
+    }
+    match orders
+      .get("blackframes")
+      .unwrap()
+      .process(orders.get("src").unwrap())
+    {
+      Ok(result) => {
+        output_results
+          .entry("blackframes".to_string())
+          .and_modify(|blackframes_results| blackframes_results.extend(result));
+        let results: &Vec<OutputResult> = output_results.get("blackframes").unwrap();
+        println!("END OF BLACKFRAMES PROCESS");
+        println!("-> {:?} frames processed", results.len());
+        let end_from_duration = match video_details.stream_duration {
+          Some(duration) => ((duration - video_details.frame_duration) * 1000.0).round() as i64,
+          None => ((results.len() as f32 - 1.0) / video_details.frame_rate * 1000.0).round() as i64,
+        };
+        let mut max_duration = None;
+        let mut min_duration = None;
+        if let Some(duration) = params.get("duration") {
+          max_duration = duration.max;
+          min_duration = duration.min;
+        }
 
-      for result in results {
-        if let Entry(entry_map) = result {
-          if let Some(stream_id) = entry_map.get("stream_id") {
-            let index: i32 = stream_id.parse().unwrap();
-            if streams[(index) as usize].detected_black.is_none() {
-              error!("Error : unexpected detection on stream ${index}");
-              break;
-            }
-            let detected_black = streams[(index) as usize].detected_black.as_mut().unwrap();
-            let mut black = BlackResult {
-              start: 0,
-              end: end_from_duration,
-            };
+        for result in results {
+          if let Entry(entry_map) = result {
+            if let Some(stream_id) = entry_map.get("stream_id") {
+              let index: i32 = stream_id.parse().unwrap();
+              if streams[(index) as usize].detected_black.is_none() {
+                error!("Error : unexpected detection on stream ${index}");
+                break;
+              }
+              let detected_black = streams[(index) as usize].detected_black.as_mut().unwrap();
+              let mut black = BlackResult {
+                start: 0,
+                end: end_from_duration,
+              };
 
-            if let Some(value) = entry_map.get("lavfi.black_start") {
-              black.start = (value.parse::<f32>().unwrap() * 1000.0).round() as i64;
-              detected_black.push(black);
-            }
-            if let Some(value) = entry_map.get("lavfi.black_end") {
-              if let Some(last_detect) = detected_black.last_mut() {
-                last_detect.end = ((value.parse::<f32>().unwrap() - video_details.frame_duration)
-                  * 1000.0)
-                  .round() as i64;
-                let black_duration = last_detect.end - last_detect.start
-                  + (video_details.frame_duration * 1000.0).round() as i64;
-                if let Some(max) = max_duration {
-                  if black_duration > max as i64 {
-                    detected_black.pop();
+              if let Some(value) = entry_map.get("lavfi.black_start") {
+                black.start = (value.parse::<f32>().unwrap() * 1000.0).round() as i64;
+                detected_black.push(black);
+              }
+              if let Some(value) = entry_map.get("lavfi.black_end") {
+                if let Some(last_detect) = detected_black.last_mut() {
+                  last_detect.end = ((value.parse::<f32>().unwrap() - video_details.frame_duration)
+                    * 1000.0)
+                    .round() as i64;
+                  let black_duration = last_detect.end - last_detect.start
+                    + (video_details.frame_duration * 1000.0).round() as i64;
+                  if let Some(max) = max_duration {
+                    if black_duration > max as i64 {
+                      detected_black.pop();
+                    }
                   }
-                }
-                if let Some(min) = min_duration {
-                  if black_duration < min as i64 {
-                    detected_black.pop();
+                  if let Some(min) = min_duration {
+                    if black_duration < min as i64 {
+                      detected_black.pop();
+                    }
                   }
                 }
               }
@@ -147,9 +185,9 @@ pub fn detect_black_frames(
           }
         }
       }
-    }
-    Err(msg) => {
-      error!("ERROR: {}", msg);
+      Err(msg) => {
+        error!("ERROR: {}", msg);
+      }
     }
   }
 }
