@@ -198,10 +198,13 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
           None => warn!("No input message for the dualmono analysis (list of indexes to merge)"),
         }
 
-        let end_from_duration = (((results.len() as f64 / audio_stream_qualif_number as f64) - 1.0)
-          / video_details.frame_rate as f64
-          * 1000.0)
-          .round() as i64;
+        let end_from_duration = match video_details.stream_duration {
+          Some(duration) => ((duration - video_details.frame_duration) * 1000.0).round() as i64,
+          None => (((results.len() as f64 / audio_stream_qualif_number as f64) - 1.0)
+            / video_details.frame_rate as f64
+            * 1000.0)
+            .round() as i64,
+        };
         for result in results {
           if let Entry(entry_map) = result {
             if let Some(stream_id) = entry_map.get("stream_id") {

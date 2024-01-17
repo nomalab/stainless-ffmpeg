@@ -129,8 +129,8 @@ pub fn detect_black_frames(
       Ok(result) => {
         output_results
           .entry("blackframes".to_string())
-          .and_modify(|blackframes_results| blackframes_results.extend(result));
-        let results: &Vec<OutputResult> = output_results.get("blackframes").unwrap();
+          .and_modify(|own_results| own_results.extend(result));
+        let results = output_results.get("blackframes").unwrap();
         println!("END OF BLACKFRAMES PROCESS");
         println!("-> {:?} frames processed", results.len());
         let end_from_duration = match video_details.stream_duration {

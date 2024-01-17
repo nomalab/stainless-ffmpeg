@@ -390,16 +390,17 @@ impl DeepProbe {
       }
     }
 
-    let mut video_details = VideoDetails::new();
-    let mut streams = vec![];
     let mut order = Order::new().unwrap();
-    (streams, video_details) = order.process_input(&mut context, streams, video_details);
+    let (mut streams, video_details, mut packets) = order.process_input(&mut context);
     let mut orders = HashMap::new();
     orders.insert("src".to_string(), order);
     let mut output_results: HashMap<String, Vec<OutputResult>> = HashMap::new();
     let mut decode_end = false;
     while !decode_end {
-      decode_end = orders.get_mut("src").unwrap().decode_input(&mut context);
+      decode_end = orders
+        .get_mut("src")
+        .unwrap()
+        .decode_input(&mut context, &mut packets);
 
       if let Some(silence_parameters) = check.silence_detect.clone() {
         detect_silence(

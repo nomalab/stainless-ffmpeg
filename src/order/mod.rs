@@ -57,8 +57,6 @@ pub struct Order {
   audio_frames: Vec<Frame>,
   #[serde(skip)]
   subtitle_packets: Vec<Packet>,
-  #[serde(skip)]
-  packets: Vec<Packet>,
 }
 
 impl Order {
@@ -75,7 +73,6 @@ impl Order {
       video_frames: vec![],
       audio_frames: vec![],
       subtitle_packets: vec![],
-      packets: vec![],
     })
   }
 
@@ -96,7 +93,6 @@ impl Order {
       video_frames: vec![],
       audio_frames: vec![],
       subtitle_packets: vec![],
-      packets: vec![],
     })
   }
 
@@ -136,10 +132,11 @@ impl Order {
   pub fn process_input(
     &mut self,
     context: &mut FormatContext,
-    mut streams: Vec<StreamProbeResult>,
-    mut video_details: VideoDetails,
-  ) -> (Vec<StreamProbeResult>, VideoDetails) {
+  ) -> (Vec<StreamProbeResult>, VideoDetails, Vec<Packet>) {
     let _ = self.build_inputs(context);
+    let mut video_details = VideoDetails::new();
+    let mut streams = vec![];
+    let mut packets = vec![];
 
     streams.resize(context.get_nb_streams() as usize, StreamProbeResult::new());
     while let Ok(packet) = context.next_packet() {
@@ -172,19 +169,19 @@ impl Order {
           }
         }
       }
-      self.packets.push(packet);
+      packets.push(packet);
     }
-    (streams, video_details)
+    (streams, video_details, packets)
   }
 
-  pub fn decode_input(&mut self, context: &mut FormatContext) -> bool {
+  pub fn decode_input(&mut self, context: &mut FormatContext, packets: &mut Vec<Packet>) -> bool {
     let mut last_index = 900;
     self.audio_frames.clear();
     self.video_frames.clear();
     self.subtitle_packets.clear();
     let mut decode_end = true;
 
-    'first_loop: for (index, packet) in self.packets.iter().enumerate() {
+    'first_loop: for (index, packet) in packets.iter().enumerate() {
       last_index = index;
       let stream_index = (unsafe { *packet.packet }).stream_index as usize;
 
@@ -226,7 +223,7 @@ impl Order {
         }
       }
     }
-    self.packets.drain(0..last_index);
+    packets.drain(0..last_index);
 
     return decode_end;
   }
@@ -237,7 +234,6 @@ impl Order {
     let (output_audio_frames, output_video_frames) = self
       .filter_graph
       .process(&src.audio_frames, &src.video_frames)?;
-    // println!("output audio frames {:?}", output_audio_frames.len());
     for output_frame in output_audio_frames {
       for output in &self.outputs {
         if output.stream == output_frame.name {
