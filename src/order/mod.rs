@@ -175,14 +175,14 @@ impl Order {
   }
 
   pub fn decode_input(&mut self, context: &mut FormatContext, packets: &mut Vec<Packet>) -> bool {
-    let mut last_index = 900;
+    let mut last_iter = 0;
     self.audio_frames.clear();
     self.video_frames.clear();
     self.subtitle_packets.clear();
     let mut decode_end = true;
 
-    'first_loop: for (index, packet) in packets.iter().enumerate() {
-      last_index = index;
+    'first_loop: for (iter, packet) in packets.iter().enumerate() {
+      last_iter = iter;
       let stream_index = (unsafe { *packet.packet }).stream_index as usize;
 
       if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
@@ -223,7 +223,7 @@ impl Order {
         }
       }
     }
-    packets.drain(0..last_index);
+    packets.drain(0..last_iter);
 
     return decode_end;
   }

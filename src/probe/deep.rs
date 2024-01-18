@@ -396,11 +396,15 @@ impl DeepProbe {
     orders.insert("src".to_string(), order);
     let mut output_results: HashMap<String, Vec<OutputResult>> = HashMap::new();
     let mut decode_end = false;
+    let mut decode_time = 0.0;
     while !decode_end {
+      let decode_start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
       decode_end = orders
         .get_mut("src")
         .unwrap()
         .decode_input(&mut context, &mut packets);
+      let decode_end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+      decode_time += (decode_end_time.as_millis() - decode_start_time.as_millis()) as f64;
 
       if let Some(silence_parameters) = check.silence_detect.clone() {
         detect_silence(
@@ -545,8 +549,8 @@ impl DeepProbe {
     context.close_input();
 
     let dp_end: std::time::Duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-    // println!("\nDECODE DURATION {:?}", decode_end - decode_start);
-    // println!("DEEP PROBE DURATION {:?}\n", dp_end - dp_start);
+    println!("\nDECODE DURATION   : {:?}s", (decode_time / 1000.0));
+    println!("DEEP PROBE DURATION : {:?}\n", (dp_end - dp_start));
 
     Ok(())
   }
