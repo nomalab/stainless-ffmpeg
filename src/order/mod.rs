@@ -44,8 +44,6 @@ pub struct Order {
   #[serde(skip)]
   total_streams: u32,
   #[serde(skip)]
-  pub input_formats_src: Vec<DecoderFormat>,
-  #[serde(skip)]
   pub input_formats: Vec<DecoderFormat>,
   #[serde(skip)]
   output_formats: Vec<EncoderFormat>,
@@ -67,7 +65,6 @@ impl Order {
       graph: vec![],
       total_streams: 0,
       input_formats: vec![],
-      input_formats_src: vec![],
       output_formats: vec![],
       filter_graph: FilterGraph::new()?,
       video_frames: vec![],
@@ -87,29 +84,12 @@ impl Order {
       graph,
       total_streams: 0,
       input_formats: vec![],
-      input_formats_src: vec![],
       output_formats: vec![],
       filter_graph: FilterGraph::new()?,
       video_frames: vec![],
       audio_frames: vec![],
       subtitle_packets: vec![],
     })
-  }
-
-  pub fn add_io(
-    &mut self,
-    inputs: Vec<Input>,
-    graph: Vec<Filter>,
-    outputs: Vec<Output>,
-  ) -> Result<(), String> {
-    self.inputs = inputs;
-    self.graph = graph;
-    self.outputs = outputs;
-    self.total_streams = 0;
-    self.input_formats = vec![];
-    self.output_formats = vec![];
-    self.filter_graph = FilterGraph::new()?;
-    Ok(())
   }
 
   pub fn new_parse(message: &str) -> Result<Self, String> {
@@ -133,7 +113,9 @@ impl Order {
     &mut self,
     context: &mut FormatContext,
   ) -> (Vec<StreamProbeResult>, VideoDetails, Vec<Packet>) {
+    warn!("Build inputs for src");
     let _ = self.build_inputs(context);
+    let _ = self.build_input_format();
     let mut video_details = VideoDetails::new();
     let mut streams = vec![];
     let mut packets = vec![];
@@ -186,7 +168,7 @@ impl Order {
       let stream_index = (unsafe { *packet.packet }).stream_index as usize;
 
       if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
-        for format in &mut self.input_formats_src {
+        for format in &mut self.input_formats {
           for decoder in &format.video_decoders {
             if decoder.stream_index == packet.get_stream_index() {
               if let Ok(frame) = decoder.decode(&packet) {
@@ -201,7 +183,7 @@ impl Order {
         }
       }
       if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
-        for format in &mut self.input_formats_src {
+        for format in &mut self.input_formats {
           for decoder in &format.audio_decoders {
             if decoder.stream_index == packet.get_stream_index() {
               if let Ok(frame) = decoder.decode(&packet) {
@@ -212,11 +194,13 @@ impl Order {
         }
       }
       if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_SUBTITLE {
-        for format in &mut self.input_formats_src {
+        for format in &mut self.input_formats {
           for decoder in &format.subtitle_decoders {
             if decoder.stream_index == stream_index as isize {
-              // packet.name = Some(decoder.identifier.clone());
-              // subtitle_packets_decoded.push(packet);
+              self.subtitle_packets.push(Packet {
+                name: Some(decoder.identifier.clone()),
+                packet: packet.packet,
+              });
               break;
             }
           }
@@ -310,11 +294,6 @@ impl Order {
         path: context.filename.to_string(),
         streams: input_streams,
       });
-    }
-    for input in &self.inputs {
-      let decoder = DecoderFormat::new(&mut self.filter_graph, input)?;
-      self.total_streams += decoder.context.get_nb_streams();
-      self.input_formats_src.push(decoder);
     }
     Ok(())
   }
