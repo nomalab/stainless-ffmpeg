@@ -173,7 +173,7 @@ impl Order {
             if decoder.stream_index == packet.get_stream_index() {
               if let Ok(frame) = decoder.decode(&packet) {
                 self.video_frames.push(frame);
-                if self.video_frames.len() >= 150 {
+                if self.video_frames.len() >= 100 {
                   decode_end = false;
                   break 'first_loop;
                 }

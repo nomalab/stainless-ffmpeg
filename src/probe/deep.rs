@@ -390,13 +390,25 @@ impl DeepProbe {
       }
     }
 
+    let mut decode_time = 0.0;
+    let mut silence_time = 0.0;
+    let mut blackframes_time = 0.0;
+    let mut blackfades_time = 0.0;
+    let mut crop_time = 0.0;
+    let mut scene_time = 0.0;
+    let mut ocr_time = 0.0;
+    let mut loudness_time = 0.0;
+    let mut dualmono_time = 0.0;
+    let mut sine_time = 0.0;
+    let mut start_time;
+    let mut end_time;
+    let mut output_results: HashMap<String, Vec<OutputResult>> = HashMap::new();
+    let mut decode_end = false;
     let mut order = Order::new().unwrap();
     let (mut streams, video_details, mut packets) = order.process_input(&mut context);
     let mut orders = HashMap::new();
     orders.insert("src".to_string(), order);
-    let mut output_results: HashMap<String, Vec<OutputResult>> = HashMap::new();
-    let mut decode_end = false;
-    let mut decode_time = 0.0;
+
     while !decode_end {
       let decode_start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
       decode_end = orders
@@ -407,6 +419,7 @@ impl DeepProbe {
       decode_time += (decode_end_time.as_millis() - decode_start_time.as_millis()) as f64;
 
       if let Some(silence_parameters) = check.silence_detect.clone() {
+        start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_silence(
           &mut orders,
           &mut output_results,
@@ -417,9 +430,12 @@ impl DeepProbe {
           video_details.clone(),
           decode_end,
         );
+        end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        silence_time += (end_time.as_millis() - start_time.as_millis()) as f64;
       }
 
       if let Some(black_parameters) = check.black_detect.clone() {
+        start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_black_frames(
           &mut orders,
           &mut output_results,
@@ -430,22 +446,12 @@ impl DeepProbe {
           video_details.clone(),
           decode_end,
         );
-      }
-
-      if let Some(ref scene_parameters) = check.scene_detect {
-        detect_scene(
-          &mut orders,
-          &mut output_results,
-          &self.filename,
-          &mut streams,
-          video_indexes.clone(),
-          scene_parameters.clone(),
-          video_details.frame_rate,
-          decode_end,
-        );
+        end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        blackframes_time += (end_time.as_millis() - start_time.as_millis()) as f64;
       }
 
       if let Some(ref blackfade_parameters) = check.blackfade_detect {
+        start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_blackfade(
           &mut orders,
           &mut output_results,
@@ -456,9 +462,12 @@ impl DeepProbe {
           video_details.clone(),
           decode_end,
         );
+        end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        blackfades_time += (end_time.as_millis() - start_time.as_millis()) as f64;
       }
 
       if let Some(ref crop_parameters) = check.crop_detect {
+        start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_black_borders(
           &mut orders,
           &mut output_results,
@@ -469,9 +478,28 @@ impl DeepProbe {
           video_details.clone(),
           decode_end,
         );
+        end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        crop_time += (end_time.as_millis() - start_time.as_millis()) as f64;
+      }
+
+      if let Some(ref scene_parameters) = check.scene_detect {
+        start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        detect_scene(
+          &mut orders,
+          &mut output_results,
+          &self.filename,
+          &mut streams,
+          video_indexes.clone(),
+          scene_parameters.clone(),
+          video_details.frame_rate,
+          decode_end,
+        );
+        end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        scene_time += (end_time.as_millis() - start_time.as_millis()) as f64;
       }
 
       if let Some(ref ocr_parameters) = check.ocr_detect {
+        start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_ocr(
           &mut orders,
           &mut output_results,
@@ -482,9 +510,12 @@ impl DeepProbe {
           video_details.clone(),
           decode_end,
         );
+        end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        ocr_time += (end_time.as_millis() - start_time.as_millis()) as f64;
       }
 
       if let Some(ref loudness_parameters) = check.loudness_detect {
+        start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_loudness(
           &mut orders,
           &mut output_results,
@@ -494,9 +525,12 @@ impl DeepProbe {
           loudness_parameters.clone(),
           decode_end,
         );
+        end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        loudness_time += (end_time.as_millis() - start_time.as_millis()) as f64;
       }
 
       if let Some(ref dualmono_parameters) = check.dualmono_detect {
+        start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_dualmono(
           &mut orders,
           &mut output_results,
@@ -507,9 +541,12 @@ impl DeepProbe {
           video_details.clone(),
           decode_end,
         );
+        end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        dualmono_time += (end_time.as_millis() - start_time.as_millis()) as f64;
       }
 
       if let Some(ref sine_parameters) = check.sine_detect {
+        start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_sine(
           &mut orders,
           &mut output_results,
@@ -520,6 +557,8 @@ impl DeepProbe {
           video_details.frame_rate,
           decode_end,
         );
+        end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        sine_time += (end_time.as_millis() - start_time.as_millis()) as f64;
       }
     }
 
@@ -549,8 +588,18 @@ impl DeepProbe {
     context.close_input();
 
     let dp_end: std::time::Duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-    println!("\nDECODE DURATION   : {:?}s", (decode_time / 1000.0));
-    println!("DEEP PROBE DURATION : {:?}\n", (dp_end - dp_start));
+    println!("\nDURATION DETAILS :");
+    println!("{:12} : {:?}s", "Decode", (decode_time / 1000.0));
+    println!("{:12} : {:?}s", "Silence", (silence_time / 1000.0));
+    println!("{:12} : {:?}s", "Blackframes", (blackframes_time / 1000.0));
+    println!("{:12} : {:?}s", "Blackfades", (blackfades_time / 1000.0));
+    println!("{:12} : {:?}s", "Crop", (crop_time / 1000.0));
+    println!("{:12} : {:?}s", "Scene", (scene_time / 1000.0));
+    println!("{:12} : {:?}s", "Ocr", (ocr_time / 1000.0));
+    println!("{:12} : {:?}s", "Loudness", (loudness_time / 1000.0));
+    println!("{:12} : {:?}s", "Dualmono", (dualmono_time / 1000.0));
+    println!("{:12} : {:?}s", "Sine", (sine_time / 1000.0));
+    println!("{:12} : {:?}\n", "Total", (dp_end - dp_start));
 
     Ok(())
   }
