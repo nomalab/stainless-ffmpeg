@@ -1,10 +1,6 @@
 use ffmpeg_sys_next::AVMediaType;
 
 use crate::filter_graph::FilterGraph;
-use crate::order::stream::Stream;
-use crate::probe::deep::{StreamProbeResult, VideoDetails};
-use crate::stream::Stream as StreamAV;
-use std::cmp;
 use std::collections::HashMap;
 
 mod decoder_format;
@@ -81,57 +77,12 @@ impl Order {
     Ok(())
   }
 
-  pub fn process_input(
-    &mut self,
-    context: &mut FormatContext,
-  ) -> (Vec<StreamProbeResult>, VideoDetails, Vec<Packet>) {
-    warn!("Build inputs for decode");
-    let _ = self.build_inputs(context);
-    let _ = self.build_input_format();
-    let mut video_details = VideoDetails::new();
-    let mut streams = vec![];
-    let mut packets = vec![];
-
-    streams.resize(context.get_nb_streams() as usize, StreamProbeResult::new());
-    while let Ok(packet) = context.next_packet() {
-      unsafe {
-        let stream_index = (*packet.packet).stream_index as usize;
-        let packet_size = (*packet.packet).size;
-        streams[stream_index].stream_index = stream_index;
-        streams[stream_index].count_packets += 1;
-        streams[stream_index].min_packet_size =
-          cmp::min(packet_size, streams[stream_index].min_packet_size);
-        streams[stream_index].max_packet_size =
-          cmp::max(packet_size, streams[stream_index].max_packet_size);
-
-        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
-          if let Ok(stream) = StreamAV::new(context.get_stream(stream_index as isize)) {
-            streams[stream_index].color_space = stream.get_color_space();
-            streams[stream_index].color_range = stream.get_color_range();
-            streams[stream_index].color_primaries = stream.get_color_primaries();
-            streams[stream_index].color_trc = stream.get_color_trc();
-            streams[stream_index].color_matrix = stream.get_color_matrix();
-            video_details.frame_duration = stream.get_frame_rate().invert().to_float();
-            video_details.frame_rate = stream.get_frame_rate().to_float();
-            video_details.time_base = stream.get_time_base().to_float();
-            video_details.stream_duration = stream.get_duration();
-            video_details.stream_frames = stream.get_nb_frames();
-            video_details.bits_raw_sample = stream.get_bits_per_raw_sample();
-            video_details.metadata_width = stream.get_width();
-            video_details.metadata_height = stream.get_height();
-            video_details.aspect_ratio = stream.get_picture_aspect_ratio();
-          }
-        }
-      }
-      packets.push(packet);
-    }
-    (streams, video_details, packets)
-  }
-
   pub fn decode_input(
     &mut self,
     context: &mut FormatContext,
     packets: &mut Vec<Packet>,
+    audio_analyzed: bool,
+    video_analyzed: bool,
   ) -> (bool, Vec<Frame>, Vec<Frame>, Vec<Packet>) {
     let mut last_iter = 0;
     let mut audio_frames = vec![];
@@ -143,7 +94,9 @@ impl Order {
       last_iter = iter;
       let stream_index = (unsafe { *packet.packet }).stream_index as usize;
 
-      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
+      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO
+        && video_analyzed
+      {
         for format in &mut self.input_formats {
           for decoder in &format.video_decoders {
             if decoder.stream_index == packet.get_stream_index() {
@@ -158,7 +111,9 @@ impl Order {
           }
         }
       }
-      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
+      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO
+        && audio_analyzed
+      {
         for format in &mut self.input_formats {
           for decoder in &format.audio_decoders {
             if decoder.stream_index == packet.get_stream_index() {
@@ -188,7 +143,7 @@ impl Order {
     return (decode_end, audio_frames, video_frames, subtitle_packets);
   }
 
-  pub fn process(
+  pub fn process_filtering(
     &mut self,
     in_audio_frames: &Vec<Frame>,
     in_video_frames: &Vec<Frame>,
@@ -255,28 +210,6 @@ impl Order {
     }
 
     Ok(results)
-  }
-
-  fn build_inputs(&mut self, context: &FormatContext) -> Result<(), String> {
-    for i in 0..context.get_nb_streams() {
-      let mut input_id = format!("unknown_input_{}", i);
-      input_id = match context.get_stream_type(i as isize) {
-        AVMediaType::AVMEDIA_TYPE_VIDEO => format!("video_input_{}", i),
-        AVMediaType::AVMEDIA_TYPE_AUDIO => format!("audio_input_{}", i),
-        AVMediaType::AVMEDIA_TYPE_SUBTITLE => format!("subtitle_input_{}", i),
-        _ => input_id,
-      };
-      let input_streams = vec![Stream {
-        index: i,
-        label: Some(input_id),
-      }];
-      self.inputs.push(Input::Streams {
-        id: i,
-        path: context.filename.to_string(),
-        streams: input_streams,
-      });
-    }
-    Ok(())
   }
 
   fn build_input_format(&mut self) -> Result<(), String> {

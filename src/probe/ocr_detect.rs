@@ -1,12 +1,24 @@
+use super::deep::CheckName;
 use crate::order::OutputResult;
 use crate::order::{
   filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
   ParameterValue,
 };
-use crate::prelude::Frame;
 use crate::probe::deep::{CheckParameterValue, OcrResult, StreamProbeResult, VideoDetails};
 use std::collections::HashMap;
+
+pub fn ocr_init(
+  filename: &str,
+  video_indexes: Vec<u32>,
+  params: &HashMap<String, CheckParameterValue>,
+) -> Result<Order, String> {
+  let mut order = create_graph(filename, video_indexes, &params).unwrap();
+  if let Err(msg) = order.setup() {
+    error!("{:?}", msg);
+  }
+  Ok(order)
+}
 
 pub fn create_graph<S: ::std::hash::BuildHasher>(
   filename: &str,
@@ -75,108 +87,61 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
   Order::new(inputs, filters, outputs)
 }
 
-pub fn detect_ocr<S: ::std::hash::BuildHasher>(
-  orders: &mut HashMap<String, Order>,
-  video_frames: &Vec<Frame>,
-  output_results: &mut HashMap<String, Vec<OutputResult>>,
-  filename: &str,
+pub fn detect_ocr(
+  output_results: &HashMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
-  params: HashMap<String, CheckParameterValue, S>,
   video_details: VideoDetails,
-  decode_end: bool,
 ) {
-  if orders.get("ocr").is_none() {
-    let mut order = create_graph(filename, video_indexes.clone(), &params).unwrap();
-    if let Err(msg) = order.setup() {
-      error!("{:?}", msg);
-    }
-    orders.insert("ocr".to_string(), order);
-    output_results.insert("ocr".to_string(), vec![]);
+  for index in video_indexes {
+    streams[index as usize].detected_ocr = Some(vec![]);
   }
+  let results = output_results.get(&CheckName::MediaOffline).unwrap();
+  println!("END OF OCR PROCESS");
+  println!("-> {:?} frames processed", results.len());
+  let mut media_offline_detected = false;
+  let last_frame = video_details.stream_frames.unwrap_or(results.len() as i64) - 1;
 
-  if !decode_end {
-    match orders
-      .get_mut("ocr")
-      .unwrap()
-      .process(&vec![], video_frames, &vec![])
-    {
-      Ok(results) => {
-        output_results
-          .entry("ocr".to_string())
-          .and_modify(|own_results| own_results.extend(results));
-      }
-      Err(msg) => {
-        error!("ERROR: {}", msg)
-      }
-    }
-  } else {
-    for index in video_indexes {
-      streams[index as usize].detected_ocr = Some(vec![]);
-    }
+  for result in results {
+    if let Entry(entry_map) = result {
+      if let Some(stream_id) = entry_map.get("stream_id") {
+        let index: i32 = stream_id.parse().unwrap();
+        if streams[(index) as usize].detected_ocr.is_none() {
+          error!("Error : unexpected detection on stream ${index}");
+          break;
+        }
+        let detected_ocr = streams[(index) as usize].detected_ocr.as_mut().unwrap();
+        let mut ocr = OcrResult {
+          frame_start: 0,
+          frame_end: last_frame as u64,
+          text: "".to_string(),
+          word_confidence: "".to_string(),
+        };
 
-    match orders
-      .get_mut("ocr")
-      .unwrap()
-      .process(&vec![], video_frames, &vec![])
-    {
-      Ok(result) => {
-        output_results
-          .entry("ocr".to_string())
-          .and_modify(|own_results| own_results.extend(result));
-        let results = output_results.get("ocr").unwrap();
-        println!("END OF OCR PROCESS");
-        println!("-> {:?} frames processed", results.len());
-        let mut media_offline_detected = false;
-        let last_frame = video_details.stream_frames.unwrap_or(results.len() as i64) - 1;
-
-        for result in results {
-          if let Entry(entry_map) = result {
-            if let Some(stream_id) = entry_map.get("stream_id") {
-              let index: i32 = stream_id.parse().unwrap();
-              if streams[(index) as usize].detected_ocr.is_none() {
-                error!("Error : unexpected detection on stream ${index}");
-                break;
-              }
-              let detected_ocr = streams[(index) as usize].detected_ocr.as_mut().unwrap();
-              let mut ocr = OcrResult {
-                frame_start: 0,
-                frame_end: last_frame as u64,
-                text: "".to_string(),
-                word_confidence: "".to_string(),
-              };
-
-              if media_offline_detected {
-                if let Some(last_detect) = detected_ocr.last_mut() {
-                  if let Some(value) = entry_map.get("lavfi.scd.time") {
-                    last_detect.frame_end =
-                      (value.parse::<f32>().unwrap() * video_details.frame_rate - 1.0) as u64;
-                    media_offline_detected = false;
-                  }
-                }
-              }
-              if let Some(value) = entry_map.get("lavfi.ocr.text") {
-                if value.starts_with("MEDIA OFFLINE") || value.starts_with("OFFLINE") {
-                  media_offline_detected = true;
-                  ocr.text = value.to_string();
-                  if let Some(value) = entry_map.get("lavfi.scd.time") {
-                    ocr.frame_start =
-                      (value.parse::<f32>().unwrap() * video_details.frame_rate) as u64;
-                  }
-                  if let Some(value) = entry_map.get("lavfi.ocr.confidence") {
-                    let mut word_conf = value.to_string().replace(char::is_whitespace, "%,");
-                    word_conf.pop();
-                    ocr.word_confidence = word_conf;
-                    detected_ocr.push(ocr);
-                  }
-                }
-              }
+        if media_offline_detected {
+          if let Some(last_detect) = detected_ocr.last_mut() {
+            if let Some(value) = entry_map.get("lavfi.scd.time") {
+              last_detect.frame_end =
+                (value.parse::<f32>().unwrap() * video_details.frame_rate - 1.0) as u64;
+              media_offline_detected = false;
             }
           }
         }
-      }
-      Err(msg) => {
-        error!("ERROR: {}", msg);
+        if let Some(value) = entry_map.get("lavfi.ocr.text") {
+          if value.starts_with("MEDIA OFFLINE") || value.starts_with("OFFLINE") {
+            media_offline_detected = true;
+            ocr.text = value.to_string();
+            if let Some(value) = entry_map.get("lavfi.scd.time") {
+              ocr.frame_start = (value.parse::<f32>().unwrap() * video_details.frame_rate) as u64;
+            }
+            if let Some(value) = entry_map.get("lavfi.ocr.confidence") {
+              let mut word_conf = value.to_string().replace(char::is_whitespace, "%,");
+              word_conf.pop();
+              ocr.word_confidence = word_conf;
+              detected_ocr.push(ocr);
+            }
+          }
+        }
       }
     }
   }

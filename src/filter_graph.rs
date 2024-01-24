@@ -242,6 +242,7 @@ impl FilterGraph {
     let mut output_video_frames = vec![];
 
     unsafe {
+      // if !&self.audio_inputs.is_empty() { ?
       for frame in in_audio_frames {
         for input in &self.audio_inputs {
           if let Some(label) = &frame.name {
@@ -271,7 +272,9 @@ impl FilterGraph {
           }
         }
       }
+      // }
 
+      // if !&self.video_inputs.is_empty() {
       for frame in in_video_frames {
         for input in &self.video_inputs {
           if let Some(label) = &frame.name {
@@ -301,6 +304,7 @@ impl FilterGraph {
           }
         }
       }
+      // }
     }
 
     Ok((output_audio_frames, output_video_frames))

@@ -1,12 +1,24 @@
+use super::deep::CheckName;
 use crate::order::OutputResult;
 use crate::order::{
   filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
   ParameterValue,
 };
-use crate::prelude::Frame;
 use crate::probe::deep::{CheckParameterValue, FalseSceneResult, SceneResult, StreamProbeResult};
 use std::collections::HashMap;
+
+pub fn scene_init(
+  filename: &str,
+  video_indexes: Vec<u32>,
+  params: &HashMap<String, CheckParameterValue>,
+) -> Result<Order, String> {
+  let mut order = create_graph(filename, video_indexes, &params).unwrap();
+  if let Err(msg) = order.setup() {
+    error!("{:?}", msg);
+  }
+  Ok(order)
+}
 
 pub fn create_graph<S: ::std::hash::BuildHasher>(
   filename: &str,
@@ -62,104 +74,58 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
   Order::new(inputs, filters, outputs)
 }
 
-pub fn detect_scene<S: ::std::hash::BuildHasher>(
-  orders: &mut HashMap<String, Order>,
-  video_frames: &Vec<Frame>,
-  output_results: &mut HashMap<String, Vec<OutputResult>>,
-  filename: &str,
+pub fn detect_scene(
+  output_results: &HashMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
-  params: HashMap<String, CheckParameterValue, S>,
   frame_rate: f32,
-  decode_end: bool,
 ) {
-  if orders.get("scene").is_none() {
-    let mut order = create_graph(filename, video_indexes.clone(), &params).unwrap();
-    if let Err(msg) = order.setup() {
-      error!("{:?}", msg);
-    }
-    orders.insert("scene".to_string(), order);
-    output_results.insert("scene".to_string(), vec![]);
+  for index in video_indexes {
+    streams[index as usize].detected_scene = Some(vec![]);
+    streams[index as usize].detected_false_scene = Some(vec![]);
   }
+  let results = output_results.get(&CheckName::Scene).unwrap();
+  println!("END OF SCENE PROCESS");
+  println!("-> {:?} frames processed", results.len());
+  let mut scene_count = 0;
 
-  if !decode_end {
-    match orders
-      .get_mut("scene")
-      .unwrap()
-      .process(&vec![], video_frames, &vec![])
-    {
-      Ok(results) => {
-        output_results
-          .entry("scene".to_string())
-          .and_modify(|own_results| own_results.extend(results));
-      }
-      Err(msg) => {
-        error!("ERROR: {}", msg)
-      }
-    }
-  } else {
-    for index in video_indexes {
-      streams[index as usize].detected_scene = Some(vec![]);
-      streams[index as usize].detected_false_scene = Some(vec![]);
-    }
+  for result in results {
+    if let Entry(entry_map) = result {
+      if let Some(stream_id) = entry_map.get("stream_id") {
+        let index: i32 = stream_id.parse().unwrap();
+        if streams[(index) as usize].detected_scene.is_none() {
+          error!("Error : unexpected detection on stream ${index}");
+          break;
+        }
+        let detected_scene = streams[(index) as usize].detected_scene.as_mut().unwrap();
+        let detected_false_scene = streams[(index) as usize]
+          .detected_false_scene
+          .as_mut()
+          .unwrap();
+        let mut scene = SceneResult {
+          frame_index: 0,
+          score: 0,
+          scene_number: 0,
+        };
+        let mut false_scene = FalseSceneResult { frame: 0 };
 
-    match orders
-      .get_mut("scene")
-      .unwrap()
-      .process(&vec![], video_frames, &vec![])
-    {
-      Ok(result) => {
-        output_results
-          .entry("scene".to_string())
-          .and_modify(|own_results| own_results.extend(result));
-        let results = output_results.get("scene").unwrap();
-        println!("END OF SCENE PROCESS");
-        println!("-> {:?} frames processed", results.len());
-        let mut scene_count = 0;
+        if let Some(value) = entry_map.get("lavfi.scd.time") {
+          scene.frame_index = (value.parse::<f32>().unwrap() * frame_rate) as i64;
+          if let Some(value) = entry_map.get("lavfi.scd.score") {
+            scene.score = (value.parse::<f32>().unwrap()) as i32;
+          }
 
-        for result in results {
-          if let Entry(entry_map) = result {
-            if let Some(stream_id) = entry_map.get("stream_id") {
-              let index: i32 = stream_id.parse().unwrap();
-              if streams[(index) as usize].detected_scene.is_none() {
-                error!("Error : unexpected detection on stream ${index}");
-                break;
-              }
-              let detected_scene = streams[(index) as usize].detected_scene.as_mut().unwrap();
-              let detected_false_scene = streams[(index) as usize]
-                .detected_false_scene
-                .as_mut()
-                .unwrap();
-              let mut scene = SceneResult {
-                frame_index: 0,
-                score: 0,
-                scene_number: 0,
-              };
-              let mut false_scene = FalseSceneResult { frame: 0 };
-
-              if let Some(value) = entry_map.get("lavfi.scd.time") {
-                scene.frame_index = (value.parse::<f32>().unwrap() * frame_rate) as i64;
-                if let Some(value) = entry_map.get("lavfi.scd.score") {
-                  scene.score = (value.parse::<f32>().unwrap()) as i32;
-                }
-
-                if let Some(last_detect) = detected_scene.last() {
-                  if scene.frame_index - last_detect.frame_index <= 1 {
-                    false_scene.frame = scene.frame_index;
-                    detected_false_scene.push(false_scene);
-                  }
-                }
-
-                scene_count += 1;
-                scene.scene_number = scene_count;
-                detected_scene.push(scene);
-              }
+          if let Some(last_detect) = detected_scene.last() {
+            if scene.frame_index - last_detect.frame_index <= 1 {
+              false_scene.frame = scene.frame_index;
+              detected_false_scene.push(false_scene);
             }
           }
+
+          scene_count += 1;
+          scene.scene_number = scene_count;
+          detected_scene.push(scene);
         }
-      }
-      Err(msg) => {
-        error!("ERROR: {}", msg);
       }
     }
   }
