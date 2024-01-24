@@ -2,7 +2,6 @@ use crate::tools;
 use ffmpeg_sys_next::{av_dict_get, av_frame_free, AVFrame};
 use std::{ffi::CString, ptr::null_mut};
 
-#[derive(Debug)]
 pub struct Frame {
   pub name: Option<String>,
   pub frame: *mut AVFrame,

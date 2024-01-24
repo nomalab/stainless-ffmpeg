@@ -36,7 +36,7 @@ pub use crate::order::parameters::*;
 
 use crate::packet::Packet;
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Deserialize)]
 pub struct Order {
   pub inputs: Vec<Input>,
   pub outputs: Vec<Output>,
@@ -44,7 +44,7 @@ pub struct Order {
   #[serde(skip)]
   total_streams: u32,
   #[serde(skip)]
-  pub input_formats: Vec<DecoderFormat>,
+  input_formats: Vec<DecoderFormat>,
   #[serde(skip)]
   output_formats: Vec<EncoderFormat>,
   #[serde(skip)]
@@ -227,7 +227,7 @@ impl Order {
       }
     }
     for output_packet in in_subtitle_packets {
-      for output in &self.output_formats {
+      for output in &mut self.output_formats {
         output.wrap(&output_packet)?;
       }
     }

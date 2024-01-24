@@ -92,7 +92,7 @@ impl EncoderFormat {
     })
   }
 
-  pub fn wrap(&self, packet: &Packet) -> Result<(), String> {
+  pub fn wrap(&mut self, packet: &Packet) -> Result<(), String> {
     for subtitle_encoder in &self.subtitle_encoders {
       if let Some(ref name) = packet.name {
         if subtitle_encoder.identifier == *name {
