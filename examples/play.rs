@@ -83,6 +83,7 @@ fn main() {
       let frame = audio_decoder.decode(&packet).unwrap();
 
       let (frames, _) = graph.process(&[frame], &[]).unwrap();
+
       let frame = frames.first().unwrap();
 
       unsafe {
