@@ -4,12 +4,14 @@ use crate::{
     Order,
     OutputResult::{self, Entry},
   },
+  prelude::Frame,
   probe::deep::{BlackFadeResult, CheckParameterValue, StreamProbeResult, VideoDetails},
 };
 use std::collections::HashMap;
 
 pub fn detect_blackfade(
   orders: &mut HashMap<String, Order>,
+  video_frames: &Vec<Frame>,
   output_results: &mut HashMap<String, Vec<OutputResult>>,
   filename: &str,
   streams: &mut [StreamProbeResult],
@@ -29,9 +31,9 @@ pub fn detect_blackfade(
 
   if !decode_end {
     match orders
-      .get("blackfades")
+      .get_mut("blackfades")
       .unwrap()
-      .process(orders.get("src").unwrap())
+      .process(&vec![], video_frames, &vec![])
     {
       Ok(results) => {
         output_results
@@ -48,9 +50,9 @@ pub fn detect_blackfade(
     }
 
     match orders
-      .get("blackfades")
+      .get_mut("blackfades")
       .unwrap()
-      .process(orders.get("src").unwrap())
+      .process(&vec![], video_frames, &vec![])
     {
       Ok(result) => {
         output_results

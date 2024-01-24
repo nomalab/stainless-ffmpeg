@@ -4,6 +4,7 @@ use crate::order::{
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
   ParameterValue,
 };
+use crate::prelude::Frame;
 use crate::probe::deep::{CheckParameterValue, SilenceResult, StreamProbeResult, VideoDetails};
 use std::collections::HashMap;
 
@@ -76,11 +77,12 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
     });
   }
 
-  Order::new_with_io(inputs, filters, outputs)
+  Order::new(inputs, filters, outputs)
 }
 
 pub fn detect_silence<S: ::std::hash::BuildHasher>(
   orders: &mut HashMap<String, Order>,
+  audio_frames: &Vec<Frame>,
   output_results: &mut HashMap<String, Vec<OutputResult>>,
   filename: &str,
   streams: &mut [StreamProbeResult],
@@ -100,9 +102,9 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
 
   if !decode_end {
     match orders
-      .get("silence")
+      .get_mut("silence")
       .unwrap()
-      .process(orders.get("src").unwrap())
+      .process(audio_frames, &vec![], &vec![])
     {
       Ok(results) => {
         output_results
@@ -118,9 +120,9 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
       streams[index as usize].detected_silence = Some(vec![]);
     }
     match orders
-      .get("silence")
+      .get_mut("silence")
       .unwrap()
-      .process(orders.get("src").unwrap())
+      .process(audio_frames, &vec![], &vec![])
     {
       Ok(result) => {
         output_results

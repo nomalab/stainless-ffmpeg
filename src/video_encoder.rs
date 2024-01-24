@@ -16,7 +16,7 @@ pub struct VideoEncoder {
   pub stream_index: isize,
   pub codec_context: *mut AVCodecContext,
   pub codec: *const AVCodec,
-  // pub pts: i64,
+  pub pts: i64,
 }
 
 impl VideoEncoder {
@@ -93,7 +93,7 @@ impl VideoEncoder {
         stream_index,
         codec_context,
         codec,
-        // pts: 0,
+        pts: 0,
       })
     }
   }
@@ -124,10 +124,10 @@ impl VideoEncoder {
     }
   }
 
-  pub fn encode(&self, frame: &Frame, packet: &Packet) -> Result<bool, String> {
+  pub fn encode(&mut self, frame: &Frame, packet: &Packet) -> Result<bool, String> {
     unsafe {
-      // (*frame.frame).pts = self.pts;
-      // self.pts += 1;
+      (*frame.frame).pts = self.pts;
+      self.pts += 1;
 
       check_result!(avcodec_send_frame(self.codec_context, frame.frame));
       let ret = avcodec_receive_packet(self.codec_context, packet.packet as *mut _);

@@ -49,35 +49,10 @@ pub struct Order {
   output_formats: Vec<EncoderFormat>,
   #[serde(skip)]
   pub filter_graph: FilterGraph,
-  #[serde(skip)]
-  video_frames: Vec<Frame>,
-  #[serde(skip)]
-  audio_frames: Vec<Frame>,
-  #[serde(skip)]
-  subtitle_packets: Vec<Packet>,
 }
 
 impl Order {
-  pub fn new() -> Result<Self, String> {
-    Ok(Order {
-      inputs: vec![],
-      outputs: vec![],
-      graph: vec![],
-      total_streams: 0,
-      input_formats: vec![],
-      output_formats: vec![],
-      filter_graph: FilterGraph::new()?,
-      video_frames: vec![],
-      audio_frames: vec![],
-      subtitle_packets: vec![],
-    })
-  }
-
-  pub fn new_with_io(
-    inputs: Vec<Input>,
-    graph: Vec<Filter>,
-    outputs: Vec<Output>,
-  ) -> Result<Self, String> {
+  pub fn new(inputs: Vec<Input>, graph: Vec<Filter>, outputs: Vec<Output>) -> Result<Self, String> {
     Ok(Order {
       inputs,
       outputs,
@@ -86,9 +61,6 @@ impl Order {
       input_formats: vec![],
       output_formats: vec![],
       filter_graph: FilterGraph::new()?,
-      video_frames: vec![],
-      audio_frames: vec![],
-      subtitle_packets: vec![],
     })
   }
 
@@ -113,7 +85,7 @@ impl Order {
     &mut self,
     context: &mut FormatContext,
   ) -> (Vec<StreamProbeResult>, VideoDetails, Vec<Packet>) {
-    warn!("Build inputs for src");
+    warn!("Build inputs for decode");
     let _ = self.build_inputs(context);
     let _ = self.build_input_format();
     let mut video_details = VideoDetails::new();
@@ -156,11 +128,15 @@ impl Order {
     (streams, video_details, packets)
   }
 
-  pub fn decode_input(&mut self, context: &mut FormatContext, packets: &mut Vec<Packet>) -> bool {
+  pub fn decode_input(
+    &mut self,
+    context: &mut FormatContext,
+    packets: &mut Vec<Packet>,
+  ) -> (bool, Vec<Frame>, Vec<Frame>, Vec<Packet>) {
     let mut last_iter = 0;
-    self.audio_frames.clear();
-    self.video_frames.clear();
-    self.subtitle_packets.clear();
+    let mut audio_frames = vec![];
+    let mut video_frames = vec![];
+    let mut subtitle_packets = vec![];
     let mut decode_end = true;
 
     'first_loop: for (iter, packet) in packets.iter().enumerate() {
@@ -172,8 +148,8 @@ impl Order {
           for decoder in &format.video_decoders {
             if decoder.stream_index == packet.get_stream_index() {
               if let Ok(frame) = decoder.decode(&packet) {
-                self.video_frames.push(frame);
-                if self.video_frames.len() >= 100 {
+                video_frames.push(frame);
+                if video_frames.len() >= 100 {
                   decode_end = false;
                   break 'first_loop;
                 }
@@ -187,7 +163,7 @@ impl Order {
           for decoder in &format.audio_decoders {
             if decoder.stream_index == packet.get_stream_index() {
               if let Ok(frame) = decoder.decode(&packet) {
-                self.audio_frames.push(frame);
+                audio_frames.push(frame);
               }
             }
           }
@@ -197,7 +173,7 @@ impl Order {
         for format in &mut self.input_formats {
           for decoder in &format.subtitle_decoders {
             if decoder.stream_index == stream_index as isize {
-              self.subtitle_packets.push(Packet {
+              subtitle_packets.push(Packet {
                 name: Some(decoder.identifier.clone()),
                 packet: packet.packet,
               });
@@ -209,15 +185,20 @@ impl Order {
     }
     packets.drain(0..last_iter);
 
-    return decode_end;
+    return (decode_end, audio_frames, video_frames, subtitle_packets);
   }
 
-  pub fn process(&self, src: &Order) -> Result<Vec<OutputResult>, String> {
+  pub fn process(
+    &mut self,
+    in_audio_frames: &Vec<Frame>,
+    in_video_frames: &Vec<Frame>,
+    in_subtitle_packets: &Vec<Packet>,
+  ) -> Result<Vec<OutputResult>, String> {
     let mut results = vec![];
 
     let (output_audio_frames, output_video_frames) = self
       .filter_graph
-      .process(&src.audio_frames, &src.video_frames)?;
+      .process(&in_audio_frames, &in_video_frames)?;
     for output_frame in output_audio_frames {
       for output in &self.outputs {
         if output.stream == output_frame.name {
@@ -239,13 +220,13 @@ impl Order {
           }
         }
       }
-      for output in &self.output_formats {
+      for output in &mut self.output_formats {
         if let Some(packet) = output.encode(&output_frame)? {
           results.push(OutputResult::Packet(packet));
         };
       }
     }
-    for output_packet in &self.subtitle_packets {
+    for output_packet in in_subtitle_packets {
       for output in &self.output_formats {
         output.wrap(&output_packet)?;
       }
@@ -266,7 +247,7 @@ impl Order {
           results.push(OutputResult::Entry(entry));
         }
       }
-      for output in &self.output_formats {
+      for output in &mut self.output_formats {
         if let Some(packet) = output.encode(&output_frame)? {
           results.push(OutputResult::Packet(packet));
         };

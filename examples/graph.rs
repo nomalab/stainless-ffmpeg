@@ -24,7 +24,7 @@ fn main() {
       return;
     }
 
-    match order.process(&Order::new().unwrap()) {
+    match order.process(&vec![], &vec![], &vec![]) {
       Ok(results) => {
         info!("END OF PROCESS");
         info!("-> {:?} frames processed", results.len());

@@ -11,6 +11,7 @@ use crate::{
     OutputResult::{self, Entry},
     ParameterValue,
   },
+  prelude::Frame,
   probe::deep::{BlackResult, CheckParameterValue, StreamProbeResult, VideoDetails},
 };
 use std::collections::HashMap;
@@ -78,11 +79,12 @@ pub fn create_graph(
     });
   }
 
-  Order::new_with_io(inputs, filters, outputs)
+  Order::new(inputs, filters, outputs)
 }
 
 pub fn detect_black_frames(
   orders: &mut HashMap<String, Order>,
+  video_frames: &Vec<Frame>,
   output_results: &mut HashMap<String, Vec<OutputResult>>,
   filename: &str,
   streams: &mut [StreamProbeResult],
@@ -102,9 +104,9 @@ pub fn detect_black_frames(
 
   if !decode_end {
     match orders
-      .get("blackframes")
+      .get_mut("blackframes")
       .unwrap()
-      .process(orders.get("src").unwrap())
+      .process(&vec![], video_frames, &vec![])
     {
       Ok(results) => {
         output_results
@@ -122,9 +124,9 @@ pub fn detect_black_frames(
       }
     }
     match orders
-      .get("blackframes")
+      .get_mut("blackframes")
       .unwrap()
-      .process(orders.get("src").unwrap())
+      .process(&vec![], video_frames, &vec![])
     {
       Ok(result) => {
         output_results

@@ -4,6 +4,7 @@ use crate::order::{
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
   ParameterValue,
 };
+use crate::prelude::Frame;
 use crate::probe::deep::{CheckParameterValue, FalseSceneResult, SceneResult, StreamProbeResult};
 use std::collections::HashMap;
 
@@ -58,11 +59,12 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
     });
   }
 
-  Order::new_with_io(inputs, filters, outputs)
+  Order::new(inputs, filters, outputs)
 }
 
 pub fn detect_scene<S: ::std::hash::BuildHasher>(
   orders: &mut HashMap<String, Order>,
+  video_frames: &Vec<Frame>,
   output_results: &mut HashMap<String, Vec<OutputResult>>,
   filename: &str,
   streams: &mut [StreamProbeResult],
@@ -82,9 +84,9 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
 
   if !decode_end {
     match orders
-      .get("scene")
+      .get_mut("scene")
       .unwrap()
-      .process(orders.get("src").unwrap())
+      .process(&vec![], video_frames, &vec![])
     {
       Ok(results) => {
         output_results
@@ -102,9 +104,9 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
     }
 
     match orders
-      .get("scene")
+      .get_mut("scene")
       .unwrap()
-      .process(orders.get("src").unwrap())
+      .process(&vec![], video_frames, &vec![])
     {
       Ok(result) => {
         output_results

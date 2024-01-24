@@ -404,14 +404,17 @@ impl DeepProbe {
     let mut end_time;
     let mut output_results: HashMap<String, Vec<OutputResult>> = HashMap::new();
     let mut decode_end = false;
-    let mut order = Order::new().unwrap();
+    let mut video_frames = vec![];
+    let mut audio_frames = vec![];
+    let mut subtitle_packets = vec![];
+    let mut order = Order::new(vec![], vec![], vec![]).unwrap();
     let (mut streams, video_details, mut packets) = order.process_input(&mut context);
     let mut orders = HashMap::new();
     orders.insert("src".to_string(), order);
 
     while !decode_end {
       let decode_start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-      decode_end = orders
+      (decode_end, audio_frames, video_frames, subtitle_packets) = orders
         .get_mut("src")
         .unwrap()
         .decode_input(&mut context, &mut packets);
@@ -422,6 +425,7 @@ impl DeepProbe {
         start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_silence(
           &mut orders,
+          &audio_frames,
           &mut output_results,
           &self.filename,
           &mut streams,
@@ -438,6 +442,7 @@ impl DeepProbe {
         start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_black_frames(
           &mut orders,
+          &video_frames,
           &mut output_results,
           &self.filename,
           &mut streams,
@@ -454,6 +459,7 @@ impl DeepProbe {
         start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_blackfade(
           &mut orders,
+          &video_frames,
           &mut output_results,
           &self.filename,
           &mut streams,
@@ -470,6 +476,7 @@ impl DeepProbe {
         start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_black_borders(
           &mut orders,
+          &video_frames,
           &mut output_results,
           &self.filename,
           &mut streams,
@@ -486,6 +493,7 @@ impl DeepProbe {
         start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_scene(
           &mut orders,
+          &video_frames,
           &mut output_results,
           &self.filename,
           &mut streams,
@@ -502,6 +510,7 @@ impl DeepProbe {
         start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_ocr(
           &mut orders,
+          &video_frames,
           &mut output_results,
           &self.filename,
           &mut streams,
@@ -518,6 +527,7 @@ impl DeepProbe {
         start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_loudness(
           &mut orders,
+          &audio_frames,
           &mut output_results,
           &self.filename,
           &mut streams,
@@ -533,6 +543,7 @@ impl DeepProbe {
         start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_dualmono(
           &mut orders,
+          &audio_frames,
           &mut output_results,
           &self.filename,
           &mut streams,
@@ -549,6 +560,7 @@ impl DeepProbe {
         start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         detect_sine(
           &mut orders,
+          &audio_frames,
           &mut output_results,
           &self.filename,
           &mut streams,

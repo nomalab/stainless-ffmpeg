@@ -11,6 +11,7 @@ use crate::{
     OutputResult::{self, Entry},
     ParameterValue,
   },
+  prelude::Frame,
   probe::deep::{CheckParameterValue, DualMonoResult, StreamProbeResult, VideoDetails},
 };
 use std::collections::HashMap;
@@ -121,11 +122,12 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
     None => warn!("No input message for the dualmono analysis (list of indexes to merge)"),
   }
 
-  Order::new_with_io(inputs, filters, outputs)
+  Order::new(inputs, filters, outputs)
 }
 
 pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
   orders: &mut HashMap<String, Order>,
+  audio_frames: &Vec<Frame>,
   output_results: &mut HashMap<String, Vec<OutputResult>>,
   filename: &str,
   streams: &mut [StreamProbeResult],
@@ -145,9 +147,9 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
 
   if !decode_end {
     match orders
-      .get("dualmono")
+      .get_mut("dualmono")
       .unwrap()
-      .process(orders.get("src").unwrap())
+      .process(audio_frames, &vec![], &vec![])
     {
       Ok(results) => {
         output_results
@@ -163,9 +165,9 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
       streams[index as usize].detected_dualmono = Some(vec![]);
     }
     match orders
-      .get("dualmono")
+      .get_mut("dualmono")
       .unwrap()
-      .process(orders.get("src").unwrap())
+      .process(audio_frames, &vec![], &vec![])
     {
       Ok(result) => {
         output_results
