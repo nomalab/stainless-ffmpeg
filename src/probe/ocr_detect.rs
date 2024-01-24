@@ -6,7 +6,7 @@ use crate::order::{
   ParameterValue,
 };
 use crate::probe::deep::{CheckParameterValue, OcrResult, StreamProbeResult, VideoDetails};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub fn ocr_init(
   filename: &str,
@@ -88,7 +88,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
 }
 
 pub fn detect_ocr(
-  output_results: &HashMap<CheckName, Vec<OutputResult>>,
+  output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   video_details: VideoDetails,
@@ -97,8 +97,8 @@ pub fn detect_ocr(
     streams[index as usize].detected_ocr = Some(vec![]);
   }
   let results = output_results.get(&CheckName::MediaOffline).unwrap();
-  println!("END OF OCR PROCESS");
-  println!("-> {:?} frames processed", results.len());
+  info!("END OF OCR PROCESS");
+  info!("-> {:?} frames processed", results.len());
   let mut media_offline_detected = false;
   let last_frame = video_details.stream_frames.unwrap_or(results.len() as i64) - 1;
 

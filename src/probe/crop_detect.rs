@@ -6,7 +6,7 @@ use crate::order::{
 };
 use crate::order::{Filter, Order, OutputResult::Entry, ParameterValue};
 use crate::probe::deep::{CheckParameterValue, CropResult, StreamProbeResult, VideoDetails};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub fn black_borders_init(
   filename: &str,
@@ -105,7 +105,7 @@ pub fn create_graph(
 }
 
 pub fn detect_black_borders(
-  output_results: &HashMap<CheckName, Vec<OutputResult>>,
+  output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   video_details: VideoDetails,
@@ -114,8 +114,8 @@ pub fn detect_black_borders(
     streams[index as usize].detected_crop = Some(vec![]);
   }
   let results = output_results.get(&CheckName::BlackBorder).unwrap();
-  println!("END OF CROP PROCESS");
-  println!("-> {:?} frames processed", results.len());
+  info!("END OF CROP PROCESS");
+  info!("-> {:?} frames processed", results.len());
   let mut w_changed = false;
   let mut h_changed = false;
   let mut real_width = video_details.metadata_width;

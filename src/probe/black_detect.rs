@@ -14,7 +14,7 @@ use crate::{
   },
   probe::deep::{BlackResult, CheckParameterValue, StreamProbeResult, VideoDetails},
 };
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub fn blackframes_init(
   filename: &str,
@@ -95,7 +95,7 @@ pub fn create_graph(
 }
 
 pub fn detect_black_frames(
-  output_results: &HashMap<CheckName, Vec<OutputResult>>,
+  output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   params: &HashMap<String, CheckParameterValue>,
@@ -105,8 +105,8 @@ pub fn detect_black_frames(
     streams[index as usize].detected_black = Some(vec![]);
   }
   let results = output_results.get(&CheckName::BlackFrame).unwrap();
-  println!("END OF BLACKFRAMES PROCESS");
-  println!("-> {:?} frames processed", results.len());
+  info!("END OF BLACKFRAMES PROCESS");
+  info!("-> {:?} frames processed", results.len());
   let end_from_duration = match video_details.stream_duration {
     Some(duration) => ((duration - video_details.frame_duration) * 1000.0).round() as i64,
     None => ((results.len() as f32 - 1.0) / video_details.frame_rate * 1000.0).round() as i64,

@@ -14,7 +14,7 @@ use crate::{
   },
   probe::deep::{CheckParameterValue, DualMonoResult, StreamProbeResult, VideoDetails},
 };
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub fn dualmono_init(
   filename: &str,
@@ -137,7 +137,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
 }
 
 pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
-  output_results: &HashMap<CheckName, Vec<OutputResult>>,
+  output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: &HashMap<String, CheckParameterValue, S>,
@@ -147,8 +147,8 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
     streams[index as usize].detected_dualmono = Some(vec![]);
   }
   let results = output_results.get(&CheckName::DualMono).unwrap();
-  println!("END OF DUALMONO PROCESS");
-  println!("-> {:?} frames processed", results.len());
+  info!("END OF DUALMONO PROCESS");
+  info!("-> {:?} frames processed", results.len());
 
   let mut max_duration = None;
   if let Some(duration) = params.get("duration") {

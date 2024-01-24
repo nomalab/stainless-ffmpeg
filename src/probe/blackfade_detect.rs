@@ -3,10 +3,10 @@ use crate::{
   order::OutputResult::{self, Entry},
   probe::deep::{BlackFadeResult, CheckParameterValue, StreamProbeResult, VideoDetails},
 };
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub fn detect_blackfade(
-  output_results: &HashMap<CheckName, Vec<OutputResult>>,
+  output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   params: &HashMap<String, CheckParameterValue>,
@@ -16,8 +16,8 @@ pub fn detect_blackfade(
     streams[index as usize].detected_blackfade = Some(vec![]);
   }
   let results = output_results.get(&CheckName::BlackFade).unwrap();
-  println!("END OF BLACKFADES PROCESS");
-  println!("-> {:?} frames processed", results.len());
+  info!("END OF BLACKFADES PROCESS");
+  info!("-> {:?} frames processed", results.len());
   let end_from_duration = match video_details.stream_duration {
     Some(duration) => ((duration - video_details.frame_duration) * 1000.0).round() as i64,
     None => ((results.len() as f32 - 1.0) / video_details.frame_rate * 1000.0).round() as i64,

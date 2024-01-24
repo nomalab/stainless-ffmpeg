@@ -6,7 +6,7 @@ use crate::order::{
   ParameterValue,
 };
 use crate::probe::deep::{CheckParameterValue, SilenceResult, StreamProbeResult, VideoDetails};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub fn silence_init(
   filename: &str,
@@ -93,7 +93,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
 }
 
 pub fn detect_silence<S: ::std::hash::BuildHasher>(
-  output_results: &HashMap<CheckName, Vec<OutputResult>>,
+  output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: &HashMap<String, CheckParameterValue, S>,
@@ -103,8 +103,8 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
     streams[index as usize].detected_silence = Some(vec![]);
   }
   let results = output_results.get(&CheckName::Silence).unwrap();
-  println!("END OF SILENCE PROCESS");
-  println!("-> {:?} frames processed", results.len());
+  info!("END OF SILENCE PROCESS");
+  info!("-> {:?} frames processed", results.len());
   let end_from_duration = (((results.len() as f64 / audio_indexes.clone().len() as f64) - 1.0)
     / video_details.frame_rate as f64
     * 1000.0)

@@ -17,6 +17,7 @@ use crate::{format_context::FormatContext, order::Order};
 use ffmpeg_sys_next::*;
 use log::LevelFilter;
 use std::cmp;
+use std::collections::BTreeMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{collections::HashMap, fmt};
 use uuid::Uuid;
@@ -202,7 +203,7 @@ pub struct VideoDetails {
   pub aspect_ratio: Rational,
 }
 
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum CheckName {
   Silence,
   BlackFrame,
@@ -493,8 +494,8 @@ impl DeepProbe {
       });
     }
 
-    let mut orders: HashMap<CheckName, Order> = HashMap::new();
-    let mut output_results: HashMap<CheckName, Vec<OutputResult>> = HashMap::new();
+    let mut orders: BTreeMap<CheckName, Order> = BTreeMap::new();
+    let mut output_results: BTreeMap<CheckName, Vec<OutputResult>> = BTreeMap::new();
 
     if let Some(params) = check.black_detect.clone() {
       orders.insert(

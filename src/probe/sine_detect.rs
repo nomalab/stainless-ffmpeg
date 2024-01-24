@@ -9,7 +9,7 @@ use crate::order::{
 use crate::probe::deep::{CheckParameterValue, SineResult, StreamProbeResult, Track};
 use crate::stream::Stream as ContextStream;
 use ffmpeg_sys_next::AVMediaType;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub fn create_graph(
   filename: &str,
@@ -105,7 +105,7 @@ pub fn sine_init(
 }
 
 pub fn detect_sine(
-  output_results: &HashMap<CheckName, Vec<OutputResult>>,
+  output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
   filename: &str,
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
@@ -116,8 +116,8 @@ pub fn detect_sine(
     streams[index as usize].detected_sine = Some(vec![]);
   }
   let results = output_results.get(&CheckName::Tone).unwrap();
-  println!("END OF SINE PROCESS");
-  println!("-> {:?} frames processed", results.len());
+  info!("END OF SINE PROCESS");
+  info!("-> {:?} frames processed", results.len());
   let end_from_duration =
     (((results.len() as f64 / audio_indexes.len() as f64) - 1.0) / frame_rate as f64 * 1000.0)
       .round() as i64;

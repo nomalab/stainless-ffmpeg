@@ -6,7 +6,7 @@ use crate::order::{
   ParameterValue,
 };
 use crate::probe::deep::{CheckParameterValue, FalseSceneResult, SceneResult, StreamProbeResult};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub fn scene_init(
   filename: &str,
@@ -75,7 +75,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
 }
 
 pub fn detect_scene(
-  output_results: &HashMap<CheckName, Vec<OutputResult>>,
+  output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   frame_rate: f32,
@@ -85,8 +85,8 @@ pub fn detect_scene(
     streams[index as usize].detected_false_scene = Some(vec![]);
   }
   let results = output_results.get(&CheckName::Scene).unwrap();
-  println!("END OF SCENE PROCESS");
-  println!("-> {:?} frames processed", results.len());
+  info!("END OF SCENE PROCESS");
+  info!("-> {:?} frames processed", results.len());
   let mut scene_count = 0;
 
   for result in results {
