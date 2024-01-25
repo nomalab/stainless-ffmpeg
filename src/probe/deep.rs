@@ -576,17 +576,19 @@ impl DeepProbe {
     }
 
     let mut src_order = Order::new(src_inputs, vec![], vec![]).unwrap();
-    if let Err(msg) = src_order.setup() {
-      error!("{:?}", msg);
-    }
+    let _ = src_order.setup();
 
+    let mut decode_time = 0.0;
     let mut decode_end = false;
     // let mut audio_analyzed = true;
     // let mut video_analyzed = true;
     while !decode_end {
+      let decode_start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
       let (end, in_audio_frames, in_video_frames, in_subtitle_packets) =
-        src_order.decode_input(&mut context, &mut packets, true, true);
+        src_order.decode_input(true, true);
       decode_end = end;
+      let decode_end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+      decode_time += (decode_end_time.as_millis() - decode_start_time.as_millis()) as f64;
 
       for order in &mut orders {
         match order
@@ -722,7 +724,7 @@ impl DeepProbe {
 
     let dp_end: std::time::Duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
     // println!("\nDURATION DETAILS :");
-    // println!("{:12} : {:?}s", "Decode", (decode_time / 1000.0));
+    println!("Decode duration : {:?}s", (decode_time / 1000.0));
     // println!("{:12} : {:?}s", "Silence", (silence_time / 1000.0));
     // println!("{:12} : {:?}s", "Blackframes", (blackframes_time / 1000.0));
     // println!("{:12} : {:?}s", "Blackfades", (blackfades_time / 1000.0));

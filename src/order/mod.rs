@@ -1,7 +1,6 @@
-use ffmpeg_sys_next::AVMediaType;
-
 use crate::filter_graph::FilterGraph;
 use std::collections::HashMap;
+use std::ptr::null_mut;
 
 mod decoder_format;
 mod encoder_format;
@@ -17,7 +16,6 @@ mod output_result;
 pub mod parameters;
 pub mod stream;
 
-use crate::format_context::FormatContext;
 use crate::frame::Frame;
 use crate::order::decoder_format::DecoderFormat;
 use crate::order::encoder_format::EncoderFormat;
@@ -79,68 +77,66 @@ impl Order {
 
   pub fn decode_input(
     &mut self,
-    context: &mut FormatContext,
-    packets: &mut Vec<Packet>,
     audio_analyzed: bool,
     video_analyzed: bool,
   ) -> (bool, Vec<Frame>, Vec<Frame>, Vec<Packet>) {
-    let mut last_iter = 0;
     let mut audio_frames = vec![];
     let mut video_frames = vec![];
     let mut subtitle_packets = vec![];
-    let mut decode_end = true;
+    let mut decode_end = 0;
 
-    'first_loop: for (iter, packet) in packets.iter().enumerate() {
-      last_iter = iter;
-      let stream_index = (unsafe { *packet.packet }).stream_index as usize;
-
-      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO
-        && video_analyzed
-      {
-        for format in &mut self.input_formats {
-          for decoder in &format.video_decoders {
-            if decoder.stream_index == packet.get_stream_index() {
-              if let Ok(frame) = decoder.decode(&packet) {
-                video_frames.push(frame);
-                if video_frames.len() >= 100 {
-                  decode_end = false;
-                  break 'first_loop;
+    for format in &mut self.input_formats {
+      for _ in 0..format.context.get_nb_streams() {
+        match format.context.next_packet() {
+          Ok(mut packet) => {
+            for decoder in &format.audio_decoders {
+              if decoder.stream_index == packet.get_stream_index() {
+                if let Ok(frame) = decoder.decode(&packet) {
+                  audio_frames.push(frame);
                 }
               }
             }
-          }
-        }
-      }
-      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO
-        && audio_analyzed
-      {
-        for format in &mut self.input_formats {
-          for decoder in &format.audio_decoders {
-            if decoder.stream_index == packet.get_stream_index() {
-              if let Ok(frame) = decoder.decode(&packet) {
-                audio_frames.push(frame);
+            for decoder in &format.video_decoders {
+              if decoder.stream_index == packet.get_stream_index() {
+                if let Ok(frame) = decoder.decode(&packet) {
+                  video_frames.push(frame);
+                }
+              }
+            }
+            for decoder in &format.subtitle_decoders {
+              if decoder.stream_index == packet.get_stream_index() {
+                packet.name = Some(decoder.identifier.clone());
+                subtitle_packets.push(packet);
+                break;
               }
             }
           }
-        }
-      }
-      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_SUBTITLE {
-        for format in &mut self.input_formats {
-          for decoder in &format.subtitle_decoders {
-            if decoder.stream_index == stream_index as isize {
-              subtitle_packets.push(Packet {
-                name: Some(decoder.identifier.clone()),
-                packet: packet.packet,
-              });
-              break;
+          Err(msg) => {
+            if msg == "End of data stream" {
+              for decoder in &format.video_decoders {
+                let packet = null_mut();
+
+                let p = Packet { name: None, packet };
+
+                if let Ok(frame) = decoder.decode(&p) {
+                  video_frames.push(frame);
+                } else {
+                  decode_end += 1;
+                }
+              }
+            } else {
+              decode_end += 1;
             }
           }
         }
       }
     }
-    packets.drain(0..last_iter);
+    let mut end = false;
+    if decode_end == self.total_streams {
+      end = true;
+    }
 
-    return (decode_end, audio_frames, video_frames, subtitle_packets);
+    return (end, audio_frames, video_frames, subtitle_packets);
   }
 
   pub fn process_filtering(
