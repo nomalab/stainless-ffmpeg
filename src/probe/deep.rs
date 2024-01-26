@@ -1,18 +1,22 @@
-use crate::format_context::FormatContext;
+use crate::order::input::Input;
+use crate::order::stream::Stream as StreamOrder;
+use crate::order::OutputResult;
 use crate::probe::black_and_silence::detect_black_and_silence;
-use crate::probe::black_detect::detect_black_frames;
+use crate::probe::black_detect::{blackframes_init, detect_black_frames};
 use crate::probe::blackfade_detect::detect_blackfade;
-use crate::probe::crop_detect::detect_black_borders;
-use crate::probe::dualmono_detect::detect_dualmono;
-use crate::probe::loudness_detect::detect_loudness;
-use crate::probe::ocr_detect::detect_ocr;
-use crate::probe::scene_detect::detect_scene;
-use crate::probe::silence_detect::detect_silence;
-use crate::probe::sine_detect::detect_sine;
+use crate::probe::crop_detect::{black_borders_init, detect_black_borders};
+use crate::probe::dualmono_detect::{detect_dualmono, dualmono_init};
+use crate::probe::loudness_detect::{detect_loudness, loudness_init};
+use crate::probe::ocr_detect::{detect_ocr, ocr_init};
+use crate::probe::scene_detect::{detect_scene, scene_init};
+use crate::probe::silence_detect::{detect_silence, silence_init};
+use crate::probe::sine_detect::{detect_sine, sine_init};
 use crate::stream::Stream;
 use crate::tools::rational::Rational;
+use crate::{format_context::FormatContext, order::Order};
 use ffmpeg_sys_next::*;
 use log::LevelFilter;
+use std::collections::BTreeMap;
 use std::{cmp, collections::HashMap, fmt};
 use uuid::Uuid;
 
@@ -371,29 +375,18 @@ impl DeepProbe {
     }
   }
 
-  pub fn process(&mut self, log_level: LevelFilter, check: DeepProbeCheck) -> Result<(), String> {
-    let av_log_level = match log_level {
-      LevelFilter::Error => AV_LOG_ERROR,
-      LevelFilter::Warn => AV_LOG_WARNING,
-      LevelFilter::Info => AV_LOG_INFO,
-      LevelFilter::Debug => AV_LOG_DEBUG,
-      LevelFilter::Trace => AV_LOG_TRACE,
-      LevelFilter::Off => AV_LOG_QUIET,
-    };
-
-    unsafe {
-      av_log_set_level(av_log_level);
-    }
-
-    let mut context = FormatContext::new(&self.filename).unwrap();
-    if context.open_input().is_err() {
-      self.result = None;
-      context.close_input();
-      return Ok(());
-    }
-
-    let mut video_details = VideoDetails::new();
-    let mut streams = vec![];
+  fn setup(
+    &self,
+    context: &mut FormatContext,
+    orders: &mut BTreeMap<CheckName, Order>,
+    check: &DeepProbeCheck,
+    output_results: &mut BTreeMap<CheckName, Vec<OutputResult>>,
+    streams: &mut Vec<StreamProbeResult>,
+    src_inputs: &mut Vec<Input>,
+    video_details: &mut VideoDetails,
+    audio_indexes: &mut Vec<u32>,
+    video_indexes: &mut Vec<u32>,
+  ) -> Result<(), String> {
     streams.resize(context.get_nb_streams() as usize, StreamProbeResult::new());
     while let Ok(packet) = context.next_packet() {
       unsafe {
@@ -428,122 +421,310 @@ impl DeepProbe {
       }
     }
 
-    let mut audio_indexes = vec![];
-    let mut video_indexes = vec![];
     for stream_index in 0..context.get_nb_streams() {
+      let mut input_id = format!("unknown_input_{}", stream_index);
       if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
         video_indexes.push(stream_index);
+        input_id = format!("video_input_{}", stream_index);
       }
       if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
         audio_indexes.push(stream_index);
+        input_id = format!("audio_input_{}", stream_index);
+      }
+      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_SUBTITLE {
+        input_id = format!("subtitle_input_{}", stream_index);
+      }
+      let input_streams = vec![StreamOrder {
+        index: stream_index,
+        label: Some(input_id),
+      }];
+      src_inputs.push(Input::Streams {
+        id: stream_index,
+        path: context.filename.to_string(),
+        streams: input_streams,
+      });
+    }
+
+    if let Some(params) = check.black_detect.clone() {
+      orders.insert(
+        CheckName::BlackFrame,
+        blackframes_init(&self.filename, video_indexes.clone(), &params).unwrap(),
+      );
+      output_results.insert(CheckName::BlackFrame, vec![]);
+    }
+
+    if let Some(params) = check.blackfade_detect.clone() {
+      orders.insert(
+        CheckName::BlackFade,
+        blackframes_init(&self.filename, video_indexes.clone(), &params).unwrap(),
+      );
+      output_results.insert(CheckName::BlackFade, vec![]);
+    }
+
+    if let Some(params) = check.crop_detect.clone() {
+      orders.insert(
+        CheckName::BlackBorder,
+        black_borders_init(
+          &self.filename,
+          video_indexes.clone(),
+          &params,
+          video_details.clone(),
+        )
+        .unwrap(),
+      );
+      output_results.insert(CheckName::BlackBorder, vec![]);
+    }
+
+    if let Some(params) = check.scene_detect.clone() {
+      orders.insert(
+        CheckName::Scene,
+        scene_init(&self.filename, video_indexes.clone(), &params).unwrap(),
+      );
+      output_results.insert(CheckName::Scene, vec![]);
+    }
+
+    if let Some(params) = check.ocr_detect.clone() {
+      orders.insert(
+        CheckName::MediaOffline,
+        ocr_init(&self.filename, video_indexes.clone(), &params).unwrap(),
+      );
+      output_results.insert(CheckName::MediaOffline, vec![]);
+    }
+
+    if let Some(params) = check.silence_detect.clone() {
+      orders.insert(
+        CheckName::Silence,
+        silence_init(&self.filename, audio_indexes.clone(), &params).unwrap(),
+      );
+      output_results.insert(CheckName::Silence, vec![]);
+    }
+
+    if let Some(params) = check.loudness_detect.clone() {
+      orders.insert(
+        CheckName::Loudness,
+        loudness_init(&self.filename, &params).unwrap(),
+      );
+      output_results.insert(CheckName::Loudness, vec![]);
+    }
+
+    if let Some(params) = check.dualmono_detect.clone() {
+      orders.insert(
+        CheckName::DualMono,
+        dualmono_init(&self.filename, &params).unwrap(),
+      );
+      output_results.insert(CheckName::DualMono, vec![]);
+    }
+
+    if let Some(params) = check.sine_detect.clone() {
+      orders.insert(
+        CheckName::Tone,
+        sine_init(&self.filename, audio_indexes.clone(), &params).unwrap(),
+      );
+      output_results.insert(CheckName::Tone, vec![]);
+    }
+
+    Ok(())
+  }
+
+  fn get_results(
+    &self,
+    context: &FormatContext,
+    orders: &BTreeMap<CheckName, Order>,
+    check: &DeepProbeCheck,
+    output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
+    streams: &mut Vec<StreamProbeResult>,
+    video_details: &VideoDetails,
+    audio_indexes: &Vec<u32>,
+    video_indexes: &Vec<u32>,
+  ) -> Result<(), String> {
+    for order in orders {
+      match order.0 {
+        CheckName::Silence => {
+          if let Some(params) = check.silence_detect.clone() {
+            detect_silence(
+              &output_results,
+              streams,
+              audio_indexes.clone(),
+              &params,
+              video_details.clone(),
+            );
+          }
+        }
+        CheckName::BlackFrame => {
+          if let Some(params) = check.black_detect.clone() {
+            detect_black_frames(
+              &output_results,
+              streams,
+              video_indexes.clone(),
+              &params,
+              video_details.clone(),
+            )
+          }
+        }
+        CheckName::BlackFade => {
+          if let Some(params) = check.blackfade_detect.clone() {
+            detect_blackfade(
+              &output_results,
+              streams,
+              video_indexes.clone(),
+              &params,
+              video_details.clone(),
+            )
+          }
+        }
+        CheckName::BlackBorder => {
+          detect_black_borders(
+            &output_results,
+            streams,
+            video_indexes.clone(),
+            video_details.clone(),
+          );
+        }
+        CheckName::BlackAndSilence => {}
+        CheckName::MediaOffline => {
+          detect_ocr(
+            &output_results,
+            streams,
+            video_indexes.clone(),
+            video_details.clone(),
+          );
+        }
+        CheckName::Scene => {
+          detect_scene(
+            &output_results,
+            streams,
+            video_indexes.clone(),
+            video_details.clone(),
+          );
+        }
+        CheckName::Loudness => {
+          if let Some(params) = check.loudness_detect.clone() {
+            detect_loudness(&output_results, streams, audio_indexes.clone(), &params)
+          }
+        }
+        CheckName::DualMono => {
+          if let Some(params) = check.dualmono_detect.clone() {
+            detect_dualmono(
+              &output_results,
+              streams,
+              audio_indexes.clone(),
+              &params,
+              video_details.clone(),
+            )
+          }
+        }
+        CheckName::Tone => {
+          if let Some(params) = check.sine_detect.clone() {
+            detect_sine(
+              &output_results,
+              &self.filename,
+              streams,
+              audio_indexes.clone(),
+              &params,
+              video_details.frame_rate,
+            )
+          }
+        }
       }
     }
 
-    if let Some(silence_parameters) = check.silence_detect.clone() {
-      detect_silence(
-        &self.filename,
-        &mut streams,
-        audio_indexes.clone(),
-        silence_parameters,
-        video_details.clone(),
-      );
-    }
-
-    if let Some(black_parameters) = check.black_detect.clone() {
-      detect_black_frames(
-        &self.filename,
-        &mut streams,
-        video_indexes.clone(),
-        black_parameters,
-        video_details.clone(),
-      );
-    }
-
-    if let Some(blackfade_parameters) = check.blackfade_detect {
-      detect_blackfade(
-        &self.filename,
-        &mut streams,
-        video_indexes.clone(),
-        blackfade_parameters,
-        video_details.clone(),
-      );
-    }
-
-    if let Some(black_and_silence_parameters) = check.black_and_silence_detect {
+    if let Some(params) = check.black_and_silence_detect.clone() {
       if check.black_detect.is_some() && check.silence_detect.is_some() {
         detect_black_and_silence(
-          &mut streams,
+          streams,
           video_indexes.clone(),
           audio_indexes.clone(),
-          black_and_silence_parameters,
+          &params,
           video_details.frame_duration,
         );
       }
     }
-
-    if let Some(crop_parameters) = check.crop_detect {
-      detect_black_borders(
-        &self.filename,
-        &mut streams,
-        video_indexes.clone(),
-        crop_parameters,
-        video_details.clone(),
-      );
-    }
-
-    if let Some(scene_parameters) = check.scene_detect {
-      detect_scene(
-        &self.filename,
-        &mut streams,
-        video_indexes.clone(),
-        scene_parameters,
-        video_details.clone(),
-      );
-    }
-
-    if let Some(ocr_parameters) = check.ocr_detect {
-      detect_ocr(
-        &self.filename,
-        &mut streams,
-        video_indexes.clone(),
-        ocr_parameters,
-        video_details.clone(),
-      );
-    }
-
     for index in 0..context.get_nb_streams() {
       if let Ok(stream) = Stream::new(context.get_stream(index as isize)) {
         streams[(index) as usize].detected_bitrate = stream.get_bit_rate();
       }
     }
 
-    if let Some(loudness_parameters) = check.loudness_detect {
-      detect_loudness(
-        &self.filename,
-        &mut streams,
-        audio_indexes.clone(),
-        loudness_parameters,
-      );
+    Ok(())
+  }
+
+  pub fn process(&mut self, log_level: LevelFilter, check: DeepProbeCheck) -> Result<(), String> {
+    let av_log_level = match log_level {
+      LevelFilter::Error => AV_LOG_ERROR,
+      LevelFilter::Warn => AV_LOG_WARNING,
+      LevelFilter::Info => AV_LOG_INFO,
+      LevelFilter::Debug => AV_LOG_DEBUG,
+      LevelFilter::Trace => AV_LOG_TRACE,
+      LevelFilter::Off => AV_LOG_QUIET,
+    };
+
+    unsafe {
+      av_log_set_level(av_log_level);
+    }
+    let mut context = FormatContext::new(&self.filename).unwrap();
+    if context.open_input().is_err() {
+      self.result = None;
+      context.close_input();
+      return Ok(());
     }
 
-    if let Some(dualmono_parameters) = check.dualmono_detect {
-      detect_dualmono(
-        &self.filename,
-        &mut streams,
-        audio_indexes.clone(),
-        dualmono_parameters,
-        video_details.clone(),
-      );
+    let mut video_details = VideoDetails::new();
+    let mut streams = vec![];
+    let mut audio_indexes = vec![];
+    let mut video_indexes = vec![];
+    let mut src_inputs = vec![];
+    let mut orders: BTreeMap<CheckName, Order> = BTreeMap::new();
+    let mut output_results: BTreeMap<CheckName, Vec<OutputResult>> = BTreeMap::new();
+
+    if let Err(msg) = self.setup(
+      &mut context,
+      &mut orders,
+      &check,
+      &mut output_results,
+      &mut streams,
+      &mut src_inputs,
+      &mut video_details,
+      &mut audio_indexes,
+      &mut video_indexes,
+    ) {
+      error!("Error while setup deep probe orders : {msg}");
     }
 
-    if let Some(sine_parameters) = check.sine_detect {
-      detect_sine(
-        &self.filename,
-        &mut streams,
-        audio_indexes,
-        sine_parameters,
-        video_details.frame_rate,
-      );
+    let mut order_src = Order::new(src_inputs, vec![], vec![]).unwrap();
+    let _ = order_src.setup();
+    let mut decode_end = false;
+
+    while !decode_end {
+      let (in_audio_frames, in_video_frames, in_subtitle_packets, end) = order_src.process_input();
+      decode_end = end;
+
+      for order in &mut orders {
+        match order
+          .1
+          .filtering(&in_audio_frames, &in_video_frames, &in_subtitle_packets)
+        {
+          Ok(results) => {
+            let res = output_results.get_mut(&order.0).unwrap();
+            res.extend(results);
+          }
+          Err(msg) => {
+            error!("Error while filtering : {msg}");
+          }
+        }
+      }
+    }
+
+    if let Err(msg) = self.get_results(
+      &context,
+      &orders,
+      &check,
+      &output_results,
+      &mut streams,
+      &video_details,
+      &audio_indexes,
+      &video_indexes,
+    ) {
+      error!("Error while processing results : {msg}");
     }
 
     let mut format = FormatProbeResult::new();
