@@ -1,10 +1,24 @@
 use crate::order::{
   filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
-  output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
-  ParameterValue,
+  output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult,
+  OutputResult::Entry, ParameterValue,
 };
-use crate::probe::deep::{CheckParameterValue, SilenceResult, StreamProbeResult, VideoDetails};
-use std::collections::HashMap;
+use crate::probe::deep::{
+  CheckName, CheckParameterValue, SilenceResult, StreamProbeResult, VideoDetails,
+};
+use std::collections::{BTreeMap, HashMap};
+
+pub fn silence_init(
+  filename: &str,
+  audio_indexes: Vec<u32>,
+  params: &HashMap<String, CheckParameterValue>,
+) -> Result<Order, String> {
+  let mut order = create_graph(filename, audio_indexes.clone(), &params).unwrap();
+  if let Err(msg) = order.setup() {
+    error!("{:?}", msg);
+  }
+  Ok(order)
+}
 
 pub fn create_graph<S: ::std::hash::BuildHasher>(
   filename: &str,
@@ -79,90 +93,79 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
 }
 
 pub fn detect_silence<S: ::std::hash::BuildHasher>(
-  filename: &str,
+  output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
-  params: HashMap<String, CheckParameterValue, S>,
+  params: &HashMap<String, CheckParameterValue, S>,
   video_details: VideoDetails,
 ) {
-  let mut order = create_graph(filename, audio_indexes.clone(), &params).unwrap();
-  if let Err(msg) = order.setup() {
-    error!("{:?}", msg);
-    return;
-  }
   for index in audio_indexes.clone() {
     streams[index as usize].detected_silence = Some(vec![]);
   }
+  let results = output_results.get(&CheckName::Silence).unwrap();
+  info!("END OF SILENCE PROCESS");
+  info!("-> {:?} frames processed", results.len());
 
-  match order.process() {
-    Ok(results) => {
-      info!("END OF PROCESS");
-      info!("-> {:?} frames processed", results.len());
-      let end_from_duration = (((results.len() as f64 / audio_indexes.clone().len() as f64) - 1.0)
-        / video_details.frame_rate as f64
-        * 1000.0)
-        .round() as i64;
+  let end_from_duration = (((results.len() as f64 / audio_indexes.clone().len() as f64) - 1.0)
+    / video_details.frame_rate as f64
+    * 1000.0)
+    .round() as i64;
+  let mut max_duration = None;
+  if let Some(duration) = params.get("duration") {
+    max_duration = duration.max;
+  }
 
-      let mut max_duration = None;
-      if let Some(duration) = params.get("duration") {
-        max_duration = duration.max;
-      }
-      for result in results {
-        if let Entry(entry_map) = result {
-          if let Some(stream_id) = entry_map.get("stream_id") {
-            let index: i32 = stream_id.parse().unwrap();
-            if streams[(index) as usize].detected_silence.is_none() {
-              error!("Error : unexpected detection on stream ${index}");
-              break;
-            }
-            let detected_silence = streams[(index) as usize].detected_silence.as_mut().unwrap();
-            let mut silence = SilenceResult {
-              start: 0,
-              end: end_from_duration,
-            };
+  for result in results {
+    if let Entry(entry_map) = result {
+      if let Some(stream_id) = entry_map.get("stream_id") {
+        let index: i32 = stream_id.parse().unwrap();
+        if streams[(index) as usize].detected_silence.is_none() {
+          error!("Error : unexpected detection on stream ${index}");
+          break;
+        }
+        let detected_silence = streams[(index) as usize].detected_silence.as_mut().unwrap();
+        let mut silence = SilenceResult {
+          start: 0,
+          end: end_from_duration,
+        };
 
-            if let Some(value) = entry_map.get("lavfi.silence_start") {
-              silence.start = (value.parse::<f64>().unwrap() * 1000.0).round() as i64;
-              detected_silence.push(silence);
-            }
-            if let Some(value) = entry_map.get("lavfi.silence_end") {
-              if let Some(last_detect) = detected_silence.last_mut() {
-                last_detect.end =
-                  ((value.parse::<f64>().unwrap() - video_details.frame_duration as f64) * 1000.0)
-                    .round() as i64;
-              }
-            }
-            if let Some(value) = entry_map.get("lavfi.silence_duration") {
-              if let Some(max) = max_duration {
-                if (value.parse::<f64>().unwrap() * 1000.0).round() as u64 > max {
-                  detected_silence.pop();
-                }
-              }
-            }
+        if let Some(value) = entry_map.get("lavfi.silence_start") {
+          silence.start = (value.parse::<f64>().unwrap() * 1000.0).round() as i64;
+          detected_silence.push(silence);
+        }
+        if let Some(value) = entry_map.get("lavfi.silence_end") {
+          if let Some(last_detect) = detected_silence.last_mut() {
+            last_detect.end =
+              ((value.parse::<f64>().unwrap() - video_details.frame_duration as f64) * 1000.0)
+                .round() as i64;
           }
         }
-      }
-      for index in audio_indexes {
-        let detected_silence = streams[(index) as usize].detected_silence.as_mut().unwrap();
-        if detected_silence.len() == 1
-          && detected_silence[0].start == 0
-          && detected_silence[0].end == end_from_duration
-        {
-          streams[(index) as usize].silent_stream = Some(true);
-        }
-        if let Some(max) = max_duration {
-          if let Some(last_detect) = detected_silence.last() {
-            let silence_duration = last_detect.end - last_detect.start
-              + (video_details.frame_duration * 1000.0).round() as i64;
-            if silence_duration > max as i64 {
+        if let Some(value) = entry_map.get("lavfi.silence_duration") {
+          if let Some(max) = max_duration {
+            if (value.parse::<f64>().unwrap() * 1000.0).round() as u64 > max {
               detected_silence.pop();
             }
           }
         }
       }
     }
-    Err(msg) => {
-      error!("ERROR: {}", msg);
+  }
+  for index in audio_indexes {
+    let detected_silence = streams[(index) as usize].detected_silence.as_mut().unwrap();
+    if detected_silence.len() == 1
+      && detected_silence[0].start == 0
+      && detected_silence[0].end == end_from_duration
+    {
+      streams[(index) as usize].silent_stream = Some(true);
+    }
+    if let Some(max) = max_duration {
+      if let Some(last_detect) = detected_silence.last() {
+        let silence_duration = last_detect.end - last_detect.start
+          + (video_details.frame_duration * 1000.0).round() as i64;
+        if silence_duration > max as i64 {
+          detected_silence.pop();
+        }
+      }
     }
   }
 }
