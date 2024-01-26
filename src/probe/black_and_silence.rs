@@ -5,7 +5,7 @@ pub fn detect_black_and_silence(
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
   audio_indexes: Vec<u32>,
-  params: HashMap<String, CheckParameterValue>,
+  params: &HashMap<String, CheckParameterValue>,
   frame_duration: f32,
 ) {
   let mut bas = BlackAndSilenceResult { start: 0, end: 0 };
