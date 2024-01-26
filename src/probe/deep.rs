@@ -199,6 +199,20 @@ pub struct VideoDetails {
   pub aspect_ratio: Rational,
 }
 
+#[derive(Eq, Hash, PartialEq, PartialOrd, Ord)]
+pub enum CheckName {
+  Silence,
+  BlackFrame,
+  BlackFade,
+  BlackBorder,
+  BlackAndSilence,
+  MediaOffline,
+  Scene,
+  Loudness,
+  DualMono,
+  Tone,
+}
+
 impl fmt::Display for DeepProbeResult {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     for (index, stream) in self.streams.iter().enumerate() {
