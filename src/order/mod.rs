@@ -81,9 +81,7 @@ impl Order {
 
     while !decode_end {
       let (in_audio_frames, in_video_frames, in_subtitle_packets, end) = self.process_input();
-      if end == self.total_streams {
-        decode_end = true;
-      }
+      decode_end = end;
 
       match self.filtering(&in_audio_frames, &in_video_frames, &in_subtitle_packets) {
         Ok(result) => {
@@ -98,11 +96,12 @@ impl Order {
     Ok(results)
   }
 
-  pub fn process_input(&mut self) -> (Vec<Frame>, Vec<Frame>, Vec<Packet>, u32) {
+  pub fn process_input(&mut self) -> (Vec<Frame>, Vec<Frame>, Vec<Packet>, bool) {
     let mut audio_frames = vec![];
     let mut subtitle_packets = vec![];
     let mut video_frames = vec![];
     let mut end = 0;
+    let mut decode_end = false;
 
     for format in &mut self.input_formats {
       for _ in 0..format.context.get_nb_streams() {
@@ -150,8 +149,11 @@ impl Order {
         }
       }
     }
+    if end == self.total_streams {
+      decode_end = true;
+    }
 
-    return (audio_frames, video_frames, subtitle_packets, end);
+    return (audio_frames, video_frames, subtitle_packets, decode_end);
   }
 
   pub fn filtering(
