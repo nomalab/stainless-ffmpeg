@@ -1,6 +1,5 @@
 use crate::filter_graph::FilterGraph;
 use std::collections::HashMap;
-use std::ptr::null_mut;
 
 mod decoder_format;
 mod encoder_format;
@@ -29,6 +28,7 @@ pub use crate::order::output_result::OutputResult;
 pub use crate::order::parameters::*;
 
 use crate::packet::Packet;
+use std::ptr::null_mut;
 
 #[derive(Debug, Deserialize)]
 pub struct Order {
@@ -75,31 +75,58 @@ impl Order {
     Ok(())
   }
 
+  pub fn process(&mut self) -> Result<Vec<OutputResult>, String> {
+    let mut results = vec![];
+    let mut decode_end = false;
+
+    while !decode_end {
+      let (end, in_audio_frames, in_video_frames, in_subtitle_packets) =
+        self.decode_input(true, true);
+      decode_end = end;
+
+      match self.filtering(&in_audio_frames, &in_video_frames, &in_subtitle_packets) {
+        Ok(result) => {
+          results.extend(result);
+        }
+        Err(msg) => {
+          error!("Error while filtering : {msg}");
+        }
+      }
+    }
+
+    Ok(results)
+  }
+
   pub fn decode_input(
     &mut self,
-    audio_analyzed: bool,
-    video_analyzed: bool,
+    decode_audio: bool,
+    decode_video: bool,
   ) -> (bool, Vec<Frame>, Vec<Frame>, Vec<Packet>) {
     let mut audio_frames = vec![];
     let mut video_frames = vec![];
     let mut subtitle_packets = vec![];
     let mut decode_end = 0;
+    let mut end = false;
 
     for format in &mut self.input_formats {
       for _ in 0..format.context.get_nb_streams() {
         match format.context.next_packet() {
           Ok(mut packet) => {
-            for decoder in &format.audio_decoders {
-              if decoder.stream_index == packet.get_stream_index() {
-                if let Ok(frame) = decoder.decode(&packet) {
-                  audio_frames.push(frame);
+            if decode_audio {
+              for decoder in &format.audio_decoders {
+                if decoder.stream_index == packet.get_stream_index() {
+                  if let Ok(frame) = decoder.decode(&packet) {
+                    audio_frames.push(frame);
+                  }
                 }
               }
             }
-            for decoder in &format.video_decoders {
-              if decoder.stream_index == packet.get_stream_index() {
-                if let Ok(frame) = decoder.decode(&packet) {
-                  video_frames.push(frame);
+            if decode_video {
+              for decoder in &format.video_decoders {
+                if decoder.stream_index == packet.get_stream_index() {
+                  if let Ok(frame) = decoder.decode(&packet) {
+                    video_frames.push(frame);
+                  }
                 }
               }
             }
@@ -131,7 +158,6 @@ impl Order {
         }
       }
     }
-    let mut end = false;
     if decode_end == self.total_streams {
       end = true;
     }
@@ -139,7 +165,7 @@ impl Order {
     return (end, audio_frames, video_frames, subtitle_packets);
   }
 
-  pub fn process_filtering(
+  pub fn filtering(
     &mut self,
     in_audio_frames: &Vec<Frame>,
     in_video_frames: &Vec<Frame>,

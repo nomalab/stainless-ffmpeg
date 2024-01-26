@@ -24,7 +24,7 @@ fn main() {
       return;
     }
 
-    match order.process_filtering(&vec![], &vec![], &vec![]) {
+    match order.process() {
       Ok(results) => {
         info!("END OF PROCESS");
         info!("-> {:?} frames processed", results.len());

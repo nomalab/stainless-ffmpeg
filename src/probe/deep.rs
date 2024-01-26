@@ -407,7 +407,7 @@ impl DeepProbe {
     }
   }
 
-  pub fn setup(
+  fn setup(
     &self,
     context: &mut FormatContext,
     orders: &mut BTreeMap<CheckName, Order>,
@@ -558,7 +558,7 @@ impl DeepProbe {
     Ok(())
   }
 
-  pub fn get_results(
+  fn get_results(
     &self,
     context: &FormatContext,
     orders: &BTreeMap<CheckName, Order>,
@@ -721,30 +721,25 @@ impl DeepProbe {
       &mut audio_indexes,
       &mut video_indexes,
     ) {
-      error!("Error while setting orders : {msg}");
+      error!("Error while setup orders : {msg}");
     }
 
     let mut order_src = Order::new(src_inputs, vec![], vec![]).unwrap();
     let _ = order_src.setup();
-    let mut decode_time = 0.0;
     let mut decode_end = false;
-    // let mut audio_analyzed = true;
-    // let mut video_analyzed = true;
+
     while !decode_end {
-      let decode_start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
       let (end, in_audio_frames, in_video_frames, in_subtitle_packets) =
         order_src.decode_input(true, true);
       decode_end = end;
-      let decode_end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-      decode_time += (decode_end_time.as_millis() - decode_start_time.as_millis()) as f64;
 
       for order in &mut orders {
         match order
           .1
-          .process_filtering(&in_audio_frames, &in_video_frames, &in_subtitle_packets)
+          .filtering(&in_audio_frames, &in_video_frames, &in_subtitle_packets)
         {
           Ok(results) => {
-            let res = output_results.get_mut(order.0).unwrap();
+            let res = output_results.get_mut(&order.0).unwrap();
             res.extend(results);
           }
           Err(msg) => {
@@ -775,17 +770,6 @@ impl DeepProbe {
     context.close_input();
 
     let dp_end: std::time::Duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-    // println!("\nDURATION DETAILS :");
-    println!("Decode duration : {:?}s", (decode_time / 1000.0));
-    // println!("{:12} : {:?}s", "Silence", (silence_time / 1000.0));
-    // println!("{:12} : {:?}s", "Blackframes", (blackframes_time / 1000.0));
-    // println!("{:12} : {:?}s", "Blackfades", (blackfades_time / 1000.0));
-    // println!("{:12} : {:?}s", "Crop", (crop_time / 1000.0));
-    // println!("{:12} : {:?}s", "Scene", (scene_time / 1000.0));
-    // println!("{:12} : {:?}s", "Ocr", (ocr_time / 1000.0));
-    // println!("{:12} : {:?}s", "Loudness", (loudness_time / 1000.0));
-    // println!("{:12} : {:?}s", "Dualmono", (dualmono_time / 1000.0));
-    // println!("{:12} : {:?}s", "Sine", (sine_time / 1000.0));
     println!("Deep probe duration : {:?}\n", (dp_end - dp_start));
 
     Ok(())
