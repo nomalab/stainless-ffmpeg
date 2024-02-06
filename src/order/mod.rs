@@ -225,7 +225,7 @@ impl Order {
     Ok(results)
   }
 
-  fn build_input_format(&mut self) -> Result<(), String> {
+  pub fn build_input_format(&mut self) -> Result<(), String> {
     for input in &self.inputs {
       let decoder = DecoderFormat::new(&mut self.filter_graph, input)?;
       self.total_streams += decoder.context.get_nb_streams();
