@@ -23,8 +23,6 @@ impl VideoDecoder {
     unsafe {
       let codec = avcodec_find_decoder(format.get_codec_id(stream_index));
       let mut codec_context = avcodec_alloc_context3(codec);
-      (*codec_context).time_base =
-        (**(*format.format_context).streams.offset(stream_index)).time_base;
 
       check_result!(
         avcodec_parameters_to_context(
@@ -38,6 +36,9 @@ impl VideoDecoder {
       check_result!(avcodec_open2(codec_context, codec, null_mut()), {
         avcodec_free_context(&mut codec_context);
       });
+
+      (*codec_context).time_base =
+        (**(*format.format_context).streams.offset(stream_index)).time_base;
 
       Ok(VideoDecoder {
         identifier,
