@@ -37,6 +37,9 @@ impl VideoDecoder {
         avcodec_free_context(&mut codec_context);
       });
 
+      (*codec_context).time_base =
+        (**(*format.format_context).streams.offset(stream_index)).time_base;
+
       Ok(VideoDecoder {
         identifier,
         stream_index,

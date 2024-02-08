@@ -2,7 +2,6 @@ use crate::audio_decoder::AudioDecoder;
 use crate::filter_graph::FilterGraph;
 use crate::format_context::FormatContext;
 use crate::order::input::Input;
-use crate::stream::Stream;
 use crate::subtitle_decoder::SubtitleDecoder;
 use crate::tools;
 use crate::video_decoder::VideoDecoder;
@@ -32,7 +31,6 @@ impl DecoderFormat {
         let subtitle_decoders = vec![];
         let mut video_decoders = vec![];
         let mut context = FormatContext::new(path)?;
-        context.open_input()?;
         context.set_frames_addresses(frames);
 
         let identifier = if let Some(ref identifier) = label {
@@ -43,8 +41,7 @@ impl DecoderFormat {
 
         let video_decoder =
           VideoDecoder::new_with_codec(identifier.clone(), codec, *width, *height, 0)?;
-        let video_stream = Stream::new(context.get_stream(0))?;
-        graph.add_input_from_video_decoder(&identifier, &video_decoder, video_stream)?;
+        graph.add_input_from_video_decoder(&identifier, &video_decoder)?;
         video_decoders.push(video_decoder);
 
         Ok(DecoderFormat {
@@ -72,8 +69,7 @@ impl DecoderFormat {
             AVMediaType::AVMEDIA_TYPE_VIDEO => {
               let video_decoder =
                 VideoDecoder::new(identifier.clone(), &context, stream.index as isize)?;
-              let video_stream = Stream::new(context.get_stream(stream.index as isize))?;
-              graph.add_input_from_video_decoder(&identifier, &video_decoder, video_stream)?;
+              graph.add_input_from_video_decoder(&identifier, &video_decoder)?;
               video_decoders.push(video_decoder);
             }
             AVMediaType::AVMEDIA_TYPE_AUDIO => {
