@@ -65,14 +65,16 @@ pub struct CropResult {
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct SceneResult {
-  pub frame_index: i64,
+  pub frame_start: i64,
+  pub frame_end: i64,
+  pub frames_length: i64,
   pub score: i32,
-  pub scene_number: u32,
+  pub index: u32,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct FalseSceneResult {
-  pub frame: i64,
+  pub index: i64,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
@@ -481,7 +483,7 @@ impl DeepProbe {
         &mut streams,
         video_indexes.clone(),
         scene_parameters,
-        video_details.frame_rate,
+        video_details.clone(),
       );
     }
 
