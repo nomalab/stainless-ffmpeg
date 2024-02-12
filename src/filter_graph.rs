@@ -242,66 +242,63 @@ impl FilterGraph {
     in_audio_frames: &[Frame],
     in_video_frames: &[Frame],
   ) -> Result<(Vec<Frame>, Vec<Frame>), String> {
-    if in_audio_frames.len() != self.audio_inputs.len() {
-      return Err(format!(
-        "unable to process graph, mistmatch input frames ({}) with graph inputs ({})",
-        in_audio_frames.len(),
-        self.audio_inputs.len()
-      ));
-    }
-    if in_video_frames.len() != self.video_inputs.len() {
-      return Err(format!(
-        "unable to process graph, mistmatch input frames ({}) with graph inputs ({})",
-        in_video_frames.len(),
-        self.video_inputs.len()
-      ));
-    }
-
     let mut output_audio_frames = vec![];
     let mut output_video_frames = vec![];
 
     unsafe {
-      for (index, frame) in in_audio_frames.iter().enumerate() {
-        check_result!(av_buffersrc_add_frame(
-          self.audio_inputs[index].context,
-          frame.frame
-        ));
+      for frame in in_audio_frames {
+        for input in &self.audio_inputs {
+          if let Some(label) = &frame.name {
+            if input.get_label() == *label {
+              check_result!(av_buffersrc_add_frame(input.context, frame.frame));
+            }
+          }
+        }
       }
-      for (index, frame) in in_video_frames.iter().enumerate() {
-        check_result!(av_buffersrc_add_frame(
-          self.video_inputs[index].context,
-          frame.frame
-        ));
+      for frame in in_video_frames {
+        for input in &self.video_inputs {
+          if let Some(label) = &frame.name {
+            if input.get_label() == *label {
+              check_result!(av_buffersrc_add_frame(input.context, frame.frame));
+            }
+          }
+        }
       }
 
       for (index, output_filter) in self.audio_outputs.iter().enumerate() {
-        let output_frame = av_frame_alloc();
-        let result = av_buffersink_get_frame(output_filter.context, output_frame);
-        if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
-          break;
-        } else {
-          check_result!(result);
+        let mut result = 0;
+        while result >= 0 {
+          let output_frame = av_frame_alloc();
+          result = av_buffersink_get_frame(output_filter.context, output_frame);
+          if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
+            break;
+          } else {
+            check_result!(result);
+          }
+          output_audio_frames.push(Frame {
+            name: Some(output_filter.get_label()),
+            frame: output_frame,
+            index,
+          });
         }
-        output_audio_frames.push(Frame {
-          name: Some(output_filter.get_label()),
-          frame: output_frame,
-          index,
-        });
       }
 
       for (index, output_filter) in self.video_outputs.iter().enumerate() {
-        let output_frame = av_frame_alloc();
-        let result = av_buffersink_get_frame(output_filter.context, output_frame);
-        if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
-          break;
-        } else {
-          check_result!(result);
+        let mut result = 0;
+        while result >= 0 {
+          let output_frame = av_frame_alloc();
+          result = av_buffersink_get_frame(output_filter.context, output_frame);
+          if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
+            break;
+          } else {
+            check_result!(result);
+          }
+          output_video_frames.push(Frame {
+            name: Some(output_filter.get_label()),
+            frame: output_frame,
+            index,
+          });
         }
-        output_video_frames.push(Frame {
-          name: Some(output_filter.get_label()),
-          frame: output_frame,
-          index,
-        });
       }
     }
 
