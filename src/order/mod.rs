@@ -153,20 +153,20 @@ impl Order {
       decode_end = true;
     }
 
-    return (audio_frames, video_frames, subtitle_packets, decode_end);
+    (audio_frames, video_frames, subtitle_packets, decode_end)
   }
 
   pub fn filtering(
     &mut self,
-    in_audio_frames: &Vec<Frame>,
-    in_video_frames: &Vec<Frame>,
+    in_audio_frames: &[Frame],
+    in_video_frames: &[Frame],
     in_subtitle_packets: &Vec<Packet>,
   ) -> Result<Vec<OutputResult>, String> {
     let mut results = vec![];
 
     let (output_audio_frames, output_video_frames) = self
       .filter_graph
-      .process(&in_audio_frames, &in_video_frames)?;
+      .process(in_audio_frames, in_video_frames)?;
     for output_frame in output_audio_frames {
       for output in &self.outputs {
         if output.stream == output_frame.name {
@@ -196,7 +196,7 @@ impl Order {
     }
     for output_packet in in_subtitle_packets {
       for output in &mut self.output_formats {
-        output.wrap(&output_packet)?;
+        output.wrap(output_packet)?;
       }
     }
     for output_frame in output_video_frames {

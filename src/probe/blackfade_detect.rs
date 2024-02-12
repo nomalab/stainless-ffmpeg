@@ -8,7 +8,7 @@ pub fn detect_blackfade(
   output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
-  params: &HashMap<String, CheckParameterValue>,
+  params: HashMap<String, CheckParameterValue>,
   video_details: VideoDetails,
 ) {
   for index in video_indexes.clone() {

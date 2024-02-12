@@ -473,7 +473,7 @@ impl DeepProbe {
     if let Some(params) = deep_orders.check.black_detect.clone() {
       deep_orders.orders.insert(
         CheckName::BlackFrame,
-        blackframes_init(&self.filename, deep_orders.video_indexes.clone(), &params).unwrap(),
+        blackframes_init(&self.filename, deep_orders.video_indexes.clone(), params).unwrap(),
       );
       deep_orders
         .output_results
@@ -483,7 +483,7 @@ impl DeepProbe {
     if let Some(params) = deep_orders.check.blackfade_detect.clone() {
       deep_orders.orders.insert(
         CheckName::BlackFade,
-        blackframes_init(&self.filename, deep_orders.video_indexes.clone(), &params).unwrap(),
+        blackframes_init(&self.filename, deep_orders.video_indexes.clone(), params).unwrap(),
       );
       deep_orders
         .output_results
@@ -496,7 +496,7 @@ impl DeepProbe {
         black_borders_init(
           &self.filename,
           deep_orders.video_indexes.clone(),
-          &params,
+          params,
           deep_orders.video_details.clone(),
         )
         .unwrap(),
@@ -509,7 +509,7 @@ impl DeepProbe {
     if let Some(params) = deep_orders.check.scene_detect.clone() {
       deep_orders.orders.insert(
         CheckName::Scene,
-        scene_init(&self.filename, deep_orders.video_indexes.clone(), &params).unwrap(),
+        scene_init(&self.filename, deep_orders.video_indexes.clone(), params).unwrap(),
       );
       deep_orders.output_results.insert(CheckName::Scene, vec![]);
     }
@@ -517,7 +517,7 @@ impl DeepProbe {
     if let Some(params) = deep_orders.check.ocr_detect.clone() {
       deep_orders.orders.insert(
         CheckName::MediaOffline,
-        ocr_init(&self.filename, deep_orders.video_indexes.clone(), &params).unwrap(),
+        ocr_init(&self.filename, deep_orders.video_indexes.clone(), params).unwrap(),
       );
       deep_orders
         .output_results
@@ -527,7 +527,7 @@ impl DeepProbe {
     if let Some(params) = deep_orders.check.silence_detect.clone() {
       deep_orders.orders.insert(
         CheckName::Silence,
-        silence_init(&self.filename, deep_orders.audio_indexes.clone(), &params).unwrap(),
+        silence_init(&self.filename, deep_orders.audio_indexes.clone(), params).unwrap(),
       );
       deep_orders
         .output_results
@@ -537,7 +537,7 @@ impl DeepProbe {
     if let Some(params) = deep_orders.check.loudness_detect.clone() {
       deep_orders.orders.insert(
         CheckName::Loudness,
-        loudness_init(&self.filename, &params).unwrap(),
+        loudness_init(&self.filename, params).unwrap(),
       );
       deep_orders
         .output_results
@@ -547,7 +547,7 @@ impl DeepProbe {
     if let Some(params) = deep_orders.check.dualmono_detect.clone() {
       deep_orders.orders.insert(
         CheckName::DualMono,
-        dualmono_init(&self.filename, &params).unwrap(),
+        dualmono_init(&self.filename, params).unwrap(),
       );
       deep_orders
         .output_results
@@ -557,7 +557,7 @@ impl DeepProbe {
     if let Some(params) = deep_orders.check.sine_detect.clone() {
       deep_orders.orders.insert(
         CheckName::Tone,
-        sine_init(&self.filename, deep_orders.audio_indexes.clone(), &params).unwrap(),
+        sine_init(&self.filename, deep_orders.audio_indexes.clone(), params).unwrap(),
       );
       deep_orders.output_results.insert(CheckName::Tone, vec![]);
     }
@@ -578,7 +578,7 @@ impl DeepProbe {
               &deep_orders.output_results,
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
-              &params,
+              params,
               deep_orders.video_details.clone(),
             );
           }
@@ -589,7 +589,7 @@ impl DeepProbe {
               &deep_orders.output_results,
               &mut deep_orders.streams,
               deep_orders.video_indexes.clone(),
-              &params,
+              params,
               deep_orders.video_details.clone(),
             )
           }
@@ -600,7 +600,7 @@ impl DeepProbe {
               &deep_orders.output_results,
               &mut deep_orders.streams,
               deep_orders.video_indexes.clone(),
-              &params,
+              params,
               deep_orders.video_details.clone(),
             )
           }
@@ -636,7 +636,7 @@ impl DeepProbe {
               &deep_orders.output_results,
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
-              &params,
+              params,
             )
           }
         }
@@ -646,7 +646,7 @@ impl DeepProbe {
               &deep_orders.output_results,
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
-              &params,
+              params,
               deep_orders.video_details.clone(),
             )
           }
@@ -658,7 +658,7 @@ impl DeepProbe {
               &self.filename,
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
-              &params,
+              params,
               deep_orders.video_details.frame_rate,
             )
           }
@@ -672,7 +672,7 @@ impl DeepProbe {
           &mut deep_orders.streams,
           deep_orders.video_indexes.clone(),
           deep_orders.audio_indexes.clone(),
-          &params,
+          params,
           deep_orders.video_details.frame_duration,
         );
       }
@@ -726,7 +726,7 @@ impl DeepProbe {
           .filtering(&in_audio_frames, &in_video_frames, &in_subtitle_packets)
         {
           Ok(results) => {
-            let res = deep_orders.output_results.get_mut(&order.0).unwrap();
+            let res = deep_orders.output_results.get_mut(order.0).unwrap();
             res.extend(results);
           }
           Err(msg) => {

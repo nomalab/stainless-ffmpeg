@@ -11,9 +11,9 @@ use std::collections::{BTreeMap, HashMap};
 pub fn silence_init(
   filename: &str,
   audio_indexes: Vec<u32>,
-  params: &HashMap<String, CheckParameterValue>,
+  params: HashMap<String, CheckParameterValue>,
 ) -> Result<Order, String> {
-  let mut order = create_graph(filename, audio_indexes.clone(), &params).unwrap();
+  let mut order = create_graph(filename, audio_indexes.clone(), params).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
   }
@@ -23,7 +23,7 @@ pub fn silence_init(
 pub fn create_graph<S: ::std::hash::BuildHasher>(
   filename: &str,
   audio_indexes: Vec<u32>,
-  params: &HashMap<String, CheckParameterValue, S>,
+  params: HashMap<String, CheckParameterValue, S>,
 ) -> Result<Order, String> {
   let mut filters = vec![];
   let mut inputs = vec![];
@@ -96,7 +96,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
   output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
-  params: &HashMap<String, CheckParameterValue, S>,
+  params: HashMap<String, CheckParameterValue, S>,
   video_details: VideoDetails,
 ) {
   for index in audio_indexes.clone() {

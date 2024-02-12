@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, HashMap};
 pub fn black_borders_init(
   filename: &str,
   video_indexes: Vec<u32>,
-  params: &HashMap<String, CheckParameterValue>,
+  params: HashMap<String, CheckParameterValue>,
   video_details: VideoDetails,
 ) -> Result<Order, String> {
   let nb_frames = video_details.stream_frames.unwrap_or(0);
@@ -22,7 +22,7 @@ pub fn black_borders_init(
     Some(12) => 256,
     _ => 16,
   };
-  let mut order = create_graph(filename, video_indexes.clone(), &params, nb_frames, limit).unwrap();
+  let mut order = create_graph(filename, video_indexes.clone(), params, nb_frames, limit).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
   }
@@ -32,7 +32,7 @@ pub fn black_borders_init(
 pub fn create_graph(
   filename: &str,
   video_indexes: Vec<u32>,
-  params: &HashMap<String, CheckParameterValue>,
+  params: HashMap<String, CheckParameterValue>,
   nb_frames: i64,
   limit: i32,
 ) -> Result<Order, String> {

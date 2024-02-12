@@ -10,9 +10,9 @@ use std::collections::{BTreeMap, HashMap};
 
 pub fn loudness_init(
   filename: &str,
-  params: &HashMap<String, CheckParameterValue>,
+  params: HashMap<String, CheckParameterValue>,
 ) -> Result<Order, String> {
-  let mut order = create_graph(filename, &params).unwrap();
+  let mut order = create_graph(filename, params).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
   }
@@ -21,7 +21,7 @@ pub fn loudness_init(
 
 pub fn create_graph<S: ::std::hash::BuildHasher>(
   filename: &str,
-  params: &HashMap<String, CheckParameterValue, S>,
+  params: HashMap<String, CheckParameterValue, S>,
 ) -> Result<Order, String> {
   let mut inputs = vec![];
   let mut outputs = vec![];
@@ -123,7 +123,7 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
   output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
-  params: &HashMap<String, CheckParameterValue, S>,
+  params: HashMap<String, CheckParameterValue, S>,
 ) {
   for index in audio_indexes {
     streams[index as usize].detected_loudness = Some(vec![]);

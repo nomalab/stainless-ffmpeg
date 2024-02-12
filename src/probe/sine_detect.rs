@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, HashMap};
 pub fn create_graph(
   filename: &str,
   audio_indexes: Vec<u32>,
-  params: &HashMap<String, CheckParameterValue>,
+  params: HashMap<String, CheckParameterValue>,
 ) -> Result<Order, String> {
   let mut filters = vec![];
   let mut inputs = vec![];
@@ -93,9 +93,9 @@ pub fn create_graph(
 pub fn sine_init(
   filename: &str,
   audio_indexes: Vec<u32>,
-  params: &HashMap<String, CheckParameterValue>,
+  params: HashMap<String, CheckParameterValue>,
 ) -> Result<Order, String> {
-  let mut order = create_graph(filename, audio_indexes.clone(), &params).unwrap();
+  let mut order = create_graph(filename, audio_indexes.clone(), params).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
   }
@@ -107,7 +107,7 @@ pub fn detect_sine(
   filename: &str,
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
-  params: &HashMap<String, CheckParameterValue>,
+  params: HashMap<String, CheckParameterValue>,
   frame_rate: f32,
 ) {
   for index in audio_indexes.clone() {

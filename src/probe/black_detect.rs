@@ -18,9 +18,9 @@ use std::collections::{BTreeMap, HashMap};
 pub fn blackframes_init(
   filename: &str,
   video_indexes: Vec<u32>,
-  params: &HashMap<String, CheckParameterValue>,
+  params: HashMap<String, CheckParameterValue>,
 ) -> Result<Order, String> {
-  let mut order = create_graph(filename, video_indexes.clone(), &params).unwrap();
+  let mut order = create_graph(filename, video_indexes.clone(), params).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
   }
@@ -30,7 +30,7 @@ pub fn blackframes_init(
 pub fn create_graph(
   filename: &str,
   video_indexes: Vec<u32>,
-  params: &HashMap<String, CheckParameterValue>,
+  params: HashMap<String, CheckParameterValue>,
 ) -> Result<Order, String> {
   let mut filters = vec![];
   let mut inputs = vec![];
@@ -97,7 +97,7 @@ pub fn detect_black_frames(
   output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   video_indexes: Vec<u32>,
-  params: &HashMap<String, CheckParameterValue>,
+  params: HashMap<String, CheckParameterValue>,
   video_details: VideoDetails,
 ) {
   for index in video_indexes.clone() {
