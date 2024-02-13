@@ -74,7 +74,13 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
     return;
   }
   for index in video_indexes.clone() {
-    streams[index as usize].detected_scene = Some(vec![]);
+    streams[index as usize].detected_scene = Some(vec![SceneResult {
+      frame_start: 0,
+      frame_end: 0,
+      frames_length: 0,
+      score: 100,
+      index: 0,
+    }]);
     streams[index as usize].detected_false_scene = Some(vec![]);
   }
 
@@ -86,7 +92,6 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
         Some(frames) => frames,
         None => ((results.len() as f32 - 1.0) / video_details.frame_rate * 1000.0).round() as i64,
       };
-      let mut scene_count = 0;
 
       for result in results {
         if let Entry(entry_map) = result {
@@ -103,51 +108,32 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
                 .detected_false_scene
                 .as_mut()
                 .unwrap();
+              let frame_start = (value.parse::<f32>().unwrap() * video_details.frame_rate) as i64;
               let mut scene = SceneResult {
-                frame_start: 0,
+                frame_start,
                 frame_end: stream_frames,
-                frames_length: 0,
+                frames_length: stream_frames - frame_start + 1,
                 score: 0,
                 index: 0,
               };
               let mut false_scene = FalseSceneResult { index: 0 };
 
-              scene.frame_start = (value.parse::<f32>().unwrap() * video_details.frame_rate) as i64;
               if let Some(value) = entry_map.get("lavfi.scd.score") {
                 scene.score = (value.parse::<f32>().unwrap()) as i32;
               }
               if let Some(last_detect) = detected_scene.last_mut() {
                 last_detect.frame_end = scene.frame_start - 1;
                 last_detect.frames_length = last_detect.frame_end - last_detect.frame_start + 1;
+                scene.index = last_detect.index + 1;
                 if scene.frame_start - last_detect.frame_start <= 1 {
                   false_scene.index = scene.frame_start;
                   detected_false_scene.push(false_scene);
                 }
               }
 
-              scene_count += 1;
-              scene.index = scene_count;
               detected_scene.push(scene);
             }
           }
-        }
-      }
-      for index in video_indexes.clone() {
-        let detected_scene = streams[(index) as usize].detected_scene.as_mut().unwrap();
-        if !detected_scene.is_empty() {
-          detected_scene.insert(
-            0,
-            SceneResult {
-              frame_start: 0,
-              frame_end: detected_scene[0].frame_start - 1,
-              frames_length: detected_scene[0].frame_start,
-              score: 100,
-              index: 0,
-            },
-          )
-        }
-        if let Some(last_detect) = detected_scene.last_mut() {
-          last_detect.frames_length = last_detect.frame_end - last_detect.frame_start + 1;
         }
       }
     }
