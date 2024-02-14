@@ -74,7 +74,7 @@ pub struct SceneResult {
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct FalseSceneResult {
-  pub index: i64,
+  pub frame_index: i64,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]

@@ -73,7 +73,7 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
     error!("{:?}", msg);
     return;
   }
-  for index in video_indexes.clone() {
+  for index in video_indexes {
     streams[index as usize].detected_scene = Some(vec![SceneResult {
       frame_start: 0,
       frame_end: 0,
@@ -116,7 +116,7 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
                 score: 0,
                 index: 0,
               };
-              let mut false_scene = FalseSceneResult { index: 0 };
+              let mut false_scene = FalseSceneResult { frame_index: 0 };
 
               if let Some(value) = entry_map.get("lavfi.scd.score") {
                 scene.score = (value.parse::<f32>().unwrap()) as i32;
@@ -126,7 +126,7 @@ pub fn detect_scene<S: ::std::hash::BuildHasher>(
                 last_detect.frames_length = last_detect.frame_end - last_detect.frame_start + 1;
                 scene.index = last_detect.index + 1;
                 if scene.frame_start - last_detect.frame_start <= 1 {
-                  false_scene.index = scene.frame_start;
+                  false_scene.frame_index = scene.frame_start;
                   detected_false_scene.push(false_scene);
                 }
               }
