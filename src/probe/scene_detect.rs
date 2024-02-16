@@ -95,7 +95,7 @@ pub fn detect_scene(
   info!("-> {:?} frames processed", results.len());
   let stream_frames = match video_details.stream_frames {
     Some(frames) => frames,
-    None => ((results.len() as f32 - 1.0) / video_details.frame_rate * 1000.0).round() as i64,
+    None => ((results.len() as f32) / video_details.frame_rate * 1000.0).round() as i64,
   };
 
   for result in results {
@@ -116,8 +116,8 @@ pub fn detect_scene(
           let frame_start = (value.parse::<f32>().unwrap() * video_details.frame_rate) as i64;
           let mut scene = SceneResult {
             frame_start,
-            frame_end: stream_frames,
-            frames_length: stream_frames - frame_start + 1,
+            frame_end: stream_frames - 1,
+            frames_length: stream_frames - frame_start,
             score: 0,
             index: 0,
           };
