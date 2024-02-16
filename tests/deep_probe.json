@@ -31,14 +31,25 @@
             ],
             "detected_scene": [
                {
-                  "frame_index": 249,
-                  "score": 31,
-                  "scene_number": 1
+                  "frame_start": 0,
+                  "frame_end": 248,
+                  "frames_length": 249,
+                  "score": 100,
+                  "index": 0
                },
                {
-                  "frame_index": 374,
+                  "frame_start": 249,
+                  "frame_end": 373,
+                  "frames_length": 125,
+                  "score": 31,
+                  "index": 1
+               },
+               {
+                  "frame_start": 374,
+                  "frame_end": 500,
+                  "frames_length": 127,
                   "score": 33,
-                  "scene_number": 2
+                  "index": 2
                }
             ],
             "detected_false_scene": [],
