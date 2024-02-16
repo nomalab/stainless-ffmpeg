@@ -9,6 +9,18 @@ use crate::stream::Stream as ContextStream;
 use ffmpeg_sys_next::AVMediaType;
 use std::collections::{BTreeMap, HashMap};
 
+pub fn sine_init(
+  filename: &str,
+  audio_indexes: Vec<u32>,
+  params: HashMap<String, CheckParameterValue>,
+) -> Result<Order, String> {
+  let mut order = create_graph(filename, audio_indexes, params).unwrap();
+  if let Err(msg) = order.setup() {
+    error!("{:?}", msg);
+  }
+  Ok(order)
+}
+
 pub fn create_graph(
   filename: &str,
   audio_indexes: Vec<u32>,
@@ -88,18 +100,6 @@ pub fn create_graph(
   }
 
   Order::new(inputs, filters, outputs)
-}
-
-pub fn sine_init(
-  filename: &str,
-  audio_indexes: Vec<u32>,
-  params: HashMap<String, CheckParameterValue>,
-) -> Result<Order, String> {
-  let mut order = create_graph(filename, audio_indexes.clone(), params).unwrap();
-  if let Err(msg) = order.setup() {
-    error!("{:?}", msg);
-  }
-  Ok(order)
 }
 
 pub fn detect_sine(

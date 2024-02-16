@@ -11,7 +11,7 @@ pub fn detect_blackfade(
   params: HashMap<String, CheckParameterValue>,
   video_details: VideoDetails,
 ) {
-  for index in video_indexes.clone() {
+  for index in video_indexes {
     streams[index as usize].detected_blackfade = Some(vec![]);
   }
   let results = output_results.get(&CheckName::BlackFade).unwrap();

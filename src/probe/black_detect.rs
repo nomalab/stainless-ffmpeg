@@ -20,7 +20,7 @@ pub fn blackframes_init(
   video_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
 ) -> Result<Order, String> {
-  let mut order = create_graph(filename, video_indexes.clone(), params).unwrap();
+  let mut order = create_graph(filename, video_indexes, params).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
   }
@@ -100,7 +100,7 @@ pub fn detect_black_frames(
   params: HashMap<String, CheckParameterValue>,
   video_details: VideoDetails,
 ) {
-  for index in video_indexes.clone() {
+  for index in video_indexes {
     streams[index as usize].detected_black = Some(vec![]);
   }
   let results = output_results.get(&CheckName::BlackFrame).unwrap();

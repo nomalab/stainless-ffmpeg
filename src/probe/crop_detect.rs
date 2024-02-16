@@ -22,7 +22,7 @@ pub fn black_borders_init(
     Some(12) => 256,
     _ => 16,
   };
-  let mut order = create_graph(filename, video_indexes.clone(), params, nb_frames, limit).unwrap();
+  let mut order = create_graph(filename, video_indexes, params, nb_frames, limit).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
   }

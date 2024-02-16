@@ -13,7 +13,7 @@ pub fn silence_init(
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
 ) -> Result<Order, String> {
-  let mut order = create_graph(filename, audio_indexes.clone(), params).unwrap();
+  let mut order = create_graph(filename, audio_indexes, params).unwrap();
   if let Err(msg) = order.setup() {
     error!("{:?}", msg);
   }
@@ -106,7 +106,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
   info!("END OF SILENCE PROCESS");
   info!("-> {:?} frames processed", results.len());
 
-  let end_from_duration = (((results.len() as f64 / audio_indexes.clone().len() as f64) - 1.0)
+  let end_from_duration = (((results.len() as f64 / audio_indexes.len() as f64) - 1.0)
     / video_details.frame_rate as f64
     * 1000.0)
     .round() as i64;
