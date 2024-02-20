@@ -4,7 +4,7 @@ use crate::order::{
   OutputResult::Entry, ParameterValue,
 };
 use crate::probe::deep::{
-  CheckName, CheckParameterValue, FalseSceneResult, SceneResult, StreamProbeResult, VideoDetails,
+  CheckName, CheckParameterValue, SceneResult, StreamProbeResult, VideoDetails,
 };
 use std::collections::{BTreeMap, HashMap};
 
@@ -88,7 +88,6 @@ pub fn detect_scene(
       score: 100,
       index: 0,
     }]);
-    streams[index as usize].detected_false_scene = Some(vec![]);
   }
   let results = output_results.get(&CheckName::Scene).unwrap();
   info!("END OF SCENE PROCESS");
@@ -109,10 +108,6 @@ pub fn detect_scene(
 
         if let Some(value) = entry_map.get("lavfi.scd.time") {
           let detected_scene = streams[(index) as usize].detected_scene.as_mut().unwrap();
-          let detected_false_scene = streams[(index) as usize]
-            .detected_false_scene
-            .as_mut()
-            .unwrap();
           let frame_start = (value.parse::<f32>().unwrap() * video_details.frame_rate) as i64;
           let mut scene = SceneResult {
             frame_start,
@@ -121,7 +116,6 @@ pub fn detect_scene(
             score: 0,
             index: 0,
           };
-          let mut false_scene = FalseSceneResult { frame_index: 0 };
 
           if let Some(value) = entry_map.get("lavfi.scd.score") {
             scene.score = (value.parse::<f32>().unwrap()) as i32;
@@ -130,10 +124,6 @@ pub fn detect_scene(
             last_detect.frame_end = scene.frame_start - 1;
             last_detect.frames_length = last_detect.frame_end - last_detect.frame_start + 1;
             scene.index = last_detect.index + 1;
-            if scene.frame_start - last_detect.frame_start <= 1 {
-              false_scene.frame_index = scene.frame_start;
-              detected_false_scene.push(false_scene);
-            }
           }
 
           detected_scene.push(scene);

@@ -77,11 +77,6 @@ pub struct SceneResult {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
-pub struct FalseSceneResult {
-  pub frame_index: i64,
-}
-
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct OcrResult {
   pub frame_start: u64,
   pub frame_end: u64,
@@ -132,8 +127,6 @@ pub struct StreamProbeResult {
   pub detected_crop: Option<Vec<CropResult>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_scene: Option<Vec<SceneResult>>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub detected_false_scene: Option<Vec<FalseSceneResult>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_ocr: Option<Vec<OcrResult>>,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -277,11 +270,6 @@ impl fmt::Display for DeepProbeResult {
       writeln!(
         f,
         "{:30} : {:?}",
-        "False scene detection", stream.detected_false_scene
-      )?;
-      writeln!(
-        f,
-        "{:30} : {:?}",
         "Media offline detection", stream.detected_ocr
       )?;
       writeln!(
@@ -324,7 +312,6 @@ impl StreamProbeResult {
       detected_black_and_silence: None,
       detected_crop: None,
       detected_scene: None,
-      detected_false_scene: None,
       detected_ocr: None,
       detected_loudness: None,
       detected_dualmono: None,
