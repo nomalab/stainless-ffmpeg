@@ -36,7 +36,7 @@ pub struct Order {
   pub outputs: Vec<Output>,
   pub graph: Vec<Filter>,
   #[serde(skip)]
-  total_streams: u32,
+  pub total_streams: u32,
   #[serde(skip)]
   input_formats: Vec<DecoderFormat>,
   #[serde(skip)]
@@ -81,7 +81,9 @@ impl Order {
 
     while !decode_end {
       let (in_audio_frames, in_video_frames, in_subtitle_packets, end) = self.process_input();
-      decode_end = end;
+      if end == self.total_streams {
+        decode_end = true;
+      }
 
       match self.filtering(&in_audio_frames, &in_video_frames, &in_subtitle_packets) {
         Ok(result) => {
@@ -96,12 +98,11 @@ impl Order {
     Ok(results)
   }
 
-  pub fn process_input(&mut self) -> (Vec<Frame>, Vec<Frame>, Vec<Packet>, bool) {
+  pub fn process_input(&mut self) -> (Vec<Frame>, Vec<Frame>, Vec<Packet>, u32) {
     let mut audio_frames = vec![];
     let mut subtitle_packets = vec![];
     let mut video_frames = vec![];
     let mut end = 0;
-    let mut decode_end = false;
 
     for format in &mut self.input_formats {
       for _ in 0..format.context.get_nb_streams() {
@@ -149,11 +150,8 @@ impl Order {
         }
       }
     }
-    if end == self.total_streams {
-      decode_end = true;
-    }
 
-    (audio_frames, video_frames, subtitle_packets, decode_end)
+    (audio_frames, video_frames, subtitle_packets, end)
   }
 
   pub fn filtering(

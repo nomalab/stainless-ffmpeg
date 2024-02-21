@@ -718,7 +718,9 @@ impl DeepProbe {
 
     while !decode_end {
       let (in_audio_frames, in_video_frames, in_subtitle_packets, end) = order_src.process_input();
-      decode_end = end;
+      if end == order_src.total_streams {
+        decode_end = true;
+      }
 
       for order in &mut deep_orders.orders {
         match order
