@@ -199,6 +199,12 @@ pub struct VideoDetails {
   pub aspect_ratio: Rational,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct AudioDetails {
+  pub sample_rate: i32,
+  pub nb_samples: i32,
+}
+
 impl fmt::Display for DeepProbeResult {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     for (index, stream) in self.streams.iter().enumerate() {
@@ -348,6 +354,15 @@ impl VideoDetails {
   }
 }
 
+impl AudioDetails {
+  fn new() -> Self {
+    AudioDetails {
+      sample_rate: 1,
+      nb_samples: 1,
+    }
+  }
+}
+
 impl DeepProbe {
   pub fn new(filename: &str, id: Uuid) -> Self {
     DeepProbe {
@@ -379,6 +394,7 @@ impl DeepProbe {
     }
 
     let mut video_details = VideoDetails::new();
+    let mut audio_details = AudioDetails::new();
     let mut streams = vec![];
     streams.resize(context.get_nb_streams() as usize, StreamProbeResult::new());
     while let Ok(packet) = context.next_packet() {
@@ -411,6 +427,12 @@ impl DeepProbe {
             video_details.aspect_ratio = stream.get_picture_aspect_ratio();
           }
         }
+        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
+          if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
+            audio_details.sample_rate = stream.get_sample_rate();
+            audio_details.nb_samples = 1024;
+          }
+        }
       }
     }
 
@@ -431,7 +453,8 @@ impl DeepProbe {
         &mut streams,
         audio_indexes.clone(),
         silence_parameters,
-        video_details.clone(),
+        video_details.frame_duration,
+        audio_details.clone(),
       );
     }
 
@@ -518,7 +541,8 @@ impl DeepProbe {
         &mut streams,
         audio_indexes.clone(),
         dualmono_parameters,
-        video_details.clone(),
+        video_details.frame_duration,
+        audio_details.clone(),
       );
     }
 
@@ -528,7 +552,7 @@ impl DeepProbe {
         &mut streams,
         audio_indexes,
         sine_parameters,
-        video_details.frame_rate,
+        audio_details,
       );
     }
 
