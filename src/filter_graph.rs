@@ -250,7 +250,10 @@ impl FilterGraph {
         for input in &self.audio_inputs {
           if let Some(label) = &frame.name {
             if input.get_label() == *label {
-              check_result!(av_buffersrc_add_frame(input.context, frame.frame));
+              check_result!(av_buffersrc_add_frame(
+                input.context,
+                av_frame_clone(frame.frame)
+              ));
             }
           }
         }
@@ -259,7 +262,10 @@ impl FilterGraph {
         for input in &self.video_inputs {
           if let Some(label) = &frame.name {
             if input.get_label() == *label {
-              check_result!(av_buffersrc_add_frame(input.context, frame.frame));
+              check_result!(av_buffersrc_add_frame(
+                input.context,
+                av_frame_clone(frame.frame)
+              ));
             }
           }
         }

@@ -1,15 +1,27 @@
+use crate::order::OutputResult;
 use crate::order::{
   filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
   ParameterValue,
 };
-use crate::probe::deep::{CheckParameterValue, LoudnessResult, StreamProbeResult};
+use crate::probe::deep::{CheckName, CheckParameterValue, LoudnessResult, StreamProbeResult};
 use ffmpeg_sys_next::log10;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
+
+pub fn loudness_init(
+  filename: &str,
+  params: HashMap<String, CheckParameterValue>,
+) -> Result<Order, String> {
+  let mut order = create_graph(filename, params).unwrap();
+  if let Err(msg) = order.setup() {
+    error!("{:?}", msg);
+  }
+  Ok(order)
+}
 
 pub fn create_graph<S: ::std::hash::BuildHasher>(
   filename: &str,
-  params: &HashMap<String, CheckParameterValue, S>,
+  params: HashMap<String, CheckParameterValue, S>,
 ) -> Result<Order, String> {
   let mut inputs = vec![];
   let mut outputs = vec![];
@@ -32,7 +44,7 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
           let output_label = format!("output_label_{iter:?}");
 
           for track in pair {
-            let input_label = format!("input_label_{}", track.index);
+            let input_label = format!("audio_input_{}", track.index);
             amerge_input.push(FilterInput {
               kind: InputKind::Stream,
               stream_label: input_label.clone(),
@@ -103,105 +115,92 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
       return Err("No input message for the loudness analysis (audio qualification)".to_string())
     }
   }
+
   Order::new(inputs, filters, outputs)
 }
 
 pub fn detect_loudness<S: ::std::hash::BuildHasher>(
-  filename: &str,
+  output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
 ) {
-  match create_graph(filename, &params) {
-    Ok(mut order) => {
-      if let Err(msg) = order.setup() {
-        error!("{:?}", msg);
-        return;
-      }
-      for index in audio_indexes {
-        streams[index as usize].detected_loudness = Some(vec![]);
-      }
-      match order.process() {
-        Ok(results) => {
-          info!("END OF PROCESS");
-          info!("-> {:?} frames processed", results.len());
-          for result in results {
-            if let Entry(entry_map) = result {
-              if let Some(stream_id) = entry_map.get("stream_id") {
-                let index: i32 = stream_id.parse().unwrap();
-                if streams[(index) as usize].detected_loudness.is_none() {
-                  error!("Error : unexpected detection on stream ${index}");
-                  break;
-                }
-                let detected_loudness = streams[(index) as usize]
-                  .detected_loudness
-                  .as_mut()
-                  .unwrap();
-                let mut loudness = LoudnessResult {
-                  range: -99.9,
-                  integrated: -99.9,
-                  true_peaks: vec![],
-                };
-                let mut channel_start = 0;
-                let mut channel_end = 0;
+  for index in audio_indexes {
+    streams[index as usize].detected_loudness = Some(vec![]);
+  }
+  let results = output_results.get(&CheckName::Loudness).unwrap();
+  info!("END OF LOUDNESS PROCESS");
+  info!("-> {:?} frames processed", results.len());
 
-                if let Some(value) = entry_map.get("lavfi.r128.I") {
-                  let x = value.parse::<f64>().unwrap();
-                  loudness.integrated = (x * 100.0).round() / 100.0;
-                  if loudness.integrated == -70.0 {
-                    loudness.integrated = -99.0;
-                  }
-                }
-                if let Some(value) = entry_map.get("lavfi.r128.LRA") {
-                  let y = value.parse::<f64>().unwrap();
-                  loudness.range = (y * 100.0).round() / 100.0;
-                }
+  for result in results {
+    if let Entry(entry_map) = result {
+      if let Some(stream_id) = entry_map.get("stream_id") {
+        let index: i32 = stream_id.parse().unwrap();
+        if streams[(index) as usize].detected_loudness.is_none() {
+          error!("Error : unexpected detection on stream ${index}");
+          break;
+        }
+        let detected_loudness = streams[(index) as usize]
+          .detected_loudness
+          .as_mut()
+          .unwrap();
+        let mut loudness = LoudnessResult {
+          range: -99.9,
+          integrated: -99.9,
+          true_peaks: vec![],
+        };
+        let mut channel_start = 0;
+        let mut channel_end = 0;
 
-                match params.get("pairing_list") {
-                  Some(pairing_list) => {
-                    if let Some(pairs) = &pairing_list.pairs {
-                      for pair in pairs {
-                        for (pos, track) in pair.iter().enumerate() {
-                          if index == track.index as i32 {
-                            if pair.len() == 1 {
-                              channel_start = 0;
-                              channel_end = track.channel;
-                            } else {
-                              channel_start = pos as u8;
-                              channel_end = (pos + 1) as u8;
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                  None => warn!("No input message for the loudness analysis (audio qualification)"),
-                }
-                for i in channel_start..channel_end {
-                  let str_tpk_key = format!("lavfi.r128.true_peaks_ch{i}");
-                  if let Some(value) = entry_map.get(&str_tpk_key) {
-                    let energy = value.parse::<f64>().unwrap();
-                    unsafe {
-                      let mut tpk = 20.0 * log10(energy);
-                      tpk = (tpk * 100.0).round() / 100.0;
-                      if tpk == std::f64::NEG_INFINITY {
-                        tpk = -99.00;
-                      }
-                      loudness.true_peaks.push(tpk);
+        if let Some(value) = entry_map.get("lavfi.r128.I") {
+          let x = value.parse::<f64>().unwrap();
+          loudness.integrated = (x * 100.0).round() / 100.0;
+          if loudness.integrated == -70.0 {
+            loudness.integrated = -99.0;
+          }
+        }
+        if let Some(value) = entry_map.get("lavfi.r128.LRA") {
+          let y = value.parse::<f64>().unwrap();
+          loudness.range = (y * 100.0).round() / 100.0;
+        }
+
+        match params.get("pairing_list") {
+          Some(pairing_list) => {
+            if let Some(pairs) = &pairing_list.pairs {
+              for pair in pairs {
+                for (pos, track) in pair.iter().enumerate() {
+                  if index == track.index as i32 {
+                    if pair.len() == 1 {
+                      channel_start = 0;
+                      channel_end = track.channel;
+                    } else {
+                      channel_start = pos as u8;
+                      channel_end = (pos + 1) as u8;
                     }
                   }
                 }
-                detected_loudness.drain(..);
-                detected_loudness.push(loudness);
               }
             }
           }
+          None => warn!("No input message for the loudness analysis (audio qualification)"),
         }
-        Err(msg) => {
-          error!("ERROR: {}", msg);
+        for i in channel_start..channel_end {
+          let str_tpk_key = format!("lavfi.r128.true_peaks_ch{i}");
+          if let Some(value) = entry_map.get(&str_tpk_key) {
+            let energy = value.parse::<f64>().unwrap();
+            unsafe {
+              let mut tpk = 20.0 * log10(energy);
+              tpk = (tpk * 100.0).round() / 100.0;
+              if tpk == std::f64::NEG_INFINITY {
+                tpk = -99.00;
+              }
+              loudness.true_peaks.push(tpk);
+            }
+          }
         }
+        detected_loudness.drain(..);
+        detected_loudness.push(loudness);
       }
     }
-    Err(error) => error!("{:?}", error),
   }
 }

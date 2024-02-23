@@ -36,7 +36,7 @@ pub struct Order {
   pub outputs: Vec<Output>,
   pub graph: Vec<Filter>,
   #[serde(skip)]
-  total_streams: u32,
+  pub total_streams: u32,
   #[serde(skip)]
   input_formats: Vec<DecoderFormat>,
   #[serde(skip)]
@@ -76,78 +76,21 @@ impl Order {
   }
 
   pub fn process(&mut self) -> Result<Vec<OutputResult>, String> {
-    let mut results = vec![];
+    let mut results: Vec<OutputResult> = vec![];
+    let mut decode_end = false;
 
-    loop {
-      let (audio_frames, video_frames, subtitle_packets, end) = self.process_input();
-
+    while !decode_end {
+      let (in_audio_frames, in_video_frames, in_subtitle_packets, end) = self.process_input();
       if end == self.total_streams {
-        break;
+        decode_end = true;
       }
 
-      let (output_audio_frames, output_video_frames) =
-        if audio_frames.is_empty() && video_frames.is_empty() {
-          (audio_frames, video_frames)
-        } else {
-          self.filter_graph.process(&audio_frames, &video_frames)?
-        };
-      for output_frame in output_audio_frames {
-        for output in &self.outputs {
-          if output.stream == output_frame.name {
-            if let Some(OutputKind::AudioMetadata) = output.kind {
-              if let Input::Streams { streams, .. } = &self.inputs[output_frame.index] {
-                for stream in streams {
-                  let mut entry = HashMap::new();
-                  entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
-                  entry.insert("stream_id".to_owned(), stream.index.to_string());
-
-                  for key in &output.keys {
-                    if let Some(value) = output_frame.get_metadata(key) {
-                      entry.insert(key.clone(), value);
-                    }
-                  }
-                  results.push(OutputResult::Entry(entry));
-                }
-              }
-            }
-          }
+      match self.filtering(&in_audio_frames, &in_video_frames, &in_subtitle_packets) {
+        Ok(result) => {
+          results.extend(result);
         }
-
-        for output in &mut self.output_formats {
-          if let Some(packet) = output.encode(&output_frame)? {
-            results.push(OutputResult::Packet(packet));
-          };
-        }
-      }
-
-      for output_packet in subtitle_packets {
-        for output in &mut self.output_formats {
-          output.wrap(&output_packet)?;
-        }
-      }
-      for output_frame in output_video_frames {
-        for output in &self.outputs {
-          if let Some(OutputKind::VideoMetadata) = output.kind {
-            let mut entry = HashMap::new();
-            entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
-            if let Input::Streams { streams, .. } = &self.inputs[output_frame.index] {
-              entry.insert("stream_id".to_owned(), streams[0].index.to_string());
-            }
-
-            for key in &output.keys {
-              if let Some(value) = output_frame.get_metadata(key) {
-                entry.insert(key.clone(), value);
-              }
-            }
-
-            results.push(OutputResult::Entry(entry));
-          }
-        }
-
-        for output in &mut self.output_formats {
-          if let Some(packet) = output.encode(&output_frame)? {
-            results.push(OutputResult::Packet(packet));
-          };
+        Err(msg) => {
+          error!("Error while filtering : {msg}");
         }
       }
     }
@@ -155,7 +98,7 @@ impl Order {
     Ok(results)
   }
 
-  fn process_input(&mut self) -> (Vec<Frame>, Vec<Frame>, Vec<Packet>, u32) {
+  pub fn process_input(&mut self) -> (Vec<Frame>, Vec<Frame>, Vec<Packet>, u32) {
     let mut audio_frames = vec![];
     let mut subtitle_packets = vec![];
     let mut video_frames = vec![];
@@ -211,7 +154,76 @@ impl Order {
     (audio_frames, video_frames, subtitle_packets, end)
   }
 
-  fn build_input_format(&mut self) -> Result<(), String> {
+  pub fn filtering(
+    &mut self,
+    in_audio_frames: &[Frame],
+    in_video_frames: &[Frame],
+    in_subtitle_packets: &Vec<Packet>,
+  ) -> Result<Vec<OutputResult>, String> {
+    let mut results = vec![];
+
+    let (output_audio_frames, output_video_frames) = self
+      .filter_graph
+      .process(in_audio_frames, in_video_frames)?;
+    for output_frame in output_audio_frames {
+      for output in &self.outputs {
+        if output.stream == output_frame.name {
+          if let Some(OutputKind::AudioMetadata) = output.kind {
+            if let Input::Streams { streams, .. } = &self.inputs[output_frame.index] {
+              for stream in streams {
+                let mut entry = HashMap::new();
+                entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
+                entry.insert("stream_id".to_owned(), stream.index.to_string());
+
+                for key in &output.keys {
+                  if let Some(value) = output_frame.get_metadata(key) {
+                    entry.insert(key.clone(), value);
+                  }
+                }
+                results.push(OutputResult::Entry(entry));
+              }
+            }
+          }
+        }
+      }
+      for output in &mut self.output_formats {
+        if let Some(packet) = output.encode(&output_frame)? {
+          results.push(OutputResult::Packet(packet));
+        };
+      }
+    }
+    for output_packet in in_subtitle_packets {
+      for output in &mut self.output_formats {
+        output.wrap(output_packet)?;
+      }
+    }
+    for output_frame in output_video_frames {
+      for output in &self.outputs {
+        if let Some(OutputKind::VideoMetadata) = output.kind {
+          let mut entry = HashMap::new();
+          entry.insert("pts".to_owned(), output_frame.get_pts().to_string());
+          if let Input::Streams { streams, .. } = &self.inputs[output_frame.index] {
+            entry.insert("stream_id".to_owned(), streams[0].index.to_string());
+          }
+          for key in &output.keys {
+            if let Some(value) = output_frame.get_metadata(key) {
+              entry.insert(key.clone(), value);
+            }
+          }
+          results.push(OutputResult::Entry(entry));
+        }
+      }
+      for output in &mut self.output_formats {
+        if let Some(packet) = output.encode(&output_frame)? {
+          results.push(OutputResult::Packet(packet));
+        };
+      }
+    }
+
+    Ok(results)
+  }
+
+  pub fn build_input_format(&mut self) -> Result<(), String> {
     for input in &self.inputs {
       let decoder = DecoderFormat::new(&mut self.filter_graph, input)?;
       self.total_streams += decoder.context.get_nb_streams();

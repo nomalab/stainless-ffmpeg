@@ -1,16 +1,34 @@
 use crate::{
   order::{
-    filter_input::FilterInput, filter_output::FilterOutput, input::Input, input_kind::InputKind,
-    output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
+    filter_input::FilterInput,
+    filter_output::FilterOutput,
+    input::Input,
+    input_kind::InputKind,
+    output::Output,
+    output_kind::OutputKind,
+    stream::Stream,
+    Filter, Order,
+    OutputResult::{self, Entry},
     ParameterValue,
   },
-  probe::deep::{CheckParameterValue, DualMonoResult, StreamProbeResult, VideoDetails},
+  probe::deep::{CheckName, CheckParameterValue, DualMonoResult, StreamProbeResult, VideoDetails},
 };
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
+
+pub fn dualmono_init(
+  filename: &str,
+  params: HashMap<String, CheckParameterValue>,
+) -> Result<Order, String> {
+  let mut order = create_graph(filename, params).unwrap();
+  if let Err(msg) = order.setup() {
+    error!("{:?}", msg);
+  }
+  Ok(order)
+}
 
 pub fn create_graph<S: ::std::hash::BuildHasher>(
   filename: &str,
-  params: &HashMap<String, CheckParameterValue, S>,
+  params: HashMap<String, CheckParameterValue, S>,
 ) -> Result<Order, String> {
   let mut filters = vec![];
   let mut inputs = vec![];
@@ -112,107 +130,95 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
 }
 
 pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
-  filename: &str,
+  output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
   video_details: VideoDetails,
 ) {
-  let mut order = create_graph(filename, &params).unwrap();
+  for index in audio_indexes.clone() {
+    streams[index as usize].detected_dualmono = Some(vec![]);
+  }
+  let results = output_results.get(&CheckName::DualMono).unwrap();
+  info!("END OF DUALMONO PROCESS");
+  info!("-> {:?} frames processed", results.len());
+
   let mut max_duration = None;
   if let Some(duration) = params.get("duration") {
     max_duration = duration.max;
   }
-  if let Err(msg) = order.setup() {
-    error!("{:?}", msg);
-    return;
-  }
-  for index in audio_indexes.clone() {
-    streams[index as usize].detected_dualmono = Some(vec![]);
-  }
 
-  match order.process() {
-    Ok(results) => {
-      info!("END OF PROCESS");
-      info!("-> {:?} frames processed", results.len());
-
-      let mut audio_stream_qualif_number = 0;
-      match params.get("pairing_list") {
-        Some(pairing_list) => {
-          if let Some(pairs) = pairing_list.pairs.clone() {
-            for pair in pairs {
-              for track in pair.clone() {
-                if (pair.len() == 1 && track.channel == 2) || pair.len() == 2 && track.channel == 1
-                {
-                  audio_stream_qualif_number += 1;
-                }
-              }
-            }
-          }
-        }
-        None => warn!("No input message for the dualmono analysis (list of indexes to merge)"),
-      }
-
-      let end_from_duration = (((results.len() as f64 / audio_stream_qualif_number as f64) - 1.0)
-        / video_details.frame_rate as f64
-        * 1000.0)
-        .round() as i64;
-      for result in results {
-        if let Entry(entry_map) = result {
-          if let Some(stream_id) = entry_map.get("stream_id") {
-            let index: i32 = stream_id.parse().unwrap();
-            if streams[(index) as usize].detected_dualmono.is_none() {
-              error!("Error : unexpected detection on stream ${index}");
-              break;
-            }
-            let detected_dualmono = streams[(index) as usize]
-              .detected_dualmono
-              .as_mut()
-              .unwrap();
-            let mut dualmono = DualMonoResult {
-              start: 0,
-              end: end_from_duration,
-            };
-            if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_start") {
-              dualmono.start = (value.parse::<f64>().unwrap() * 1000.0).round() as i64;
-              detected_dualmono.push(dualmono);
-            }
-            if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_end") {
-              if let Some(last_detect) = detected_dualmono.last_mut() {
-                last_detect.end =
-                  ((value.parse::<f64>().unwrap() - video_details.frame_duration as f64) * 1000.0)
-                    .round() as i64;
-              }
-            }
-            if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_duration") {
-              if let Some(max) = max_duration {
-                if value.parse::<f64>().unwrap() * 1000.0 > max as f64 {
-                  detected_dualmono.pop();
-                }
-              }
+  let mut audio_stream_qualif_number = 0;
+  match params.get("pairing_list") {
+    Some(pairing_list) => {
+      if let Some(pairs) = pairing_list.pairs.clone() {
+        for pair in pairs {
+          for track in pair.clone() {
+            if (pair.len() == 1 && track.channel == 2) || pair.len() == 2 && track.channel == 1 {
+              audio_stream_qualif_number += 1;
             }
           }
         }
       }
+    }
+    None => warn!("No input message for the dualmono analysis (list of indexes to merge)"),
+  }
 
-      for index in audio_indexes {
+  let end_from_duration = (((results.len() as f64 / audio_stream_qualif_number as f64) - 1.0)
+    / video_details.frame_rate as f64
+    * 1000.0)
+    .round() as i64;
+  for result in results {
+    if let Entry(entry_map) = result {
+      if let Some(stream_id) = entry_map.get("stream_id") {
+        let index: i32 = stream_id.parse().unwrap();
+        if streams[(index) as usize].detected_dualmono.is_none() {
+          error!("Error : unexpected detection on stream ${index}");
+          break;
+        }
         let detected_dualmono = streams[(index) as usize]
           .detected_dualmono
           .as_mut()
           .unwrap();
-        if let Some(last_detect) = detected_dualmono.last() {
-          let duration = last_detect.end - last_detect.start
-            + (video_details.frame_duration * 1000.0).round() as i64;
+        let mut dualmono = DualMonoResult {
+          start: 0,
+          end: end_from_duration,
+        };
+        if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_start") {
+          dualmono.start = (value.parse::<f64>().unwrap() * 1000.0).round() as i64;
+          detected_dualmono.push(dualmono);
+        }
+        if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_end") {
+          if let Some(last_detect) = detected_dualmono.last_mut() {
+            last_detect.end =
+              ((value.parse::<f64>().unwrap() - video_details.frame_duration as f64) * 1000.0)
+                .round() as i64;
+          }
+        }
+        if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_duration") {
           if let Some(max) = max_duration {
-            if duration > max as i64 {
+            if value.parse::<f64>().unwrap() * 1000.0 > max as f64 {
               detected_dualmono.pop();
             }
           }
         }
       }
     }
-    Err(msg) => {
-      error!("ERROR: {}", msg);
+  }
+
+  for index in audio_indexes {
+    let detected_dualmono = streams[(index) as usize]
+      .detected_dualmono
+      .as_mut()
+      .unwrap();
+    if let Some(last_detect) = detected_dualmono.last() {
+      let duration = last_detect.end - last_detect.start
+        + (video_details.frame_duration * 1000.0).round() as i64;
+      if let Some(max) = max_duration {
+        if duration > max as i64 {
+          detected_dualmono.pop();
+        }
+      }
     }
   }
 }
