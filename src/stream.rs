@@ -1,5 +1,6 @@
 use crate::{tools, tools::rational::Rational};
 use ffmpeg_sys_next::*;
+use regex::Regex;
 use std::{char, collections::HashMap, ffi::CString, ptr::null_mut};
 
 #[derive(Clone)]
@@ -74,10 +75,26 @@ impl Stream {
     }
   }
 
+  fn metadata_duration(duration: &str) -> Option<f32> {
+    let regex_tc_ms = Regex::new("[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]+").unwrap();
+    if let Some(tc_ms) = regex_tc_ms.find(duration) {
+      let splitted_tc: Vec<&str> = tc_ms.as_str().split(':').collect();
+      let hours = splitted_tc[0].parse::<f32>().unwrap();
+      let minutes = splitted_tc[1].parse::<f32>().unwrap();
+      let seconds = splitted_tc[2].parse::<f32>().unwrap();
+      return Some(hours * 3600.0 + minutes * 60.0 + seconds);
+    }
+    None
+  }
+
   pub fn get_duration(&self) -> Option<f32> {
     unsafe {
       if (*self.stream).duration == AV_NOPTS_VALUE {
-        None
+        // try to find duration from metadata
+        self
+          .get_stream_metadata()
+          .get("DURATION")
+          .and_then(|duration| Self::metadata_duration(duration))
       } else {
         Some((*self.stream).duration as f32 * self.get_time_base().to_float())
       }
