@@ -11,7 +11,7 @@ use crate::{
     OutputResult::{self, Entry},
     ParameterValue,
   },
-  probe::deep::{CheckName, CheckParameterValue, DualMonoResult, StreamProbeResult, VideoDetails},
+  probe::deep::{AudioDetails, CheckName, CheckParameterValue, DualMonoResult, StreamProbeResult},
 };
 use std::collections::{BTreeMap, HashMap};
 
@@ -134,7 +134,8 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
-  video_details: VideoDetails,
+  frame_duration: f32,
+  audio_details: AudioDetails,
 ) {
   for index in audio_indexes.clone() {
     streams[index as usize].detected_dualmono = Some(vec![]);
@@ -165,7 +166,7 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
   }
 
   let end_from_duration = (((results.len() as f64 / audio_stream_qualif_number as f64) - 1.0)
-    / video_details.frame_rate as f64
+    / (audio_details.sample_rate as f64 / audio_details.nb_samples as f64)
     * 1000.0)
     .round() as i64;
   for result in results {
@@ -191,7 +192,7 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
         if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_end") {
           if let Some(last_detect) = detected_dualmono.last_mut() {
             last_detect.end =
-              ((value.parse::<f64>().unwrap() - video_details.frame_duration as f64) * 1000.0)
+              ((value.parse::<f64>().unwrap() - frame_duration as f64) * 1000.0)
                 .round() as i64;
           }
         }
@@ -213,7 +214,7 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
       .unwrap();
     if let Some(last_detect) = detected_dualmono.last() {
       let duration = last_detect.end - last_detect.start
-        + (video_details.frame_duration * 1000.0).round() as i64;
+        + (frame_duration * 1000.0).round() as i64;
       if let Some(max) = max_duration {
         if duration > max as i64 {
           detected_dualmono.pop();

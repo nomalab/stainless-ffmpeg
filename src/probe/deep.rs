@@ -205,6 +205,12 @@ pub struct VideoDetails {
   pub sample_rate: i32,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct AudioDetails {
+  pub sample_rate: i32,
+  pub nb_samples: i32,
+}
+
 #[derive(Default)]
 pub struct DeepOrder {
   check: DeepProbeCheck,
@@ -212,6 +218,7 @@ pub struct DeepOrder {
   output_results: BTreeMap<CheckName, Vec<OutputResult>>,
   streams: Vec<StreamProbeResult>,
   video_details: VideoDetails,
+  audio_details: AudioDetails,
   audio_indexes: Vec<u32>,
   video_indexes: Vec<u32>,
 }
@@ -374,6 +381,15 @@ impl VideoDetails {
   }
 }
 
+impl AudioDetails {
+  fn new() -> Self {
+    AudioDetails {
+      sample_rate: 1,
+      nb_samples: 1,
+    }
+  }
+}
+
 impl DeepOrder {
   pub fn new(check: DeepProbeCheck) -> Self {
     DeepOrder {
@@ -382,6 +398,7 @@ impl DeepOrder {
       output_results: BTreeMap::new(),
       streams: vec![],
       video_details: VideoDetails::new(),
+      audio_details: AudioDetails::new(),
       audio_indexes: vec![],
       video_indexes: vec![],
     }
@@ -442,7 +459,8 @@ impl DeepProbe {
         }
         if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
           if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
-            deep_orders.video_details.sample_rate = stream.get_sample_rate();
+            deep_orders.audio_details.sample_rate = stream.get_sample_rate();
+            deep_orders.audio_details.nb_samples = 1024;
           }
         }
       }
@@ -581,7 +599,8 @@ impl DeepProbe {
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
               params,
-              deep_orders.video_details.clone(),
+              deep_orders.video_details.frame_duration,
+              deep_orders.audio_details.clone(),
             );
           }
         }
@@ -650,7 +669,8 @@ impl DeepProbe {
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
               params,
-              deep_orders.video_details.clone(),
+              deep_orders.video_details.frame_duration,
+              deep_orders.audio_details.clone(),
             )
           }
         }
@@ -662,7 +682,7 @@ impl DeepProbe {
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
               params,
-              deep_orders.video_details.frame_rate,
+              deep_orders.audio_details.clone(),
             )
           }
         }

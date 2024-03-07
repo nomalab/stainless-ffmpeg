@@ -4,7 +4,7 @@ use crate::order::{
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult,
   OutputResult::Entry, ParameterValue,
 };
-use crate::probe::deep::{CheckName, CheckParameterValue, SineResult, StreamProbeResult, Track};
+use crate::probe::deep::{AudioDetails, CheckName, CheckParameterValue, SineResult, StreamProbeResult, Track};
 use crate::stream::Stream as ContextStream;
 use ffmpeg_sys_next::AVMediaType;
 use std::collections::{BTreeMap, HashMap};
@@ -108,7 +108,7 @@ pub fn detect_sine(
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
-  frame_rate: f32,
+  audio_details: AudioDetails,
 ) {
   for index in audio_indexes.clone() {
     streams[index as usize].detected_sine = Some(vec![]);
@@ -117,8 +117,9 @@ pub fn detect_sine(
   info!("END OF SINE PROCESS");
   info!("-> {:?} frames processed", results.len());
 
+  let time_base = audio_details.sample_rate as f64 / audio_details.nb_samples as f64;
   let end_from_duration =
-    (((results.len() as f64 / audio_indexes.len() as f64) - 1.0) / frame_rate as f64 * 1000.0)
+    (((results.len() as f64 / audio_indexes.len() as f64) - 1.0) / time_base * 1000.0)
       .round() as i64;
   let mut tracks: Vec<Vec<Track>> = Vec::new();
   let mut sine: SineResult = Default::default();
@@ -211,14 +212,14 @@ pub fn detect_sine(
               if last_start_opt.is_some() {
                 if let Some(last_start) = last_start_opt {
                   //check if audio ends => 1000Hz until the end
-                  if (frame / frame_rate as f64 * 1000.0).round() as i64 == end_from_duration {
+                  if (frame / time_base * 1000.0).round() as i64 == end_from_duration {
                     sine.channel = channel;
                     sine.start = *last_start;
                     sine.end = end_from_duration;
                     //check if sine is a 1000Hz => push and reset
                     if let Some(zero_crossing) = zero_cross.get(&audio_stream_key.clone()) {
                       let sine_duration =
-                        ((frame + 1.0) / frame_rate as f64 * 1000.0).round() as i64 - sine.start;
+                        ((frame + 1.0) / time_base * 1000.0).round() as i64 - sine.start;
                       if (zero_crossing / sine_duration as f64) == 2.0 {
                         detected_sine.push(sine);
                         last_starts.insert(audio_stream_key.clone(), None);
@@ -238,7 +239,7 @@ pub fn detect_sine(
                   }
                 }
               } else {
-                sine.start = (frame / frame_rate as f64 * 1000.0).round() as i64;
+                sine.start = (frame / time_base * 1000.0).round() as i64;
                 last_starts.insert(audio_stream_key.clone(), Some(sine.start));
               }
             } else if (2_f64.sqrt() - 1e-3_f64..2_f64.sqrt() + 1e-3_f64)
@@ -248,10 +249,10 @@ pub fn detect_sine(
               if let Some(last_start) = last_start_opt {
                 sine.channel = channel;
                 sine.start = *last_start;
-                sine.end = ((frame - 1.0) / frame_rate as f64 * 1000.0).round() as i64;
+                sine.end = ((frame - 1.0) / time_base * 1000.0).round() as i64;
                 //check if sine is a 1000Hz => push and reset
                 let sine_duration =
-                  (frame / frame_rate as f64 * 1000.0).round() as i64 - sine.start;
+                  (frame / time_base * 1000.0).round() as i64 - sine.start;
                 if let Some(zero_crossing) = zero_cross.get(&audio_stream_key) {
                   if (zero_crossing / sine_duration as f64) == 2.0 {
                     detected_sine.push(sine);
