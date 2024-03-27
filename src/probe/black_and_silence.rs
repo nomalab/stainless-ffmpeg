@@ -8,7 +8,7 @@ pub fn detect_black_and_silence(
   params: HashMap<String, CheckParameterValue>,
   frame_duration: f32,
 ) {
-  let mut bas = BlackAndSilenceResult { start: 0, end: 0 };
+  let mut black_and_silence = BlackAndSilenceResult { start: 0, end: 0 };
   let mut duration_min = None;
   let mut duration_max = None;
   if let Some(duration) = params.get("duration") {
@@ -19,35 +19,44 @@ pub fn detect_black_and_silence(
     streams[index as usize].detected_black_and_silence = Some(vec![]);
   }
 
-  for bl_index in video_indexes {
-    for bl_detect in streams[bl_index as usize].detected_black.clone().unwrap() {
-      for si_index in audio_indexes.clone() {
-        for si_detect in streams[si_index as usize].detected_silence.clone().unwrap() {
-          if bl_detect.end <= si_detect.end {
-            bas.end = bl_detect.end;
+  for video_index in video_indexes {
+    for black in streams[video_index as usize]
+      .detected_black
+      .clone()
+      .unwrap()
+    {
+      for audio_index in audio_indexes.clone() {
+        for silence in streams[audio_index as usize]
+          .detected_silence
+          .clone()
+          .unwrap()
+        {
+          if black.end <= silence.end {
+            black_and_silence.end = black.end;
           } else {
-            bas.end = si_detect.end;
+            black_and_silence.end = silence.end;
           }
-          if bl_detect.start <= si_detect.start {
-            bas.start = si_detect.start;
+          if black.start <= silence.start {
+            black_and_silence.start = silence.start;
           } else {
-            bas.start = bl_detect.start;
+            black_and_silence.start = black.start;
           }
-          if bas.start < bas.end {
-            let bas_duration: i64 = bas.end - bas.start + (frame_duration * 1000.0).round() as i64;
-            let detected_black_and_silence = streams[si_index as usize]
+          if black_and_silence.start <= black_and_silence.end {
+            let black_and_silence_duration: i64 = black_and_silence.end - black_and_silence.start
+              + (frame_duration * 1000.0).round() as i64;
+            let detected_black_and_silence = streams[audio_index as usize]
               .detected_black_and_silence
               .as_mut()
               .unwrap();
-            detected_black_and_silence.push(bas.clone());
+            detected_black_and_silence.push(black_and_silence.clone());
 
             if let Some(min) = duration_min {
-              if bas_duration < min as i64 {
+              if black_and_silence_duration < min as i64 {
                 detected_black_and_silence.pop();
               }
             }
             if let Some(max) = duration_max {
-              if bas_duration > max as i64 {
+              if black_and_silence_duration > max as i64 {
                 detected_black_and_silence.pop();
               }
             }
