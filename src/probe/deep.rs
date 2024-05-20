@@ -85,9 +85,17 @@ pub struct OcrResult {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct MinMax {
+  pub min: f64,
+  pub max: f64,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct LoudnessResult {
   pub integrated: f64,
   pub range: f64,
+  pub momentary: MinMax,
+  pub short_term: MinMax,
   pub true_peaks: Vec<f64>,
 }
 
@@ -130,7 +138,7 @@ pub struct StreamProbeResult {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_ocr: Option<Vec<OcrResult>>,
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub detected_loudness: Option<Vec<LoudnessResult>>,
+  pub detected_loudness: Option<LoudnessResult>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_dualmono: Option<Vec<DualMonoResult>>,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -194,6 +202,7 @@ pub struct VideoDetails {
   pub metadata_width: i32,
   pub metadata_height: i32,
   pub aspect_ratio: Rational,
+  pub sample_rate: i32,
 }
 
 #[derive(Default)]
@@ -360,6 +369,7 @@ impl VideoDetails {
       metadata_width: 0,
       metadata_height: 0,
       aspect_ratio: Rational::new(1, 1),
+      sample_rate: 0,
     }
   }
 }
@@ -428,6 +438,11 @@ impl DeepProbe {
             deep_orders.video_details.metadata_width = stream.get_width();
             deep_orders.video_details.metadata_height = stream.get_height();
             deep_orders.video_details.aspect_ratio = stream.get_picture_aspect_ratio();
+          }
+        }
+        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
+          if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
+            deep_orders.video_details.sample_rate = stream.get_sample_rate();
           }
         }
       }
@@ -624,6 +639,7 @@ impl DeepProbe {
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
               params,
+              deep_orders.video_details.clone(),
             )
           }
         }

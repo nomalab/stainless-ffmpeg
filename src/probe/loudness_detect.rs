@@ -4,7 +4,9 @@ use crate::order::{
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult::Entry,
   ParameterValue,
 };
-use crate::probe::deep::{CheckName, CheckParameterValue, LoudnessResult, StreamProbeResult};
+use crate::probe::deep::{
+  CheckName, CheckParameterValue, LoudnessResult, MinMax, StreamProbeResult, VideoDetails,
+};
 use ffmpeg_sys_next::log10;
 use std::collections::{BTreeMap, HashMap};
 
@@ -27,11 +29,12 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
   let mut outputs = vec![];
   let mut filters = vec![];
 
-  let metadata_param = ParameterValue::Bool(true);
+  let true_param = ParameterValue::Bool(true);
   let peak_param = ParameterValue::String("true".to_string());
   let mut loudnessdetect_params: HashMap<String, ParameterValue> = HashMap::new();
-  loudnessdetect_params.insert("metadata".to_string(), metadata_param);
+  loudnessdetect_params.insert("metadata".to_string(), true_param.clone());
   loudnessdetect_params.insert("peak".to_string(), peak_param);
+  loudnessdetect_params.insert("dualmono".to_string(), true_param);
 
   match params.get("pairing_list") {
     Some(pairing_list) => {
@@ -40,7 +43,12 @@ pub fn create_graph<S: ::std::hash::BuildHasher>(
           let mut amerge_params: HashMap<String, ParameterValue> = HashMap::new();
           let mut amerge_input = vec![];
           let mut input_streams_vec = vec![];
-          let mut lavfi_keys = vec!["lavfi.r128.I".to_string(), "lavfi.r128.LRA".to_string()];
+          let mut lavfi_keys = vec![
+            "lavfi.r128.I".to_string(),
+            "lavfi.r128.LRA".to_string(),
+            "lavfi.r128.S".to_string(),
+            "lavfi.r128.M".to_string(),
+          ];
           let output_label = format!("output_label_{iter:?}");
 
           for track in pair {
@@ -124,9 +132,22 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
+  video_details: VideoDetails,
 ) {
-  for index in audio_indexes {
-    streams[index as usize].detected_loudness = Some(vec![]);
+  for index in audio_indexes.clone() {
+    streams[index as usize].detected_loudness = Some(LoudnessResult {
+      range: -99.9,
+      integrated: -99.9,
+      true_peaks: vec![],
+      momentary: MinMax {
+        min: 99.9,
+        max: -99.9,
+      },
+      short_term: MinMax {
+        min: 99.9,
+        max: -99.9,
+      },
+    });
   }
   let results = output_results.get(&CheckName::Loudness).unwrap();
   info!("END OF LOUDNESS PROCESS");
@@ -144,24 +165,37 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
           .detected_loudness
           .as_mut()
           .unwrap();
-        let mut loudness = LoudnessResult {
-          range: -99.9,
-          integrated: -99.9,
-          true_peaks: vec![],
-        };
         let mut channel_start = 0;
         let mut channel_end = 0;
+        let mut pts_time: f32 = 0.0;
+        if let Some(pts) = entry_map.get("pts") {
+          pts_time = pts.parse::<f32>().unwrap() / video_details.sample_rate as f32;
+        }
 
         if let Some(value) = entry_map.get("lavfi.r128.I") {
-          let x = value.parse::<f64>().unwrap();
-          loudness.integrated = (x * 100.0).round() / 100.0;
-          if loudness.integrated == -70.0 {
-            loudness.integrated = -99.0;
+          let i = value.parse::<f64>().unwrap();
+          detected_loudness.integrated = (i * 100.0).round() / 100.0;
+          if detected_loudness.integrated == -70.0 {
+            detected_loudness.integrated = -99.0;
           }
         }
         if let Some(value) = entry_map.get("lavfi.r128.LRA") {
-          let y = value.parse::<f64>().unwrap();
-          loudness.range = (y * 100.0).round() / 100.0;
+          let lra = value.parse::<f64>().unwrap();
+          detected_loudness.range = (lra * 100.0).round() / 100.0;
+        }
+        if let Some(value) = entry_map.get("lavfi.r128.S") {
+          if pts_time >= 2.9 {
+            let s = (value.parse::<f64>().unwrap() * 100.0).round() / 100.0;
+            detected_loudness.short_term.min = f64::min(detected_loudness.short_term.min, s);
+            detected_loudness.short_term.max = f64::max(detected_loudness.short_term.max, s);
+          }
+        }
+        if let Some(value) = entry_map.get("lavfi.r128.M") {
+          if pts_time >= 0.3 {
+            let m = (value.parse::<f64>().unwrap() * 100.0).round() / 100.0;
+            detected_loudness.momentary.min = f64::min(detected_loudness.momentary.min, m);
+            detected_loudness.momentary.max = f64::max(detected_loudness.momentary.max, m);
+          }
         }
 
         match params.get("pairing_list") {
@@ -184,6 +218,7 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
           }
           None => warn!("No input message for the loudness analysis (audio qualification)"),
         }
+        let mut tpks = vec![];
         for i in channel_start..channel_end {
           let str_tpk_key = format!("lavfi.r128.true_peaks_ch{i}");
           if let Some(value) = entry_map.get(&str_tpk_key) {
@@ -194,12 +229,12 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
               if tpk == std::f64::NEG_INFINITY {
                 tpk = -99.00;
               }
-              loudness.true_peaks.push(tpk);
+              tpks.push(tpk)
             }
           }
         }
-        detected_loudness.drain(..);
-        detected_loudness.push(loudness);
+        detected_loudness.true_peaks.drain(..);
+        detected_loudness.true_peaks = tpks;
       }
     }
   }
