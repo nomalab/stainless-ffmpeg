@@ -226,7 +226,7 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
             unsafe {
               let mut tpk = 20.0 * log10(energy);
               tpk = (tpk * 100.0).round() / 100.0;
-              if tpk == std::f64::NEG_INFINITY {
+              if tpk == f64::NEG_INFINITY {
                 tpk = -99.00;
               }
               tpks.push(tpk)
