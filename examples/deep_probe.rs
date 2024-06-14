@@ -69,7 +69,7 @@ fn main() {
     };
     let spot_check = CheckParameterValue {
       min: None,
-      max: Some(3),
+      max: Some(5),
       num: None,
       den: None,
       th: None,

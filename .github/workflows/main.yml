@@ -16,6 +16,7 @@ jobs:
   build_and_test:
     # The type of runner that the job will run on
     runs-on: ubuntu-22.04
+    container: nomalab/ffmpeg:5.0.1 # image made from Dockerfile in directory
 
     continue-on-error: ${{ (matrix.rust == 'beta') || (matrix.rust == 'nightly') }}
 
@@ -23,11 +24,14 @@ jobs:
       fail-fast: false
       matrix:
         rust: [
-          1.69.0,
-          1.70.0,
           1.71.0,
           1.72.0,
           1.73.0,
+          1.74.0,
+          1.75.0,
+          1.76.0,
+          1.77.0,
+          1.78.0,
           stable,
           beta,
           nightly
@@ -36,18 +40,6 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - uses: actions/checkout@v3
-
-      - name: Install libs
-        run: >-
-          sudo apt-get update &&
-          sudo apt-get install libasound2-dev libavcodec-dev
-          libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev
-          libpostproc-dev libswscale-dev -y
-
-      - name: Setup FFmpeg
-        uses: Iamshankhadeep/setup-ffmpeg@v1.2
-        with:
-          version: "5.0"
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -81,16 +73,10 @@ jobs:
 
   clippy:
     runs-on: ubuntu-22.04
+    container: nomalab/ffmpeg:5.0.1
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Install libs
-        run: >-
-          sudo apt-get update &&
-          sudo apt-get install libasound2-dev libavcodec-dev
-          libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev
-          libpostproc-dev libswscale-dev -y
 
       - name: Install Rust with clippy
         uses: actions-rs/toolchain@v1
@@ -105,21 +91,12 @@ jobs:
 
   tarpaulin:
     runs-on: ubuntu-22.04
+    container:
+      image: nomalab/ffmpeg:5.0.1
+      options: --security-opt seccomp=unconfined
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Install libs
-        run: >-
-          sudo apt-get update &&
-          sudo apt-get install libasound2-dev libavcodec-dev
-          libavformat-dev libavutil-dev libavdevice-dev libavfilter-dev
-          libpostproc-dev libswscale-dev -y
-
-      - name: Setup FFmpeg
-        uses: Iamshankhadeep/setup-ffmpeg@v1.2
-        with:
-          version: "5.0"
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
