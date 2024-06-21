@@ -202,7 +202,6 @@ pub struct VideoDetails {
   pub metadata_width: i32,
   pub metadata_height: i32,
   pub aspect_ratio: Rational,
-  pub sample_rate: i32,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -376,7 +375,6 @@ impl VideoDetails {
       metadata_width: 0,
       metadata_height: 0,
       aspect_ratio: Rational::new(1, 1),
-      sample_rate: 0,
     }
   }
 }
@@ -658,7 +656,7 @@ impl DeepProbe {
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
               params,
-              deep_orders.video_details.clone(),
+              deep_orders.audio_details.clone(),
             )
           }
         }

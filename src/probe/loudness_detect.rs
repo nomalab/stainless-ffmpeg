@@ -5,7 +5,7 @@ use crate::order::{
   ParameterValue,
 };
 use crate::probe::deep::{
-  CheckName, CheckParameterValue, LoudnessResult, MinMax, StreamProbeResult, VideoDetails,
+  AudioDetails, CheckName, CheckParameterValue, LoudnessResult, MinMax, StreamProbeResult,
 };
 use ffmpeg_sys_next::log10;
 use std::collections::{BTreeMap, HashMap};
@@ -132,7 +132,7 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
-  video_details: VideoDetails,
+  audio_details: AudioDetails,
 ) {
   for index in audio_indexes.clone() {
     streams[index as usize].detected_loudness = Some(LoudnessResult {
@@ -169,7 +169,7 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
         let mut channel_end = 0;
         let mut pts_time: f32 = 0.0;
         if let Some(pts) = entry_map.get("pts") {
-          pts_time = pts.parse::<f32>().unwrap() / video_details.sample_rate as f32;
+          pts_time = pts.parse::<f32>().unwrap() / audio_details.sample_rate as f32;
         }
 
         if let Some(value) = entry_map.get("lavfi.r128.I") {
