@@ -98,7 +98,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
   frame_duration: f32,
-  audio_details: AudioDetails,
+  audio_details: Vec<AudioDetails>,
 ) {
   for index in audio_indexes.clone() {
     streams[index as usize].detected_silence = Some(vec![]);
@@ -107,10 +107,6 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
   info!("END OF SILENCE PROCESS");
   info!("-> {:?} frames processed", results.len());
 
-  let end_from_duration = (((results.len() as f64 / audio_indexes.len() as f64) - 1.0)
-    / (audio_details.sample_rate as f64 / audio_details.nb_samples as f64)
-    * 1000.0)
-    .round() as i64;
   let mut max_duration = None;
   if let Some(duration) = params.get("duration") {
     max_duration = duration.max;
@@ -120,6 +116,14 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
     if let Entry(entry_map) = result {
       if let Some(stream_id) = entry_map.get("stream_id") {
         let index: i32 = stream_id.parse().unwrap();
+        let audio_stream_details = audio_details.iter().find(|d| d.stream_index == index);
+        let end_from_duration = match audio_stream_details.map(|d| d.stream_duration).flatten() {
+          Some(duration) => ((duration - frame_duration) * 1000.0).round() as i64,
+          None => (((results.len() as f64 / audio_indexes.len() as f64) - 1.0)
+            / (audio_stream_details.map(|d| d.sample_rate).unwrap_or(1) as f64 / audio_stream_details.map(|d| d.nb_samples).unwrap_or(1) as f64)
+            * 1000.0)
+            .round() as i64,
+        };
         if streams[(index) as usize].detected_silence.is_none() {
           error!("Error : unexpected detection on stream ${index}");
           break;
@@ -151,8 +155,16 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
       }
     }
   }
-  for index in audio_indexes {
+  for index in audio_indexes.clone() {
     let detected_silence = streams[(index) as usize].detected_silence.as_mut().unwrap();
+    let audio_stream_details = audio_details.iter().find(|d| d.stream_index == index as i32);
+    let end_from_duration = match audio_stream_details.map(|d| d.stream_duration).flatten() {
+      Some(duration) => ((duration - frame_duration) * 1000.0).round() as i64,
+      None => (((results.len() as f64 / audio_indexes.len() as f64) - 1.0)
+        / (audio_stream_details.map(|d| d.sample_rate).unwrap_or(1) as f64 / audio_stream_details.map(|d| d.nb_samples).unwrap_or(1) as f64)
+        * 1000.0)
+        .round() as i64,
+    };
     if detected_silence.len() == 1
       && detected_silence[0].start == 0
       && detected_silence[0].end == end_from_duration

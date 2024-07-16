@@ -108,7 +108,8 @@ pub fn detect_sine(
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
-  audio_details: AudioDetails,
+  frame_duration: f32,
+  audio_details: Vec<AudioDetails>,
 ) {
   for index in audio_indexes.clone() {
     streams[index as usize].detected_sine = Some(vec![]);
@@ -117,10 +118,6 @@ pub fn detect_sine(
   info!("END OF SINE PROCESS");
   info!("-> {:?} frames processed", results.len());
 
-  let time_base = audio_details.sample_rate as f64 / audio_details.nb_samples as f64;
-  let end_from_duration =
-    (((results.len() as f64 / audio_indexes.len() as f64) - 1.0) / time_base * 1000.0)
-      .round() as i64;
   let mut tracks: Vec<Vec<Track>> = Vec::new();
   let mut sine: SineResult = Default::default();
   let mut range_value: f64 = 1.0; //contains the range values to code a sample
@@ -153,6 +150,17 @@ pub fn detect_sine(
     if let Entry(entry_map) = result {
       if let Some(stream_id) = entry_map.get("stream_id") {
         let index: u8 = stream_id.parse().unwrap();
+
+        let audio_stream_details = audio_details.iter().find(|d| d.stream_index == index as i32);
+        let sample_rate = audio_stream_details.map(|d| d.sample_rate).unwrap_or(1) as f64;
+        let nb_samples = audio_stream_details.map(|d| d.nb_samples).unwrap_or(1) as f64;
+        let time_base = sample_rate / nb_samples;
+
+        let end_from_duration = match audio_stream_details.map(|d| d.stream_duration).flatten() {
+          Some(duration) => ((duration - frame_duration) * 1000.0).round() as i64,
+          None => (((results.len() as f64 / audio_indexes.len() as f64) - 1.0)
+            / time_base * 1000.0).round() as i64,
+        };
         if streams[(index) as usize].detected_sine.is_none() {
           error!("Error : unexpected detection on stream ${index}");
           break;

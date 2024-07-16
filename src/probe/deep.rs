@@ -206,6 +206,8 @@ pub struct VideoDetails {
 
 #[derive(Clone, Debug, Default)]
 pub struct AudioDetails {
+  pub stream_index: i32,
+  pub stream_duration: Option<f32>,
   pub sample_rate: i32,
   pub nb_samples: i32,
 }
@@ -217,7 +219,7 @@ pub struct DeepOrder {
   output_results: BTreeMap<CheckName, Vec<OutputResult>>,
   streams: Vec<StreamProbeResult>,
   video_details: VideoDetails,
-  audio_details: AudioDetails,
+  audio_details: Vec<AudioDetails>,
   audio_indexes: Vec<u32>,
   video_indexes: Vec<u32>,
 }
@@ -379,15 +381,6 @@ impl VideoDetails {
   }
 }
 
-impl AudioDetails {
-  fn new() -> Self {
-    AudioDetails {
-      sample_rate: 1,
-      nb_samples: 1,
-    }
-  }
-}
-
 impl DeepOrder {
   pub fn new(check: DeepProbeCheck) -> Self {
     DeepOrder {
@@ -396,7 +389,7 @@ impl DeepOrder {
       output_results: BTreeMap::new(),
       streams: vec![],
       video_details: VideoDetails::new(),
-      audio_details: AudioDetails::new(),
+      audio_details: vec![],
       audio_indexes: vec![],
       video_indexes: vec![],
     }
@@ -457,8 +450,13 @@ impl DeepProbe {
         }
         if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
           if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
-            deep_orders.audio_details.sample_rate = stream.get_sample_rate();
-            deep_orders.audio_details.nb_samples = 1024;
+            let audio_stream_details: AudioDetails = AudioDetails {
+              stream_index: stream_index as i32,
+              stream_duration: stream.get_duration(),
+              sample_rate: stream.get_sample_rate(),
+              nb_samples: (*packet.packet).duration as i32
+            };
+            deep_orders.audio_details.push(audio_stream_details);
           }
         }
       }
@@ -680,6 +678,7 @@ impl DeepProbe {
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
               params,
+              deep_orders.video_details.frame_duration,
               deep_orders.audio_details.clone(),
             )
           }
