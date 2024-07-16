@@ -169,9 +169,9 @@ pub fn detect_loudness<S: ::std::hash::BuildHasher>(
         let mut channel_end = 0;
         let mut pts_time: f32 = 0.0;
         if let Some(pts) = entry_map.get("pts") {
-
-        let audio_stream_details = audio_details.iter().find(|d| d.stream_index == index);
-          pts_time = pts.parse::<f32>().unwrap() / audio_stream_details.map(|d| d.sample_rate).unwrap_or(1) as f32;
+          let audio_stream_details = audio_details.iter().find(|d| d.stream_index == index);
+          pts_time = pts.parse::<f32>().unwrap()
+            / audio_stream_details.map(|d| d.sample_rate).unwrap_or(1) as f32;
         }
 
         if let Some(value) = entry_map.get("lavfi.r128.I") {

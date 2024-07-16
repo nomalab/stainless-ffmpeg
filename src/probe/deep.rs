@@ -454,7 +454,7 @@ impl DeepProbe {
               stream_index: stream_index as i32,
               stream_duration: stream.get_duration(),
               sample_rate: stream.get_sample_rate(),
-              nb_samples: (*packet.packet).duration as i32
+              nb_samples: (*packet.packet).duration as i32,
             };
             deep_orders.audio_details.push(audio_stream_details);
           }

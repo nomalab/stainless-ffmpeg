@@ -117,10 +117,11 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
       if let Some(stream_id) = entry_map.get("stream_id") {
         let index: i32 = stream_id.parse().unwrap();
         let audio_stream_details = audio_details.iter().find(|d| d.stream_index == index);
-        let end_from_duration = match audio_stream_details.map(|d| d.stream_duration).flatten() {
+        let end_from_duration = match audio_stream_details.and_then(|d| d.stream_duration) {
           Some(duration) => ((duration - frame_duration) * 1000.0).round() as i64,
           None => (((results.len() as f64 / audio_indexes.len() as f64) - 1.0)
-            / (audio_stream_details.map(|d| d.sample_rate).unwrap_or(1) as f64 / audio_stream_details.map(|d| d.nb_samples).unwrap_or(1) as f64)
+            / (audio_stream_details.map(|d| d.sample_rate).unwrap_or(1) as f64
+              / audio_stream_details.map(|d| d.nb_samples).unwrap_or(1) as f64)
             * 1000.0)
             .round() as i64,
         };
@@ -141,8 +142,7 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
         if let Some(value) = entry_map.get("lavfi.silence_end") {
           if let Some(last_detect) = detected_silence.last_mut() {
             last_detect.end =
-              ((value.parse::<f64>().unwrap() - frame_duration as f64) * 1000.0)
-                .round() as i64;
+              ((value.parse::<f64>().unwrap() - frame_duration as f64) * 1000.0).round() as i64;
           }
         }
         if let Some(value) = entry_map.get("lavfi.silence_duration") {
@@ -157,11 +157,14 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
   }
   for index in audio_indexes.clone() {
     let detected_silence = streams[(index) as usize].detected_silence.as_mut().unwrap();
-    let audio_stream_details = audio_details.iter().find(|d| d.stream_index == index as i32);
-    let end_from_duration = match audio_stream_details.map(|d| d.stream_duration).flatten() {
+    let audio_stream_details = audio_details
+      .iter()
+      .find(|d| d.stream_index == index as i32);
+    let end_from_duration = match audio_stream_details.and_then(|d| d.stream_duration) {
       Some(duration) => ((duration - frame_duration) * 1000.0).round() as i64,
       None => (((results.len() as f64 / audio_indexes.len() as f64) - 1.0)
-        / (audio_stream_details.map(|d| d.sample_rate).unwrap_or(1) as f64 / audio_stream_details.map(|d| d.nb_samples).unwrap_or(1) as f64)
+        / (audio_stream_details.map(|d| d.sample_rate).unwrap_or(1) as f64
+          / audio_stream_details.map(|d| d.nb_samples).unwrap_or(1) as f64)
         * 1000.0)
         .round() as i64,
     };
@@ -173,8 +176,8 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
     }
     if let Some(max) = max_duration {
       if let Some(last_detect) = detected_silence.last() {
-        let silence_duration = last_detect.end - last_detect.start
-          + (frame_duration * 1000.0).round() as i64;
+        let silence_duration =
+          last_detect.end - last_detect.start + (frame_duration * 1000.0).round() as i64;
         if silence_duration > max as i64 {
           detected_silence.pop();
         }

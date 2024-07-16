@@ -4,7 +4,9 @@ use crate::order::{
   output::Output, output_kind::OutputKind, stream::Stream, Filter, Order, OutputResult,
   OutputResult::Entry, ParameterValue,
 };
-use crate::probe::deep::{AudioDetails, CheckName, CheckParameterValue, SineResult, StreamProbeResult, Track};
+use crate::probe::deep::{
+  AudioDetails, CheckName, CheckParameterValue, SineResult, StreamProbeResult, Track,
+};
 use crate::stream::Stream as ContextStream;
 use ffmpeg_sys_next::AVMediaType;
 use std::collections::{BTreeMap, HashMap};
@@ -151,15 +153,19 @@ pub fn detect_sine(
       if let Some(stream_id) = entry_map.get("stream_id") {
         let index: u8 = stream_id.parse().unwrap();
 
-        let audio_stream_details = audio_details.iter().find(|d| d.stream_index == index as i32);
+        let audio_stream_details = audio_details
+          .iter()
+          .find(|d| d.stream_index == index as i32);
         let sample_rate = audio_stream_details.map(|d| d.sample_rate).unwrap_or(1) as f64;
         let nb_samples = audio_stream_details.map(|d| d.nb_samples).unwrap_or(1) as f64;
         let time_base = sample_rate / nb_samples;
 
-        let end_from_duration = match audio_stream_details.map(|d| d.stream_duration).flatten() {
+        let end_from_duration = match audio_stream_details.and_then(|d| d.stream_duration) {
           Some(duration) => ((duration - frame_duration) * 1000.0).round() as i64,
-          None => (((results.len() as f64 / audio_indexes.len() as f64) - 1.0)
-            / time_base * 1000.0).round() as i64,
+          None => {
+            (((results.len() as f64 / audio_indexes.len() as f64) - 1.0) / time_base * 1000.0)
+              .round() as i64
+          }
         };
         if streams[(index) as usize].detected_sine.is_none() {
           error!("Error : unexpected detection on stream ${index}");
@@ -259,8 +265,7 @@ pub fn detect_sine(
                 sine.start = *last_start;
                 sine.end = ((frame - 1.0) / time_base * 1000.0).round() as i64;
                 //check if sine is a 1000Hz => push and reset
-                let sine_duration =
-                  (frame / time_base * 1000.0).round() as i64 - sine.start;
+                let sine_duration = (frame / time_base * 1000.0).round() as i64 - sine.start;
                 if let Some(zero_crossing) = zero_cross.get(&audio_stream_key) {
                   if (zero_crossing / sine_duration as f64) == 2.0 {
                     detected_sine.push(sine);
