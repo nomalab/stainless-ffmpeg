@@ -221,8 +221,8 @@ pub fn detect_sine(
           if let Some(value) = entry_map.get(&crest_factor_key) {
             let crest_factor = value.parse::<f64>().unwrap() / range_value;
 
-            //sqrt(2) +/- 1e-3
-            if (2_f64.sqrt() - 1e-3_f64..2_f64.sqrt() + 1e-3_f64).contains(&crest_factor) {
+            //sqrt(2) +/- 1e-2
+            if (2_f64.sqrt() - 1e-2_f64..2_f64.sqrt() + 1e-2_f64).contains(&crest_factor) {
               if last_start_opt.is_some() {
                 if let Some(last_start) = last_start_opt {
                   //check if audio ends => 1000Hz until the end
@@ -234,7 +234,7 @@ pub fn detect_sine(
                     if let Some(zero_crossing) = zero_cross.get(&audio_stream_key.clone()) {
                       let sine_duration =
                         ((frame + 1.0) / time_base * 1000.0).round() as i64 - sine.start;
-                      if (zero_crossing / sine_duration as f64) == 2.0 {
+                      if (zero_crossing / sine_duration as f64).round() == 2.0 {
                         detected_sine.push(sine);
                         last_starts.insert(audio_stream_key.clone(), None);
                         zero_cross.insert(audio_stream_key.clone(), 0.0);
@@ -256,7 +256,7 @@ pub fn detect_sine(
                 sine.start = (frame / time_base * 1000.0).round() as i64;
                 last_starts.insert(audio_stream_key.clone(), Some(sine.start));
               }
-            } else if (2_f64.sqrt() - 1e-3_f64..2_f64.sqrt() + 1e-3_f64)
+            } else if (2_f64.sqrt() - 1e-2_f64..2_f64.sqrt() + 1e-2_f64)
               .contains(last_crests.get(&audio_stream_key).unwrap_or(&0.0))
               && last_start_opt.is_some()
             {
@@ -267,7 +267,7 @@ pub fn detect_sine(
                 //check if sine is a 1000Hz => push and reset
                 let sine_duration = (frame / time_base * 1000.0).round() as i64 - sine.start;
                 if let Some(zero_crossing) = zero_cross.get(&audio_stream_key) {
-                  if (zero_crossing / sine_duration as f64) == 2.0 {
+                  if (zero_crossing / sine_duration as f64).round() == 2.0 {
                     detected_sine.push(sine);
                     last_starts.insert(audio_stream_key.clone(), None);
                     zero_cross.insert(audio_stream_key.clone(), 0.0);
