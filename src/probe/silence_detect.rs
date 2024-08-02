@@ -117,16 +117,13 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
       if let Some(stream_id) = entry_map.get("stream_id") {
         let index: i32 = stream_id.parse().unwrap();
         let audio_stream_details = audio_details.iter().find(|d| d.stream_index == index);
-        let end_from_duration = match audio_stream_details.and_then(|d| d.stream_duration) {
-          Some(duration) => ((duration - frame_duration) * 1000.0).round() as i64,
-          None => (((results.len() as f64 / audio_indexes.len() as f64) - 1.0)
-            / (audio_stream_details.map(|d| d.sample_rate).unwrap_or(1) as f64
-              / audio_stream_details
-                .map(|d| d.samples_per_frame)
-                .unwrap_or(1) as f64)
-            * 1000.0)
-            .round() as i64,
-        };
+        let end_from_duration = (((results.len() as f64 / audio_indexes.len() as f64) - 1.0)
+          / (audio_stream_details.map(|d| d.sample_rate).unwrap_or(1) as f64
+            / audio_stream_details
+              .map(|d| d.samples_per_frame)
+              .unwrap_or(1) as f64)
+          * 1000.0)
+          .round() as i64;
         if streams[(index) as usize].detected_silence.is_none() {
           error!("Error : unexpected detection on stream ${index}");
           break;

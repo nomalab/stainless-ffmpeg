@@ -686,7 +686,6 @@ impl DeepProbe {
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
               params,
-              deep_orders.video_details.frame_duration,
               deep_orders.audio_details.clone(),
             )
           }

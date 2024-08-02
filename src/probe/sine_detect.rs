@@ -110,7 +110,6 @@ pub fn detect_sine(
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
-  frame_duration: f32,
   audio_details: Vec<AudioDetails>,
 ) {
   for index in audio_indexes.clone() {
@@ -162,13 +161,10 @@ pub fn detect_sine(
           .unwrap_or(1) as f64;
         let time_base = sample_rate / samples_per_frame; // time base => audio frames per second
 
-        let end_from_duration = match audio_stream_details.and_then(|d| d.stream_duration) {
-          Some(duration) => ((duration - frame_duration) * 1000.0).round() as i64,
-          None => {
-            (((results.len() as f64 / audio_indexes.len() as f64) - 1.0) / time_base * 1000.0)
-              .round() as i64
-          }
-        };
+        let end_from_duration = (((results.len() as f64 / audio_indexes.len() as f64) - 1.0)
+          / time_base
+          * 1000.0)
+          .round() as i64;
         if streams[(index) as usize].detected_sine.is_none() {
           error!("Error : unexpected detection on stream ${index}");
           break;
