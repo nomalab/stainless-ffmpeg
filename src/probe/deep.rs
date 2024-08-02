@@ -210,7 +210,7 @@ pub struct AudioDetails {
   pub stream_index: i32,
   pub stream_duration: Option<f32>,
   pub sample_rate: i32,
-  pub nb_samples: i32,
+  pub samples_per_frame: i32,
 }
 
 #[derive(Default)]
@@ -467,13 +467,15 @@ impl DeepProbe {
         deep_orders.audio_indexes.push(stream_index);
         input_id = format!("audio_input_{}", stream_index);
         if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
-          let avg_pkt_duration = deep_orders.streams[stream_index as usize].total_packets_duration
-            / deep_orders.streams[stream_index as usize].count_packets as i64;
+          let avg_pkt_duration = (deep_orders.streams[stream_index as usize].total_packets_duration
+            as f64
+            / deep_orders.streams[stream_index as usize].count_packets as f64)
+            .ceil();
           let audio_stream_details: AudioDetails = AudioDetails {
             stream_index: stream_index as i32,
             stream_duration: stream.get_duration(),
             sample_rate: stream.get_sample_rate(),
-            nb_samples: avg_pkt_duration as i32,
+            samples_per_frame: avg_pkt_duration as i32,
           };
           deep_orders.audio_details.push(audio_stream_details);
         }

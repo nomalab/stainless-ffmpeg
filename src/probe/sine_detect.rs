@@ -157,8 +157,10 @@ pub fn detect_sine(
           .iter()
           .find(|d| d.stream_index == index as i32);
         let sample_rate = audio_stream_details.map(|d| d.sample_rate).unwrap_or(1) as f64;
-        let nb_samples = audio_stream_details.map(|d| d.nb_samples).unwrap_or(1) as f64;
-        let time_base = sample_rate / nb_samples;
+        let samples_per_frame = audio_stream_details
+          .map(|d| d.samples_per_frame)
+          .unwrap_or(1) as f64;
+        let time_base = sample_rate / samples_per_frame; // time base => audio frames per second
 
         let end_from_duration = match audio_stream_details.and_then(|d| d.stream_duration) {
           Some(duration) => ((duration - frame_duration) * 1000.0).round() as i64,

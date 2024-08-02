@@ -174,7 +174,9 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
           Some(duration) => ((duration - frame_duration) * 1000.0).round() as i64,
           None => (((results.len() as f64 / audio_stream_qualif_number as f64) - 1.0)
             / (audio_stream_details.map(|d| d.sample_rate).unwrap_or(1) as f64
-              / audio_stream_details.map(|d| d.nb_samples).unwrap_or(1) as f64)
+              / audio_stream_details
+                .map(|d| d.samples_per_frame)
+                .unwrap_or(1) as f64)
             * 1000.0)
             .round() as i64,
         };
