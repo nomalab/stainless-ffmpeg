@@ -116,6 +116,7 @@ pub struct SineResult {
 pub struct StreamProbeResult {
   stream_index: usize,
   count_packets: usize,
+  total_packets_duration: i64,
   min_packet_size: i32,
   max_packet_size: i32,
   pub color_space: Option<String>,
@@ -202,7 +203,14 @@ pub struct VideoDetails {
   pub metadata_width: i32,
   pub metadata_height: i32,
   pub aspect_ratio: Rational,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct AudioDetails {
+  pub stream_index: i32,
+  pub stream_duration: Option<f32>,
   pub sample_rate: i32,
+  pub samples_per_frame: i32,
 }
 
 #[derive(Default)]
@@ -212,6 +220,7 @@ pub struct DeepOrder {
   output_results: BTreeMap<CheckName, Vec<OutputResult>>,
   streams: Vec<StreamProbeResult>,
   video_details: VideoDetails,
+  audio_details: Vec<AudioDetails>,
   audio_indexes: Vec<u32>,
   video_indexes: Vec<u32>,
 }
@@ -235,6 +244,11 @@ impl fmt::Display for DeepProbeResult {
     for (index, stream) in self.streams.iter().enumerate() {
       writeln!(f, "\n{:30} : {:?}", "Stream Index", index)?;
       writeln!(f, "{:30} : {:?}", "Number of packets", stream.count_packets)?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
+        "Total packets duration", stream.total_packets_duration
+      )?;
       writeln!(
         f,
         "{:30} : {:?}",
@@ -307,6 +321,7 @@ impl StreamProbeResult {
     StreamProbeResult {
       stream_index: 0,
       count_packets: 0,
+      total_packets_duration: 0,
       color_space: None,
       color_range: None,
       color_primaries: None,
@@ -369,7 +384,6 @@ impl VideoDetails {
       metadata_width: 0,
       metadata_height: 0,
       aspect_ratio: Rational::new(1, 1),
-      sample_rate: 0,
     }
   }
 }
@@ -382,6 +396,7 @@ impl DeepOrder {
       output_results: BTreeMap::new(),
       streams: vec![],
       video_details: VideoDetails::new(),
+      audio_details: vec![],
       audio_indexes: vec![],
       video_indexes: vec![],
     }
@@ -410,9 +425,11 @@ impl DeepProbe {
       unsafe {
         let stream_index = (*packet.packet).stream_index as usize;
         let packet_size = (*packet.packet).size;
+        let packet_duration = (*packet.packet).duration;
 
         deep_orders.streams[stream_index].stream_index = stream_index;
         deep_orders.streams[stream_index].count_packets += 1;
+        deep_orders.streams[stream_index].total_packets_duration += packet_duration;
         deep_orders.streams[stream_index].min_packet_size = cmp::min(
           packet_size,
           deep_orders.streams[stream_index].min_packet_size,
@@ -421,30 +438,6 @@ impl DeepProbe {
           packet_size,
           deep_orders.streams[stream_index].max_packet_size,
         );
-
-        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
-          if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
-            deep_orders.streams[stream_index].color_space = stream.get_color_space();
-            deep_orders.streams[stream_index].color_range = stream.get_color_range();
-            deep_orders.streams[stream_index].color_primaries = stream.get_color_primaries();
-            deep_orders.streams[stream_index].color_trc = stream.get_color_trc();
-            deep_orders.streams[stream_index].color_matrix = stream.get_color_matrix();
-            deep_orders.video_details.frame_duration = stream.get_frame_rate().invert().to_float();
-            deep_orders.video_details.frame_rate = stream.get_frame_rate().to_float();
-            deep_orders.video_details.time_base = stream.get_time_base().to_float();
-            deep_orders.video_details.stream_duration = stream.get_duration();
-            deep_orders.video_details.stream_frames = stream.get_nb_frames();
-            deep_orders.video_details.bits_raw_sample = stream.get_bits_per_raw_sample();
-            deep_orders.video_details.metadata_width = stream.get_width();
-            deep_orders.video_details.metadata_height = stream.get_height();
-            deep_orders.video_details.aspect_ratio = stream.get_picture_aspect_ratio();
-          }
-        }
-        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
-          if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
-            deep_orders.video_details.sample_rate = stream.get_sample_rate();
-          }
-        }
       }
     }
 
@@ -453,10 +446,39 @@ impl DeepProbe {
       if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
         deep_orders.video_indexes.push(stream_index);
         input_id = format!("video_input_{}", stream_index);
+        if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
+          deep_orders.streams[stream_index as usize].color_space = stream.get_color_space();
+          deep_orders.streams[stream_index as usize].color_range = stream.get_color_range();
+          deep_orders.streams[stream_index as usize].color_primaries = stream.get_color_primaries();
+          deep_orders.streams[stream_index as usize].color_trc = stream.get_color_trc();
+          deep_orders.streams[stream_index as usize].color_matrix = stream.get_color_matrix();
+          deep_orders.video_details.frame_duration = stream.get_frame_rate().invert().to_float();
+          deep_orders.video_details.frame_rate = stream.get_frame_rate().to_float();
+          deep_orders.video_details.time_base = stream.get_time_base().to_float();
+          deep_orders.video_details.stream_duration = stream.get_duration();
+          deep_orders.video_details.stream_frames = stream.get_nb_frames();
+          deep_orders.video_details.bits_raw_sample = stream.get_bits_per_raw_sample();
+          deep_orders.video_details.metadata_width = stream.get_width();
+          deep_orders.video_details.metadata_height = stream.get_height();
+          deep_orders.video_details.aspect_ratio = stream.get_picture_aspect_ratio();
+        }
       }
       if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
         deep_orders.audio_indexes.push(stream_index);
         input_id = format!("audio_input_{}", stream_index);
+        if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
+          let avg_pkt_duration = (deep_orders.streams[stream_index as usize].total_packets_duration
+            as f64
+            / deep_orders.streams[stream_index as usize].count_packets as f64)
+            .ceil();
+          let audio_stream_details: AudioDetails = AudioDetails {
+            stream_index: stream_index as i32,
+            stream_duration: stream.get_duration(),
+            sample_rate: stream.get_sample_rate(),
+            samples_per_frame: avg_pkt_duration as i32,
+          };
+          deep_orders.audio_details.push(audio_stream_details);
+        }
       }
       if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_SUBTITLE {
         input_id = format!("subtitle_input_{}", stream_index);
@@ -581,7 +603,8 @@ impl DeepProbe {
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
               params,
-              deep_orders.video_details.clone(),
+              deep_orders.video_details.frame_duration,
+              deep_orders.audio_details.clone(),
             );
           }
         }
@@ -639,7 +662,7 @@ impl DeepProbe {
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
               params,
-              deep_orders.video_details.clone(),
+              deep_orders.audio_details.clone(),
             )
           }
         }
@@ -650,7 +673,8 @@ impl DeepProbe {
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
               params,
-              deep_orders.video_details.clone(),
+              deep_orders.video_details.frame_duration,
+              deep_orders.audio_details.clone(),
             )
           }
         }
@@ -662,7 +686,7 @@ impl DeepProbe {
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
               params,
-              deep_orders.video_details.frame_rate,
+              deep_orders.audio_details.clone(),
             )
           }
         }

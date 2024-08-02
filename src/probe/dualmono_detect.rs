@@ -11,7 +11,7 @@ use crate::{
     OutputResult::{self, Entry},
     ParameterValue,
   },
-  probe::deep::{CheckName, CheckParameterValue, DualMonoResult, StreamProbeResult, VideoDetails},
+  probe::deep::{AudioDetails, CheckName, CheckParameterValue, DualMonoResult, StreamProbeResult},
 };
 use std::collections::{BTreeMap, HashMap};
 
@@ -134,7 +134,8 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue, S>,
-  video_details: VideoDetails,
+  frame_duration: f32,
+  audio_details: Vec<AudioDetails>,
 ) {
   for index in audio_indexes.clone() {
     streams[index as usize].detected_dualmono = Some(vec![]);
@@ -164,14 +165,18 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
     None => warn!("No input message for the dualmono analysis (list of indexes to merge)"),
   }
 
-  let end_from_duration = (((results.len() as f64 / audio_stream_qualif_number as f64) - 1.0)
-    / video_details.frame_rate as f64
-    * 1000.0)
-    .round() as i64;
   for result in results {
     if let Entry(entry_map) = result {
       if let Some(stream_id) = entry_map.get("stream_id") {
         let index: i32 = stream_id.parse().unwrap();
+        let audio_stream_details = audio_details.iter().find(|d| d.stream_index == index);
+        let end_from_duration = (((results.len() as f64 / audio_stream_qualif_number as f64) - 1.0)
+          / (audio_stream_details.map(|d| d.sample_rate).unwrap_or(1) as f64
+            / audio_stream_details
+              .map(|d| d.samples_per_frame)
+              .unwrap_or(1) as f64)
+          * 1000.0)
+          .round() as i64;
         if streams[(index) as usize].detected_dualmono.is_none() {
           error!("Error : unexpected detection on stream ${index}");
           break;
@@ -191,8 +196,7 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
         if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_end") {
           if let Some(last_detect) = detected_dualmono.last_mut() {
             last_detect.end =
-              ((value.parse::<f64>().unwrap() - video_details.frame_duration as f64) * 1000.0)
-                .round() as i64;
+              ((value.parse::<f64>().unwrap() - frame_duration as f64) * 1000.0).round() as i64;
           }
         }
         if let Some(value) = entry_map.get("lavfi.aphasemeter.mono_duration") {
@@ -212,8 +216,7 @@ pub fn detect_dualmono<S: ::std::hash::BuildHasher>(
       .as_mut()
       .unwrap();
     if let Some(last_detect) = detected_dualmono.last() {
-      let duration = last_detect.end - last_detect.start
-        + (video_details.frame_duration * 1000.0).round() as i64;
+      let duration = last_detect.end - last_detect.start + (frame_duration * 1000.0).round() as i64;
       if let Some(max) = max_duration {
         if duration > max as i64 {
           detected_dualmono.pop();
