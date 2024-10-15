@@ -79,6 +79,11 @@ impl FormatContext {
     Ok(())
   }
 
+  pub fn close_output(&self) -> Result<(), String> {
+    unsafe { avformat_free_context(self.format_context) };
+    Ok(())
+  }
+
   pub fn add_video_stream(&mut self, encoder: &VideoEncoder) -> Result<(), String> {
     unsafe {
       let av_stream = avformat_new_stream(self.format_context, null_mut());

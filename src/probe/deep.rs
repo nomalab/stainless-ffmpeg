@@ -659,8 +659,8 @@ impl DeepProbe {
         CheckName::Tone => {
           if let Some(params) = deep_orders.check.sine_detect.clone() {
             detect_sine(
+              context,
               &deep_orders.output_results,
-              &self.filename,
               &mut deep_orders.streams,
               deep_orders.audio_indexes.clone(),
               params,
@@ -761,6 +761,9 @@ impl DeepProbe {
       for mut frame in in_video_frames {
         unsafe { av_frame_free(&mut frame.frame) };
       }
+      for mut packet in in_subtitle_packets {
+        unsafe { av_packet_free(&mut packet.packet) };
+      }
     }
 
     if let Err(msg) = self.get_results(&context, &mut deep_orders) {
@@ -776,12 +779,17 @@ impl DeepProbe {
       ram: ram.clone(),
     });
 
+    for order in &mut deep_orders.orders {
+      let _ = order.1.close();
+    }
+    let _ = order_src.close();
+    context.close_input();
     let s = System::new_all();
+
     println!("{} kB total", s.total_memory());
     println!("{:?} iterations", i);
     println!("{:?} ram", ram);
 
-    context.close_input();
     Ok(())
   }
 }

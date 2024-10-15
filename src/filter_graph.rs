@@ -308,6 +308,13 @@ impl FilterGraph {
 
     Ok((output_audio_frames, output_video_frames))
   }
+
+  pub fn close(&mut self) -> Result<(), String> {
+    if !self.graph.is_null() {
+      unsafe { avfilter_graph_free(&mut self.graph) };
+    }
+    Ok(())
+  }
 }
 
 impl Drop for FilterGraph {

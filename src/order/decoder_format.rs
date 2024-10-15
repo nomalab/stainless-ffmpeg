@@ -96,4 +96,32 @@ impl DecoderFormat {
       }
     }
   }
+
+  pub fn close(&mut self, input: &Input) {
+    match input {
+      Input::VideoFrames { .. } => {}
+      Input::Streams { streams, .. } => {
+        for stream in streams {
+          match self.context.get_stream_type(stream.index as isize) {
+            AVMediaType::AVMEDIA_TYPE_VIDEO => {
+              for video_decoder in &mut self.video_decoders {
+                video_decoder.close();
+              }
+            }
+            AVMediaType::AVMEDIA_TYPE_AUDIO => {
+              for audio_decoder in &mut self.audio_decoders {
+                audio_decoder.close();
+              }
+            }
+            AVMediaType::AVMEDIA_TYPE_SUBTITLE => {
+              for subtitle_decoder in &mut self.subtitle_decoders {
+                subtitle_decoder.close();
+              }
+            }
+            _ => {}
+          }
+        }
+      }
+    }
+  }
 }

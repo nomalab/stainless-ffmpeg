@@ -103,8 +103,8 @@ pub fn create_graph(
 }
 
 pub fn detect_sine(
+  context: &FormatContext,
   output_results: &BTreeMap<CheckName, Vec<OutputResult>>,
-  filename: &str,
   streams: &mut [StreamProbeResult],
   audio_indexes: Vec<u32>,
   params: HashMap<String, CheckParameterValue>,
@@ -142,12 +142,6 @@ pub fn detect_sine(
     None => return warn!("No input message for the 1000Hz analysis (audio qualification)"),
   }
 
-  let mut context = FormatContext::new(filename).unwrap();
-  if let Err(msg) = context.open_input() {
-    context.close_input();
-    error!("{:?}", msg);
-    return;
-  }
   for result in results {
     if let Entry(entry_map) = result {
       if let Some(stream_id) = entry_map.get("stream_id") {

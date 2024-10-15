@@ -1,3 +1,5 @@
+use ffmpeg_sys_next::{av_frame_free, av_packet_free};
+
 use crate::filter_graph::FilterGraph;
 use std::collections::HashMap;
 
@@ -75,12 +77,24 @@ impl Order {
     Ok(())
   }
 
+  pub fn close(&mut self) -> Result<(), String> {
+    warn!("Close inputs");
+    self.close_input_format()?;
+    warn!("Close outputs");
+    self.close_output_format()?;
+    warn!("Close graph");
+    self.close_graph()?;
+
+    Ok(())
+  }
+
   pub fn process(&mut self) -> Result<Vec<OutputResult>, String> {
     let mut results: Vec<OutputResult> = vec![];
     let mut decode_end = false;
 
     while !decode_end {
-      let (in_audio_frames, in_video_frames, in_subtitle_packets, end) = self.process_input();
+      let (mut in_audio_frames, mut in_video_frames, mut in_subtitle_packets, end) =
+        self.process_input();
       if end == self.total_streams {
         decode_end = true;
       }
@@ -92,6 +106,16 @@ impl Order {
         Err(msg) => {
           error!("Error while filtering : {msg}");
         }
+      }
+
+      for frame in &mut in_audio_frames {
+        unsafe { av_frame_free(&mut frame.frame) };
+      }
+      for frame in &mut in_video_frames {
+        unsafe { av_frame_free(&mut frame.frame) };
+      }
+      for packet in &mut in_subtitle_packets {
+        unsafe { av_packet_free(&mut packet.packet) };
       }
     }
 
@@ -162,10 +186,10 @@ impl Order {
   ) -> Result<Vec<OutputResult>, String> {
     let mut results = vec![];
 
-    let (output_audio_frames, output_video_frames) = self
+    let (mut output_audio_frames, mut output_video_frames) = self
       .filter_graph
       .process(in_audio_frames, in_video_frames)?;
-    for output_frame in output_audio_frames {
+    for output_frame in &mut output_audio_frames {
       for output in &self.outputs {
         if output.stream == output_frame.name {
           if let Some(OutputKind::AudioMetadata) = output.kind {
@@ -191,13 +215,14 @@ impl Order {
           results.push(OutputResult::Packet(packet));
         };
       }
+      unsafe { av_frame_free(&mut output_frame.frame) };
     }
     for output_packet in in_subtitle_packets {
       for output in &mut self.output_formats {
         output.wrap(output_packet)?;
       }
     }
-    for output_frame in output_video_frames {
+    for output_frame in &mut output_video_frames {
       for output in &self.outputs {
         if let Some(OutputKind::VideoMetadata) = output.kind {
           let mut entry = HashMap::new();
@@ -218,6 +243,7 @@ impl Order {
           results.push(OutputResult::Packet(packet));
         };
       }
+      unsafe { av_frame_free(&mut output_frame.frame) };
     }
 
     Ok(results)
@@ -313,6 +339,31 @@ impl Order {
     }
 
     Ok(filters)
+  }
+
+  pub fn close_input_format(&mut self) -> Result<(), String> {
+    for input_format in &mut self.input_formats {
+      for input in &self.inputs {
+        input_format.close(input);
+      }
+      input_format.context.close_input();
+    }
+    Ok(())
+  }
+
+  fn close_output_format(&mut self) -> Result<(), String> {
+    for output_format in &mut self.output_formats {
+      for output in &self.outputs {
+        output_format.close(output);
+      }
+      output_format.context.close_input();
+    }
+    Ok(())
+  }
+
+  pub fn close_graph(&mut self) -> Result<(), String> {
+    self.filter_graph.close()?;
+    Ok(())
   }
 }
 

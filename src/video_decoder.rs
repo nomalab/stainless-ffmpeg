@@ -134,6 +134,12 @@ impl VideoDecoder {
       })
     }
   }
+
+  pub fn close(&mut self) {
+    if !self.codec_context.is_null() {
+      unsafe { avcodec_free_context(&mut self.codec_context) };
+    }
+  }
 }
 
 impl Drop for VideoDecoder {

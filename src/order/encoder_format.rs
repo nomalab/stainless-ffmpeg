@@ -168,4 +168,21 @@ impl EncoderFormat {
 
     Ok(r_packet)
   }
+
+  pub fn close(&mut self, output: &Output) {
+    match output.kind {
+      Some(OutputKind::File) | Some(OutputKind::Packet) => {}
+      Some(OutputKind::AudioMetadata) => {
+        for audio_encoder in &mut self.audio_encoders {
+          audio_encoder.close();
+        }
+      }
+      Some(OutputKind::VideoMetadata) => {
+        for video_encoder in &mut self.video_encoders {
+          video_encoder.close();
+        }
+      }
+      None => {}
+    }
+  }
 }

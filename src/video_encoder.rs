@@ -148,6 +148,10 @@ impl VideoEncoder {
       Ok(true)
     }
   }
+
+  pub fn close(&mut self) {
+    unsafe { avcodec_free_context(&mut self.codec_context) };
+  }
 }
 
 impl Drop for VideoEncoder {
