@@ -18,6 +18,7 @@ use ffmpeg_sys_next::*;
 use log::LevelFilter;
 use std::collections::BTreeMap;
 use std::{cmp, collections::HashMap, fmt};
+use sysinfo::System;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
@@ -33,6 +34,7 @@ pub struct DeepProbeResult {
   #[serde(default)]
   streams: Vec<StreamProbeResult>,
   format: FormatProbeResult,
+  ram: Vec<HashMap<i32, u64>>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
@@ -690,6 +692,9 @@ impl DeepProbe {
   }
 
   pub fn process(&mut self, log_level: LevelFilter, check: DeepProbeCheck) -> Result<(), String> {
+    let s = System::new_all();
+    println!("{} kB when process begin", s.used_memory());
+
     let av_log_level = match log_level {
       LevelFilter::Error => AV_LOG_ERROR,
       LevelFilter::Warn => AV_LOG_WARNING,
@@ -719,6 +724,8 @@ impl DeepProbe {
     order_src.build_input_format()?;
     let mut decode_end = false;
 
+    let mut i = 0;
+    let mut ram = Vec::new();
     while !decode_end {
       let (in_audio_frames, in_video_frames, in_subtitle_packets, end) = order_src.process_input();
       if end == order_src.total_streams {
@@ -739,6 +746,21 @@ impl DeepProbe {
           }
         }
       }
+
+      if i % 100 == 0 {
+        let s = System::new_all();
+        let mut r = HashMap::new();
+        r.insert(i, s.used_memory());
+        ram.push(r);
+      }
+      i += 1;
+
+      for mut frame in in_audio_frames {
+        unsafe { av_frame_free(&mut frame.frame) };
+      }
+      for mut frame in in_video_frames {
+        unsafe { av_frame_free(&mut frame.frame) };
+      }
     }
 
     if let Err(msg) = self.get_results(&context, &mut deep_orders) {
@@ -751,7 +773,13 @@ impl DeepProbe {
     self.result = Some(DeepProbeResult {
       streams: deep_orders.streams,
       format,
+      ram: ram.clone(),
     });
+
+    let s = System::new_all();
+    println!("{} kB total", s.total_memory());
+    println!("{:?} iterations", i);
+    println!("{:?} ram", ram);
 
     context.close_input();
     Ok(())
