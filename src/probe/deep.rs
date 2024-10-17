@@ -747,7 +747,7 @@ impl DeepProbe {
         }
       }
 
-      if i % 100 == 0 {
+      if i % 500 == 0 {
         let s = System::new_all();
         let mut r = HashMap::new();
         r.insert(i, s.used_memory());

@@ -250,9 +250,11 @@ impl FilterGraph {
         for input in &self.audio_inputs {
           if let Some(label) = &frame.name {
             if input.get_label() == *label {
-              let mut c_frame = av_frame_clone(frame.frame);
-              check_result!(av_buffersrc_add_frame(input.context, c_frame));
-              av_frame_free(&mut c_frame);
+              check_result!(av_buffersrc_add_frame_flags(
+                input.context,
+                av_frame_clone(frame.frame),
+                4
+              ));
             }
           }
         }
@@ -261,9 +263,11 @@ impl FilterGraph {
         for input in &self.video_inputs {
           if let Some(label) = &frame.name {
             if input.get_label() == *label {
-              let mut c_frame = av_frame_clone(frame.frame);
-              check_result!(av_buffersrc_add_frame(input.context, c_frame));
-              av_frame_free(&mut c_frame);
+              check_result!(av_buffersrc_add_frame_flags(
+                input.context,
+                av_frame_clone(frame.frame),
+                4
+              ));
             }
           }
         }
@@ -273,7 +277,7 @@ impl FilterGraph {
         let mut result = 0;
         while result >= 0 {
           let output_frame = av_frame_alloc();
-          result = av_buffersink_get_frame(output_filter.context, output_frame);
+          result = av_buffersink_get_frame_flags(output_filter.context, output_frame, 2);
           if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
             break;
           } else {
@@ -291,7 +295,7 @@ impl FilterGraph {
         let mut result = 0;
         while result >= 0 {
           let output_frame = av_frame_alloc();
-          result = av_buffersink_get_frame(output_filter.context, output_frame);
+          result = av_buffersink_get_frame_flags(output_filter.context, output_frame, 2);
           if result == AVERROR(EAGAIN) || result == AVERROR_EOF {
             break;
           } else {

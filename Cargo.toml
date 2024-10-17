@@ -1,5 +1,5 @@
 [package]
-name = "stainless_ffmpeg_"
+name = "stainless_ffmpeg"
 version = "0.5.4"
 edition = "2021"
 authors = [
