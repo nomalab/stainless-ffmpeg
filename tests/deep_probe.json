@@ -6,6 +6,7 @@
          {
             "stream_index": 0,
             "count_packets": 500,
+            "total_packets_duration": 500,
             "min_packet_size": 834,
             "max_packet_size": 75729,
             "color_space": "YUV",
@@ -64,6 +65,7 @@
          {
             "stream_index": 1,
             "count_packets": 500,
+            "total_packets_duration": 960000,
             "min_packet_size": 3840,
             "max_packet_size": 3840,
             "color_space": null,
@@ -138,6 +140,7 @@
          {
             "stream_index": 2,
             "count_packets": 500,
+            "total_packets_duration": 960000,
             "min_packet_size": 3840,
             "max_packet_size": 3840,
             "color_space": null,
@@ -190,6 +193,7 @@
          {
             "stream_index": 3,
             "count_packets": 500,
+            "total_packets_duration": 960000,
             "min_packet_size": 30720,
             "max_packet_size": 30720,
             "color_space": null,
@@ -228,6 +232,7 @@
          {
             "stream_index": 4,
             "count_packets": 500,
+            "total_packets_duration": 960000,
             "min_packet_size": 7680,
             "max_packet_size": 7680,
             "color_space": null,
@@ -276,6 +281,7 @@
          {
             "stream_index": 5,
             "count_packets": 500,
+            "total_packets_duration": 960000,
             "min_packet_size": 7680,
             "max_packet_size": 7680,
             "color_space": null,
@@ -314,6 +320,7 @@
          {
             "stream_index": 6,
             "count_packets": 500,
+            "total_packets_duration": 960000,
             "min_packet_size": 3840,
             "max_packet_size": 3840,
             "color_space": null,
@@ -356,6 +363,7 @@
          {
             "stream_index": 7,
             "count_packets": 500,
+            "total_packets_duration": 960000,
             "min_packet_size": 3840,
             "max_packet_size": 3840,
             "color_space": null,
