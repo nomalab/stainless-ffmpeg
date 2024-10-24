@@ -59,7 +59,7 @@ impl Stream {
       for _i in 0..4 {
         let character = codec_tag & 0xFF;
         if let Some(c) = char::from_u32(character) {
-          codec_tag_str.push_str(&c.to_string());
+          codec_tag_str.push(c);
         }
         codec_tag >>= 8;
       }
