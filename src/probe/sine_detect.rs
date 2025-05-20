@@ -171,15 +171,17 @@ pub fn detect_sine(
         }
         let detected_sine = streams[index as usize].detected_sine.as_mut().unwrap();
 
-        if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
-          if let AVMediaType::AVMEDIA_TYPE_AUDIO = context.get_stream_type(index as isize) {
-            let sample_fmt = stream.get_sample_fmt();
-            range_value = match sample_fmt.as_str() {
-              "s16" => i16::MAX as f64,
-              "s32" => i32::MAX as f64,
-              "s64" => i64::MAX as f64,
-              _ => 1.0,
-            };
+        unsafe {
+          if let Ok(stream) = ContextStream::new(context.get_stream(index as isize)) {
+            if let AVMediaType::AVMEDIA_TYPE_AUDIO = context.get_stream_type(index as isize) {
+              let sample_fmt = stream.get_sample_fmt();
+              range_value = match sample_fmt.as_str() {
+                "s16" => i16::MAX as f64,
+                "s32" => i32::MAX as f64,
+                "s64" => i64::MAX as f64,
+                _ => 1.0,
+              };
+            }
           }
         }
 
