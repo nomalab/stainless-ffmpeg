@@ -113,5 +113,5 @@ jobs:
           RUSTFLAGS: '--cfg procmacro2_semver_exempt'
 
       - name: Run cargo-tarpaulin
-        run: cargo tarpaulin -v --ciserver travis-ci --coveralls $GITHUB_JOB
+        run: cargo tarpaulin -v --coveralls ${{github.token}}
 
