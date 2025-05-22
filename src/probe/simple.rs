@@ -178,76 +178,78 @@ impl Probe {
     let mut streams = vec![];
 
     for index in 0..context.get_nb_streams() {
-      if let Ok(stream) = Stream::new(context.get_stream(index as isize)) {
-        let stream_type = context.get_stream_type_name(index as isize);
-        let codec_name = stream.get_codec_name();
-        let codec_long_name = stream.get_codec_long_name();
-        let codec_tag = stream.get_codec_tag();
-        let duration = stream.get_duration();
-        let start_time = stream.get_start_time();
-        let bit_rate = stream.get_bit_rate();
-        let mut vp = None;
-        let mut ap = None;
-        let stream_metadata = stream.get_stream_metadata();
+      unsafe {
+        if let Ok(stream) = Stream::new(context.get_stream(index as isize)) {
+          let stream_type = context.get_stream_type_name(index as isize);
+          let codec_name = stream.get_codec_name();
+          let codec_long_name = stream.get_codec_long_name();
+          let codec_tag = stream.get_codec_tag();
+          let duration = stream.get_duration();
+          let start_time = stream.get_start_time();
+          let bit_rate = stream.get_bit_rate();
+          let mut vp = None;
+          let mut ap = None;
+          let stream_metadata = stream.get_stream_metadata();
 
-        match context.get_stream_type(index as isize) {
-          AVMediaType::AVMEDIA_TYPE_VIDEO => {
-            let width = stream.get_width();
-            let height = stream.get_height();
-            let display_aspect_ratio = stream.get_display_aspect_ratio();
-            let frame_rate = stream.get_frame_rate();
-            let scanning_type = stream.get_scanning_type();
-            let chroma_subsampling = stream.get_chroma_sub_sample();
-            let level = stream.get_level();
-            let profile = stream.get_profile();
-            let timecode = stream.get_timecode();
-            let pix_fmt = stream.get_pix_fmt_name();
-            let nb_frames = stream.get_nb_frames();
+          match context.get_stream_type(index as isize) {
+            AVMediaType::AVMEDIA_TYPE_VIDEO => {
+              let width = stream.get_width();
+              let height = stream.get_height();
+              let display_aspect_ratio = stream.get_display_aspect_ratio();
+              let frame_rate = stream.get_frame_rate();
+              let scanning_type = stream.get_scanning_type();
+              let chroma_subsampling = stream.get_chroma_sub_sample();
+              let level = stream.get_level();
+              let profile = stream.get_profile();
+              let timecode = stream.get_timecode();
+              let pix_fmt = stream.get_pix_fmt_name();
+              let nb_frames = stream.get_nb_frames();
 
-            vp = Some(VideoProperties {
-              width,
-              height,
-              display_aspect_ratio,
-              frame_rate,
-              level,
-              profile,
-              scanning_type,
-              chroma_subsampling,
-              timecode,
-              pix_fmt,
-              nb_frames,
-            });
+              vp = Some(VideoProperties {
+                width,
+                height,
+                display_aspect_ratio,
+                frame_rate,
+                level,
+                profile,
+                scanning_type,
+                chroma_subsampling,
+                timecode,
+                pix_fmt,
+                nb_frames,
+              });
+            }
+            AVMediaType::AVMEDIA_TYPE_AUDIO => {
+              let channels = stream.get_channels();
+
+              let bits_per_sample = stream.get_bits_per_sample();
+              let sample_fmt = stream.get_sample_fmt();
+              let sample_rate = stream.get_sample_rate();
+
+              ap = Some(AudioProperties {
+                channels,
+                sample_rate,
+                sample_fmt,
+                bits_per_sample,
+              });
+            }
+            _ => {}
           }
-          AVMediaType::AVMEDIA_TYPE_AUDIO => {
-            let channels = stream.get_channels();
 
-            let bits_per_sample = stream.get_bits_per_sample();
-            let sample_fmt = stream.get_sample_fmt();
-            let sample_rate = stream.get_sample_rate();
-
-            ap = Some(AudioProperties {
-              channels,
-              sample_rate,
-              sample_fmt,
-              bits_per_sample,
-            });
-          }
-          _ => {}
+          streams.push(StreamDescriptor {
+            index,
+            stream_type,
+            codec_name,
+            codec_long_name,
+            codec_tag,
+            start_time,
+            duration,
+            bit_rate,
+            stream_metadata,
+            video_properties: vp,
+            audio_properties: ap,
+          })
         }
-
-        streams.push(StreamDescriptor {
-          index,
-          stream_type,
-          codec_name,
-          codec_long_name,
-          codec_tag,
-          start_time,
-          duration,
-          bit_rate,
-          stream_metadata,
-          video_properties: vp,
-          audio_properties: ap,
-        })
       }
     }
 

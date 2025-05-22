@@ -124,8 +124,11 @@ impl FormatContext {
     Ok(())
   }
 
-  pub fn get_stream(&self, stream_index: isize) -> *mut AVStream {
-    unsafe { *(*self.format_context).streams.offset(stream_index) }
+  /// # Safety
+  /// The caller must ensure that `stream_index` is a valid index, i.e., is in [0, (*self.format_context).nb_streams].
+  /// You can use the `get_nb_streams()` function to determine the valid range.
+  pub unsafe fn get_stream(&self, stream_index: isize) -> *mut AVStream {
+    *(*self.format_context).streams.offset(stream_index)
   }
 
   pub fn get_nb_streams(&self) -> u32 {
@@ -181,16 +184,25 @@ impl FormatContext {
     unsafe { (*self.format_context).packet_size }
   }
 
-  pub fn get_stream_type(&self, stream_index: isize) -> AVMediaType {
-    unsafe { (*(**(*self.format_context).streams.offset(stream_index)).codecpar).codec_type }
+  /// # Safety
+  /// The caller must ensure that `stream_index` is a valid index, i.e., is in [0, (*self.format_context).nb_streams].
+  /// You can use the `get_nb_streams()` function to determine the valid range.
+  pub unsafe fn get_stream_type(&self, stream_index: isize) -> AVMediaType {
+    (*(**(*self.format_context).streams.offset(stream_index)).codecpar).codec_type
   }
 
-  pub fn get_stream_type_name(&self, stream_index: isize) -> String {
-    unsafe { tools::to_string(av_get_media_type_string(self.get_stream_type(stream_index))) }
+  /// # Safety
+  /// The caller must ensure that `stream_index` is a valid index, i.e., is in [0, (*self.format_context).nb_streams].
+  /// You can use the `get_nb_streams()` function to determine the valid range.
+  pub unsafe fn get_stream_type_name(&self, stream_index: isize) -> String {
+    tools::to_string(av_get_media_type_string(self.get_stream_type(stream_index)))
   }
 
-  pub fn get_codec_id(&self, stream_index: isize) -> AVCodecID {
-    unsafe { (*(**(*self.format_context).streams.offset(stream_index)).codecpar).codec_id }
+  /// # Safety
+  /// The caller must ensure that `stream_index` is a valid index, i.e., is in [0, (*self.format_context).nb_streams].
+  /// You can use the `get_nb_streams()` function to determine the valid range.
+  pub unsafe fn get_codec_id(&self, stream_index: isize) -> AVCodecID {
+    (*(**(*self.format_context).streams.offset(stream_index)).codecpar).codec_id
   }
 
   pub fn get_metadata(&self) -> BTreeMap<String, String> {

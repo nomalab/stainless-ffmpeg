@@ -443,45 +443,48 @@ impl DeepProbe {
 
     for stream_index in 0..context.get_nb_streams() {
       let mut input_id = format!("unknown_input_{}", stream_index);
-      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
-        deep_orders.video_indexes.push(stream_index);
-        input_id = format!("video_input_{}", stream_index);
-        if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
-          deep_orders.streams[stream_index as usize].color_space = stream.get_color_space();
-          deep_orders.streams[stream_index as usize].color_range = stream.get_color_range();
-          deep_orders.streams[stream_index as usize].color_primaries = stream.get_color_primaries();
-          deep_orders.streams[stream_index as usize].color_trc = stream.get_color_trc();
-          deep_orders.streams[stream_index as usize].color_matrix = stream.get_color_matrix();
-          deep_orders.video_details.frame_duration = stream.get_frame_rate().invert().to_float();
-          deep_orders.video_details.frame_rate = stream.get_frame_rate().to_float();
-          deep_orders.video_details.time_base = stream.get_time_base().to_float();
-          deep_orders.video_details.stream_duration = stream.get_duration();
-          deep_orders.video_details.stream_frames = stream.get_nb_frames();
-          deep_orders.video_details.bits_raw_sample = stream.get_bits_per_raw_sample();
-          deep_orders.video_details.metadata_width = stream.get_width();
-          deep_orders.video_details.metadata_height = stream.get_height();
-          deep_orders.video_details.aspect_ratio = stream.get_picture_aspect_ratio();
+      unsafe {
+        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_VIDEO {
+          deep_orders.video_indexes.push(stream_index);
+          input_id = format!("video_input_{}", stream_index);
+          if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
+            deep_orders.streams[stream_index as usize].color_space = stream.get_color_space();
+            deep_orders.streams[stream_index as usize].color_range = stream.get_color_range();
+            deep_orders.streams[stream_index as usize].color_primaries =
+              stream.get_color_primaries();
+            deep_orders.streams[stream_index as usize].color_trc = stream.get_color_trc();
+            deep_orders.streams[stream_index as usize].color_matrix = stream.get_color_matrix();
+            deep_orders.video_details.frame_duration = stream.get_frame_rate().invert().to_float();
+            deep_orders.video_details.frame_rate = stream.get_frame_rate().to_float();
+            deep_orders.video_details.time_base = stream.get_time_base().to_float();
+            deep_orders.video_details.stream_duration = stream.get_duration();
+            deep_orders.video_details.stream_frames = stream.get_nb_frames();
+            deep_orders.video_details.bits_raw_sample = stream.get_bits_per_raw_sample();
+            deep_orders.video_details.metadata_width = stream.get_width();
+            deep_orders.video_details.metadata_height = stream.get_height();
+            deep_orders.video_details.aspect_ratio = stream.get_picture_aspect_ratio();
+          }
         }
-      }
-      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
-        deep_orders.audio_indexes.push(stream_index);
-        input_id = format!("audio_input_{}", stream_index);
-        if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
-          let avg_pkt_duration = (deep_orders.streams[stream_index as usize].total_packets_duration
-            as f64
-            / deep_orders.streams[stream_index as usize].count_packets as f64)
-            .ceil();
-          let audio_stream_details: AudioDetails = AudioDetails {
-            stream_index: stream_index as i32,
-            stream_duration: stream.get_duration(),
-            sample_rate: stream.get_sample_rate(),
-            samples_per_frame: avg_pkt_duration as i32,
-          };
-          deep_orders.audio_details.push(audio_stream_details);
+        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_AUDIO {
+          deep_orders.audio_indexes.push(stream_index);
+          input_id = format!("audio_input_{}", stream_index);
+          if let Ok(stream) = Stream::new(context.get_stream(stream_index as isize)) {
+            let avg_pkt_duration = (deep_orders.streams[stream_index as usize]
+              .total_packets_duration as f64
+              / deep_orders.streams[stream_index as usize].count_packets as f64)
+              .ceil();
+            let audio_stream_details: AudioDetails = AudioDetails {
+              stream_index: stream_index as i32,
+              stream_duration: stream.get_duration(),
+              sample_rate: stream.get_sample_rate(),
+              samples_per_frame: avg_pkt_duration as i32,
+            };
+            deep_orders.audio_details.push(audio_stream_details);
+          }
         }
-      }
-      if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_SUBTITLE {
-        input_id = format!("subtitle_input_{}", stream_index);
+        if context.get_stream_type(stream_index as isize) == AVMediaType::AVMEDIA_TYPE_SUBTITLE {
+          input_id = format!("subtitle_input_{}", stream_index);
+        }
       }
       let input_streams = vec![StreamOrder {
         index: stream_index,
@@ -705,8 +708,10 @@ impl DeepProbe {
       }
     }
     for index in 0..context.get_nb_streams() {
-      if let Ok(stream) = Stream::new(context.get_stream(index as isize)) {
-        deep_orders.streams[(index) as usize].detected_bitrate = stream.get_bit_rate();
+      unsafe {
+        if let Ok(stream) = Stream::new(context.get_stream(index as isize)) {
+          deep_orders.streams[(index) as usize].detected_bitrate = stream.get_bit_rate();
+        }
       }
     }
 
