@@ -24,16 +24,16 @@ jobs:
       fail-fast: false
       matrix:
         rust: [
-          1.76.0,
-          1.77.0,
-          1.78.0,
-          1.79.0,
-          1.80.0,
           1.81.0,
           1.82.0,
           1.83.0,
           1.84.0,
           1.85.0,
+          1.86.0,
+          1.87.0,
+          1.88.0,
+          1.89.0,
+          1.90.0,
           stable,
           beta,
           nightly
@@ -63,7 +63,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.85.0
+          toolchain: 1.90.0
           default: true
           components: rustfmt
 
@@ -84,7 +84,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.85.0
+          toolchain: 1.90.0
           default: true
           components: clippy
 
@@ -104,7 +104,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.85.0
+          toolchain: 1.90.0
           default: true
 
       - name: Install tarpaulin
