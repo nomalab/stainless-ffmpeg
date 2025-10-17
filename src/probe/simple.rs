@@ -68,9 +68,6 @@ pub struct AudioProperties {
   bits_per_sample: i32,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq, Serialize)]
-pub struct SubtitleProperties {}
-
 impl fmt::Display for Format {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     writeln!(f, "{:30} : {}", "Format name", self.format_name)?;
