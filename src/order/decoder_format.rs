@@ -65,25 +65,27 @@ impl DecoderFormat {
             tools::random_string(8)
           };
 
-          match context.get_stream_type(stream.index as isize) {
-            AVMediaType::AVMEDIA_TYPE_VIDEO => {
-              let video_decoder =
-                VideoDecoder::new(identifier.clone(), &context, stream.index as isize)?;
-              graph.add_input_from_video_decoder(&identifier, &video_decoder)?;
-              video_decoders.push(video_decoder);
+          unsafe {
+            match context.get_stream_type(stream.index as isize) {
+              AVMediaType::AVMEDIA_TYPE_VIDEO => {
+                let video_decoder =
+                  VideoDecoder::new(identifier.clone(), &context, stream.index as isize)?;
+                graph.add_input_from_video_decoder(&identifier, &video_decoder)?;
+                video_decoders.push(video_decoder);
+              }
+              AVMediaType::AVMEDIA_TYPE_AUDIO => {
+                let audio_decoder =
+                  AudioDecoder::new(identifier.clone(), &context, stream.index as isize)?;
+                graph.add_input_from_audio_decoder(&identifier, &audio_decoder)?;
+                audio_decoders.push(audio_decoder);
+              }
+              AVMediaType::AVMEDIA_TYPE_SUBTITLE => {
+                let subtitle_decoder =
+                  SubtitleDecoder::new(identifier.clone(), &context, stream.index as isize)?;
+                subtitle_decoders.push(subtitle_decoder);
+              }
+              _ => {}
             }
-            AVMediaType::AVMEDIA_TYPE_AUDIO => {
-              let audio_decoder =
-                AudioDecoder::new(identifier.clone(), &context, stream.index as isize)?;
-              graph.add_input_from_audio_decoder(&identifier, &audio_decoder)?;
-              audio_decoders.push(audio_decoder);
-            }
-            AVMediaType::AVMEDIA_TYPE_SUBTITLE => {
-              let subtitle_decoder =
-                SubtitleDecoder::new(identifier.clone(), &context, stream.index as isize)?;
-              subtitle_decoders.push(subtitle_decoder);
-            }
-            _ => {}
           }
         }
 
