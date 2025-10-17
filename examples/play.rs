@@ -21,7 +21,7 @@ fn main() {
 
     let mut first_audio_stream = None;
     for i in 0..format_context.get_nb_streams() {
-      let stream_type = format_context.get_stream_type(i as isize);
+      let stream_type = unsafe { format_context.get_stream_type(i as isize) };
       log::info!("Stream {}: {:?}", i, stream_type);
 
       if stream_type == AVMediaType::AVMEDIA_TYPE_AUDIO {
