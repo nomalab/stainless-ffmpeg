@@ -139,9 +139,17 @@ pub fn detect_silence<S: ::std::hash::BuildHasher>(
           detected_silence.push(silence);
         }
         if let Some(value) = entry_map.get("lavfi.silence_end") {
+          let end =
+            ((value.parse::<f64>().unwrap() - frame_duration as f64) * 1000.0).round() as i64;
           if let Some(last_detect) = detected_silence.last_mut() {
-            last_detect.end =
-              ((value.parse::<f64>().unwrap() - frame_duration as f64) * 1000.0).round() as i64;
+            if last_detect.start == (value.parse::<f64>().unwrap() * 1000.0).round() as i64 {
+              detected_silence.pop();
+              if let Some(prev_last_detect) = detected_silence.last_mut() {
+                prev_last_detect.end = end;
+              }
+            } else {
+              last_detect.end = end;
+            }
           }
         }
         if let Some(value) = entry_map.get("lavfi.silence_duration") {
