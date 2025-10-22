@@ -6,6 +6,7 @@ use crate::probe::black_detect::{blackframes_init, detect_black_frames};
 use crate::probe::blackfade_detect::detect_blackfade;
 use crate::probe::crop_detect::{black_borders_init, detect_black_borders};
 use crate::probe::dualmono_detect::{detect_dualmono, dualmono_init};
+use crate::probe::freeze_detect::{detect_freeze, freeze_init};
 use crate::probe::loudness_detect::{detect_loudness, loudness_init};
 use crate::probe::ocr_detect::{detect_ocr, ocr_init};
 use crate::probe::scene_detect::{detect_scene, scene_init};
@@ -113,6 +114,12 @@ pub struct SineResult {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct FreezeResult {
+  pub start: i64,
+  pub end: i64,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct StreamProbeResult {
   stream_index: usize,
   count_packets: usize,
@@ -148,6 +155,8 @@ pub struct StreamProbeResult {
   pub detected_black_and_silence: Option<Vec<BlackAndSilenceResult>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_sine: Option<Vec<SineResult>>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_freeze: Option<Vec<FreezeResult>>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
@@ -190,6 +199,7 @@ pub struct DeepProbeCheck {
   pub loudness_detect: Option<HashMap<String, CheckParameterValue>>,
   pub dualmono_detect: Option<HashMap<String, CheckParameterValue>>,
   pub sine_detect: Option<HashMap<String, CheckParameterValue>>,
+  pub freeze_detect: Option<HashMap<String, CheckParameterValue>>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -237,6 +247,7 @@ pub enum CheckName {
   Loudness,
   DualMono,
   Tone,
+  Freeze,
 }
 
 impl fmt::Display for DeepProbeResult {
@@ -341,6 +352,7 @@ impl StreamProbeResult {
       detected_dualmono: None,
       detected_sine: None,
       detected_bitrate: None,
+      detected_freeze: None,
     }
   }
 }
@@ -589,6 +601,14 @@ impl DeepProbe {
       deep_orders.output_results.insert(CheckName::Tone, vec![]);
     }
 
+    if let Some(params) = deep_orders.check.freeze_detect.clone() {
+      deep_orders.orders.insert(
+        CheckName::Freeze,
+        freeze_init(&self.filename, deep_orders.video_indexes.clone(), params).unwrap(),
+      );
+      deep_orders.output_results.insert(CheckName::Freeze, vec![]);
+    }
+
     Ok(())
   }
 
@@ -690,6 +710,17 @@ impl DeepProbe {
               deep_orders.audio_indexes.clone(),
               params,
               deep_orders.audio_details.clone(),
+            )
+          }
+        }
+        CheckName::Freeze => {
+          if let Some(params) = deep_orders.check.freeze_detect.clone() {
+            detect_freeze(
+              &deep_orders.output_results,
+              &mut deep_orders.streams,
+              deep_orders.video_indexes.clone(),
+              params,
+              deep_orders.video_details.clone(),
             )
           }
         }

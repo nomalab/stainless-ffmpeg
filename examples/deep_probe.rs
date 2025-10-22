@@ -148,6 +148,22 @@ fn main() {
       th: None,
       pairs: Some(audio_qualif),
     };
+    let freeze_duration_check = CheckParameterValue {
+      min: Some(2000),
+      max: None,
+      num: None,
+      den: None,
+      th: None,
+      pairs: None,
+    };
+    let freeze_noise_check = CheckParameterValue {
+      min: None,
+      max: None,
+      num: None,
+      den: None,
+      th: Some(0.001),
+      pairs: None,
+    };
 
     let mut silence_params = HashMap::new();
     let mut black_params = HashMap::new();
@@ -159,6 +175,7 @@ fn main() {
     let mut loudness_params = HashMap::new();
     let mut dualmono_params = HashMap::new();
     let mut sine_params = HashMap::new();
+    let mut freeze_params = HashMap::new();
     silence_params.insert("duration".to_string(), duration_params);
     black_params.insert("duration".to_string(), black_duration_params);
     black_params.insert("picture".to_string(), black_picture_params);
@@ -175,6 +192,8 @@ fn main() {
     ocr_params.insert("threshold".to_string(), ocr_check);
     sine_params.insert("duration".to_string(), sine_duration_check);
     sine_params.insert("pairing_list".to_string(), sine_qualif_check);
+    freeze_params.insert("duration".to_string(), freeze_duration_check);
+    freeze_params.insert("noise".to_string(), freeze_noise_check);
     let check = DeepProbeCheck {
       silence_detect: Some(silence_params),
       black_detect: Some(black_params),
@@ -186,6 +205,7 @@ fn main() {
       loudness_detect: Some(loudness_params),
       dualmono_detect: Some(dualmono_params),
       sine_detect: Some(sine_params),
+      freeze_detect: Some(freeze_params),
     };
     probe.process(LevelFilter::Off, check).unwrap();
     let result = serde_json::to_string(&probe).unwrap();
