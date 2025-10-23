@@ -306,6 +306,7 @@ impl fmt::Display for DeepProbeResult {
         "{:30} : {:?}",
         "Media offline detection", stream.detected_ocr
       )?;
+      writeln!(f, "{:30} : {:?}", "Freeze detection", stream.detected_freeze)?;
       writeln!(
         f,
         "{:30} : {:?}",
