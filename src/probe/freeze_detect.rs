@@ -47,7 +47,7 @@ pub fn create_graph(
     let mut freezedetect_params: HashMap<String, ParameterValue> = HashMap::new();
     if let Some(duration) = params.get("duration") {
       if let Some(min_duration) = duration.min {
-        let min = (min_duration as f64 - 1.0) * 1000.0;
+        let min = (min_duration * 1000) as f64;
         freezedetect_params.insert("duration".to_string(), ParameterValue::Float(min));
       }
     }
@@ -80,7 +80,6 @@ pub fn create_graph(
       keys: vec![
         "lavfi.freezedetect.freeze_start".to_string(),
         "lavfi.freezedetect.freeze_end".to_string(),
-        "lavfi.freezedetect.freeze_duration".to_string(),
       ],
       stream: Some(output_identifier),
       path: None,
@@ -111,10 +110,8 @@ pub fn detect_freeze(
     None => ((results.len() as f32 - 1.0) / video_details.frame_rate * 1000.0).round() as i64,
   };
   let mut max_duration = None;
-  let mut min_duration = None;
   if let Some(duration) = params.get("duration") {
     max_duration = duration.max;
-    min_duration = duration.min;
   }
 
   for result in results {
@@ -144,11 +141,6 @@ pub fn detect_freeze(
               + (video_details.frame_duration * 1000.0).round() as i64;
             if let Some(max) = max_duration {
               if freeze_duration > max as i64 {
-                detected_freeze.pop();
-              }
-            }
-            if let Some(min) = min_duration {
-              if freeze_duration < min as i64 {
                 detected_freeze.pop();
               }
             }
