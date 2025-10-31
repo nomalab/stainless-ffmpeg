@@ -4,6 +4,7 @@ mod blackfade_detect;
 mod crop_detect;
 pub mod deep;
 mod dualmono_detect;
+mod freeze_detect;
 mod loudness_detect;
 mod ocr_detect;
 mod scene_detect;

@@ -60,6 +60,16 @@
                   "score": 33,
                   "index": 2
                }
+            ],
+            "detected_freeze": [
+               {
+                  "start": 0,
+                  "end": 4920
+               },
+               {
+                  "start": 9960,
+                  "end": 14920
+               }
             ]
          },
          {

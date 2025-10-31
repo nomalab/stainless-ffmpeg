@@ -6,6 +6,7 @@ use crate::probe::black_detect::{blackframes_init, detect_black_frames};
 use crate::probe::blackfade_detect::detect_blackfade;
 use crate::probe::crop_detect::{black_borders_init, detect_black_borders};
 use crate::probe::dualmono_detect::{detect_dualmono, dualmono_init};
+use crate::probe::freeze_detect::{detect_freeze, freeze_init};
 use crate::probe::loudness_detect::{detect_loudness, loudness_init};
 use crate::probe::ocr_detect::{detect_ocr, ocr_init};
 use crate::probe::scene_detect::{detect_scene, scene_init};
@@ -113,6 +114,12 @@ pub struct SineResult {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct FreezeResult {
+  pub start: i64,
+  pub end: i64,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct StreamProbeResult {
   stream_index: usize,
   count_packets: usize,
@@ -148,6 +155,8 @@ pub struct StreamProbeResult {
   pub detected_black_and_silence: Option<Vec<BlackAndSilenceResult>>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub detected_sine: Option<Vec<SineResult>>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub detected_freeze: Option<Vec<FreezeResult>>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
@@ -190,6 +199,7 @@ pub struct DeepProbeCheck {
   pub loudness_detect: Option<HashMap<String, CheckParameterValue>>,
   pub dualmono_detect: Option<HashMap<String, CheckParameterValue>>,
   pub sine_detect: Option<HashMap<String, CheckParameterValue>>,
+  pub freeze_detect: Option<HashMap<String, CheckParameterValue>>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -237,6 +247,7 @@ pub enum CheckName {
   Loudness,
   DualMono,
   Tone,
+  Freeze,
 }
 
 impl fmt::Display for DeepProbeResult {
@@ -298,6 +309,11 @@ impl fmt::Display for DeepProbeResult {
       writeln!(
         f,
         "{:30} : {:?}",
+        "Freeze detection", stream.detected_freeze
+      )?;
+      writeln!(
+        f,
+        "{:30} : {:?}",
         "Loudness detection", stream.detected_loudness
       )?;
       writeln!(
@@ -341,6 +357,7 @@ impl StreamProbeResult {
       detected_dualmono: None,
       detected_sine: None,
       detected_bitrate: None,
+      detected_freeze: None,
     }
   }
 }
@@ -589,6 +606,14 @@ impl DeepProbe {
       deep_orders.output_results.insert(CheckName::Tone, vec![]);
     }
 
+    if let Some(params) = deep_orders.check.freeze_detect.clone() {
+      deep_orders.orders.insert(
+        CheckName::Freeze,
+        freeze_init(&self.filename, deep_orders.video_indexes.clone(), params).unwrap(),
+      );
+      deep_orders.output_results.insert(CheckName::Freeze, vec![]);
+    }
+
     Ok(())
   }
 
@@ -690,6 +715,17 @@ impl DeepProbe {
               deep_orders.audio_indexes.clone(),
               params,
               deep_orders.audio_details.clone(),
+            )
+          }
+        }
+        CheckName::Freeze => {
+          if let Some(params) = deep_orders.check.freeze_detect.clone() {
+            detect_freeze(
+              &deep_orders.output_results,
+              &mut deep_orders.streams,
+              deep_orders.video_indexes.clone(),
+              params,
+              deep_orders.video_details.clone(),
             )
           }
         }
@@ -929,6 +965,22 @@ fn deep_probe() {
     th: None,
     pairs: Some(audio_qualif),
   };
+  let freeze_duration_check = CheckParameterValue {
+    min: Some(2000),
+    max: None,
+    num: None,
+    den: None,
+    th: None,
+    pairs: None,
+  };
+  let freeze_noise_check = CheckParameterValue {
+    min: None,
+    max: None,
+    num: None,
+    den: None,
+    th: Some(0.001),
+    pairs: None,
+  };
 
   let mut silence_params = HashMap::new();
   let mut black_params = HashMap::new();
@@ -940,6 +992,7 @@ fn deep_probe() {
   let mut loudness_params = HashMap::new();
   let mut dualmono_params = HashMap::new();
   let mut sine_params = HashMap::new();
+  let mut freeze_params = HashMap::new();
   silence_params.insert("duration".to_string(), duration_params);
   black_params.insert("duration".to_string(), black_duration_params);
   black_params.insert("picture".to_string(), black_picture_params);
@@ -956,6 +1009,8 @@ fn deep_probe() {
   ocr_params.insert("threshold".to_string(), ocr_check);
   sine_params.insert("duration".to_string(), sine_check);
   sine_params.insert("pairing_list".to_string(), sine_qualif_check);
+  freeze_params.insert("duration".to_string(), freeze_duration_check);
+  freeze_params.insert("noise".to_string(), freeze_noise_check);
   let check = DeepProbeCheck {
     silence_detect: Some(silence_params),
     black_detect: Some(black_params),
@@ -967,6 +1022,7 @@ fn deep_probe() {
     loudness_detect: Some(loudness_params),
     dualmono_detect: Some(dualmono_params),
     sine_detect: Some(sine_params),
+    freeze_detect: Some(freeze_params),
   };
   let id = Uuid::parse_str("ef7e3ad9-a08f-4cd0-9fec-3ac465bbdd85").unwrap();
   let mut probe = DeepProbe::new("tests/test_file.mxf", id);
