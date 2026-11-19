@@ -281,7 +281,7 @@ fn dump_link(
     write!(
       f,
       "{} {}: {} ({}) ",
-      mode, input_name, node_name, &node_label
+      mode, input_name, node_name, node_label
     )?;
     let pad = if is_input {
       avfilter_pad_get_name((*link).srcpad, 0)
