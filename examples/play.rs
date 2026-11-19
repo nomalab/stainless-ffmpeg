@@ -1,4 +1,4 @@
-use cpal::{SAMPLE_RATE_48K, Stream};
+use cpal::{Stream, SAMPLE_RATE_48K};
 use env_logger::Builder;
 use ringbuf::{traits::*, HeapCons, HeapRb};
 use stainless_ffmpeg::prelude::*;
@@ -150,7 +150,7 @@ fn audio_player(mut consumer: HeapCons<f32>) -> Stream {
         }
       },
       move |err| log::error!("CPAL error: {:?}", err),
-      None
+      None,
     )
     .unwrap()
 }
