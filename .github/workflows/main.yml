@@ -15,7 +15,7 @@ jobs:
 
   build_and_test:
     # The type of runner that the job will run on
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     container: nomalab/ffmpeg:5.0.1 # image made from Dockerfile in directory
 
     continue-on-error: ${{ (matrix.rust == 'beta') || (matrix.rust == 'nightly') }}
@@ -24,16 +24,16 @@ jobs:
       fail-fast: false
       matrix:
         rust: [
-          1.81.0,
-          1.82.0,
-          1.83.0,
-          1.84.0,
-          1.85.0,
-          1.86.0,
-          1.87.0,
-          1.88.0,
-          1.89.0,
-          1.90.0,
+          1.95.0,
+          1.96.0,
+          1.96.1,
+          1.97.0,
+          1.97.1,
+          1.98.0,
+          1.98.1,
+          1.99.0,
+          1.99.1,
+          1.100.0,
           stable,
           beta,
           nightly
@@ -54,7 +54,7 @@ jobs:
         run: cargo test
 
   fmt:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
 
     steps:
       - uses: actions/checkout@v3
@@ -63,7 +63,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.90.0
+          toolchain: 1.100.0
           default: true
           components: rustfmt
 
@@ -74,7 +74,7 @@ jobs:
         run: cargo fmt -- --check
 
   clippy:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     container: nomalab/ffmpeg:5.0.1
 
     steps:
@@ -84,7 +84,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.90.0
+          toolchain: 1.100.0
           default: true
           components: clippy
 
@@ -92,7 +92,7 @@ jobs:
         run: cargo clippy 2>&1 | tee ./clippy.out && ! grep -qe "error:\|warning:" ./clippy.out
 
   tarpaulin:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     container:
       image: nomalab/ffmpeg:5.0.1
       options: --security-opt seccomp=unconfined
@@ -104,7 +104,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.90.0
+          toolchain: 1.100.0
           default: true
 
       - name: Install tarpaulin
