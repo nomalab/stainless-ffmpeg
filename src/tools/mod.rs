@@ -1,6 +1,6 @@
 use ffmpeg_sys_next::{avcodec_find_encoder_by_name, AVCodec, AVMediaType};
 use libc::c_char;
-use rand::{prelude::SliceRandom, thread_rng};
+use rand::{prelude::IndexedRandom, rng};
 use std::{
   ffi::{CStr, CString},
   ptr,
@@ -29,7 +29,7 @@ pub unsafe fn to_string(data: *const c_char) -> String {
 
 pub fn random_string(length: usize) -> String {
   let mut result = vec![];
-  let mut rng = thread_rng();
+  let mut rng = rng();
 
   for _ in 0..length {
     let letter = ALPHABET.choose(&mut rng).unwrap();

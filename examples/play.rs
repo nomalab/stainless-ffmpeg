@@ -1,16 +1,14 @@
-use cpal::{SampleRate, Stream};
+use cpal::{Stream, SAMPLE_RATE_48K};
 use env_logger::Builder;
-use ringbuf::{Consumer, RingBuffer};
+use ringbuf::{traits::*, HeapCons, HeapRb};
 use stainless_ffmpeg::prelude::*;
 use std::{collections::HashMap, convert::TryInto, env};
-
-const SAMPLE_RATE: SampleRate = SampleRate(48_000);
 
 fn main() {
   let mut builder = Builder::from_default_env();
   builder.init();
 
-  let (mut producer, consumer) = RingBuffer::<f32>::new(50 * 1024 * 1024).split();
+  let (mut producer, consumer) = HeapRb::<f32>::new(50 * 1024 * 1024).split();
   let _stream = audio_player(consumer);
 
   if let Some(path) = env::args().last() {
@@ -113,7 +111,7 @@ fn main() {
   }
 }
 
-fn audio_player(mut consumer: Consumer<f32>) -> Stream {
+fn audio_player(mut consumer: HeapCons<f32>) -> Stream {
   use cpal::traits::{DeviceTrait, HostTrait};
 
   let host = cpal::default_host();
@@ -128,23 +126,23 @@ fn audio_player(mut consumer: Consumer<f32>) -> Stream {
   let supported_config = supported_configs_range
     .find(|config| {
       config.channels() == 2
-        && SAMPLE_RATE >= config.min_sample_rate()
-        && SAMPLE_RATE <= config.max_sample_rate()
+        && SAMPLE_RATE_48K >= config.min_sample_rate()
+        && SAMPLE_RATE_48K <= config.max_sample_rate()
     })
     .expect("no supported config?!")
-    .with_sample_rate(SAMPLE_RATE);
+    .with_sample_rate(SAMPLE_RATE_48K);
 
   let config = supported_config.into();
   let mut started = false;
 
   device
     .build_output_stream(
-      &config,
+      config,
       move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
         for data_index in data.iter_mut() {
           *data_index = 0.0;
         }
-        if consumer.len() > 2 * 1024 * 1024 {
+        if consumer.occupied_len() > 2 * 1024 * 1024 {
           started = true;
         }
         if started {
@@ -152,6 +150,7 @@ fn audio_player(mut consumer: Consumer<f32>) -> Stream {
         }
       },
       move |err| log::error!("CPAL error: {:?}", err),
+      None,
     )
     .unwrap()
 }
